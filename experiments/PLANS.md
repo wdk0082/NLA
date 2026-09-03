@@ -73,7 +73,7 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 ## Pipeline (`experiments/001_nla_metrics.py --stage …`, resumable, artifacts under `exp_001/`)
 
 | stage | model on chip | writes |
-|---|---|---|
+| --- | --- | --- |
 | `extract` | target | `contexts.parquet` (doc, pos, ids, x_text), `h.npy` [N,d], `logits_top.parquet` |
 | `verbalize` | AV | `explanations.parquet` (raw, explanation, n_tokens, truncated), `resamples.parquet` |
 | `edit` | target (as editor) | `claims.parquet`, `variants.parquet` (idx, kind, claim_id, text) |
@@ -192,7 +192,7 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 ## Pipeline (`experiments/002_*.py --stage …`, artifacts `exp_002[_tag]/`)
 
 | stage | resident | notes |
-|---|---|---|
+| --- | --- | --- |
 | `sanity` | AV, then AR | verbalize the 64 shipped activations with adapters 300 and 800, reconstruct, FVE |
 | `extract` | target | contexts, h (raw), p top tokens |
 | `verbalize` | AV | Karvonen injection hook, T = 1, ≤ 256 tokens, resamples |
