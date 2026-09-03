@@ -304,7 +304,7 @@ def stage_edit(cfg: Config, d: Path) -> None:
     rs_path = d / "resamples.parquet"
     if rs_path.exists():
         for r in io.read_parquet(rs_path).itertuples():
-            if isinstance(r.explanation, str) and r.explanation.strip() and int(r.idx) in expl:
+            if isinstance(r.explanation, str) and r.explanation.strip() and int(r.idx) in set(idxs):
                 var_rows.append(
                     {
                         "idx": int(r.idx),
