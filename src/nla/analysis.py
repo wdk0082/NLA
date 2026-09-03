@@ -53,7 +53,30 @@ def build_claim_table(d: Path) -> pd.DataFrame:
             on=["idx", "claim_id"],
             how="left",
         )
+    # which snippet (blank-line separated paragraph of z) the anchoring excerpt sits in:
+    # for this NLA, "first" = genre/structure, "middle" = mid-sentence content, "last" = "Final token …"
+    variants = io.read_parquet(d / "variants.parquet")
+    orig = variants[variants.kind == "orig"].set_index("idx").text
+    if "excerpt" in t:
+        t["snippet"] = [snippet_of(orig.loc[i], e) for i, e in zip(t.idx, t.excerpt, strict=True)]
     return t
+
+
+def snippet_of(z: str, excerpt: object) -> str:
+    if not isinstance(excerpt, str) or not excerpt:
+        return "unanchored"
+    pos = z.find(excerpt)
+    if pos < 0:
+        return "unanchored"
+    n = len(z.split("\n\n"))
+    k = z[:pos].count("\n\n")
+    if n <= 1:
+        return "single"
+    if k == 0:
+        return "first"
+    if k >= n - 1:
+        return "last"
+    return "middle"
 
 
 def build_alignment(d: Path) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
@@ -167,6 +190,17 @@ def analyze(d: Path) -> dict:
             corr[f"{a}~{b}"] = {"spearman": round(r, 4), "p": p}
     summary["claim_correlations"] = corr
     print("\nSpearman correlations:", json.dumps({k: v["spearman"] for k, v in corr.items()}))
+    if "snippet" in t:
+        gs = t.groupby("snippet")[cols].median()
+        gs["n"] = t.groupby("snippet").size()
+        for c in ("I_h", "I_o", "S_h"):
+            if c in t:
+                gs[f"{c}_mean"] = t.groupby("snippet")[c].mean()
+        summary["by_snippet"] = gs.round(4).to_dict("index")
+        print(
+            "\n=== claim profiles by snippet of the explanation (medians; *_mean for heavy tails) ==="
+        )
+        print(gs.round(3).to_string())
     # S_x-conditioned view: claims the input contradicts vs supports
     if "S_x" in t:
         bins = pd.cut(
@@ -201,6 +235,26 @@ def analyze(d: Path) -> dict:
         print("\n=== NLI label validity (z -> z' fwd, z' -> z bwd) ===")
         print(gv.round(3).to_string())
 
+    vpath = d / "variants.parquet"
+    if vpath.exists():
+        var = io.read_parquet(vpath)
+        if "sim_to_orig" in var:
+            m = pairs.merge(
+                var[["idx", "kind", "claim_id", "sim_to_orig"]],
+                on=["idx", "kind", "claim_id"],
+                how="left",
+            )
+            m = m[m.sim_to_orig.notna() & (m.kind != "resample")]
+            if len(m) > 5:
+                r, pv = _spearman(1 - m.sim_to_orig, m.dist_to_orig)
+                summary["dist_vs_lexical_change_spearman"] = {
+                    "spearman": round(r, 4),
+                    "p": pv,
+                    "n": len(m),
+                }
+                print(
+                    f"\nSpearman(lexical change, reconstruction distance) over edited variants = {r:.3f} (n={len(m)})"
+                )
     io.write_json(summary, d / "summary.json")
     make_plots(d, t, curves, pairs, rec)
     return summary
@@ -307,6 +361,32 @@ def make_plots(
             hover_data=["claim"],
             title="Claim profiles",
         ).write_html(pd_ / "claim_profiles.html")
+
+    # 3b. lexical similarity vs reconstruction distance (is the AR distance lexical?)
+    vpath = d / "variants.parquet"
+    if vpath.exists():
+        var = io.read_parquet(vpath)
+        if "sim_to_orig" in var:
+            m = pairs.merge(
+                var[["idx", "kind", "claim_id", "sim_to_orig"]],
+                on=["idx", "kind", "claim_id"],
+                how="left",
+            )
+            m = m[m.sim_to_orig.notna() & (m.kind != "resample")]
+            if len(m) > 5:
+                plt.figure(figsize=(6.5, 4))
+                for k in kinds:
+                    g = m[m.kind == k]
+                    if len(g):
+                        plt.scatter(1 - g.sim_to_orig, g.dist_to_orig, s=10, alpha=0.6, label=k)
+                plt.xlabel("lexical change (1 − difflib similarity to z)")
+                plt.ylabel("normalised distance ‖R(z)−R(z′)‖²/V_h")
+                plt.yscale("symlog", linthresh=0.01)
+                plt.legend(fontsize=7)
+                plt.title("Reconstruction distance vs lexical change")
+                plt.tight_layout()
+                plt.savefig(pd_ / "distance_vs_lexical.png", dpi=130)
+                plt.close()
 
     # 4. FVE distribution
     plt.figure(figsize=(6, 3.6))
