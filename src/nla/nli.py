@@ -48,13 +48,14 @@ class NLI:
         out = np.zeros((len(premises), 3), dtype=np.float32)
         for s in range(0, len(premises), batch_size):
             p = [self._premise(x) for x in premises[s : s + batch_size]]
-            h = hypotheses[s : s + batch_size]
+            # hypotheses are claims (short) or whole variant texts (long): cap by characters
+            h = [x[: self.premise_tail_chars] for x in hypotheses[s : s + batch_size]]
             enc = self.tok(
                 p,
                 h,
                 return_tensors="pt",
                 padding=True,
-                truncation="only_first",
+                truncation="longest_first",  # only_first fails when the hypothesis alone exceeds max_length
                 max_length=self.max_length,
             )
             enc = {k: v.to(self.device) for k, v in enc.items()}
