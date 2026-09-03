@@ -37,4 +37,5 @@ if [[ "${FORCE:-0}" != "1" ]]; then
 fi
 echo "Launching (detached) on $TPU_NAME:  $*"
 echo "  log: $LOG_DIR_VM/$name.log"
-tpu_ssh --command "mkdir -p $LOG_DIR_VM && cd \$HOME/$REPO_NAME && nohup env PYTHONUNBUFFERED=1 $inject ./bin/run python -u $* > $LOG_DIR_VM/$name.log 2>&1 < /dev/null & sleep 2; echo PID \$!; tail -n 3 $LOG_DIR_VM/$name.log"
+# setsid -f: new session, fully detached from sshd (plain nohup & left the ssh call hanging).
+tpu_ssh --command "mkdir -p $LOG_DIR_VM && cd \$HOME/$REPO_NAME && setsid -f env PYTHONUNBUFFERED=1 $inject ./bin/run python -u $* > $LOG_DIR_VM/$name.log 2>&1 < /dev/null; sleep 3; pgrep -af '[p]ython -u experiments/' | cut -c1-120; tail -n 3 $LOG_DIR_VM/$name.log"
