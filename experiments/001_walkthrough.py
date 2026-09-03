@@ -212,7 +212,7 @@ def build(D: dict) -> str:
     # ---------- page 1 pieces ----------
     sm, sg = D["summary_main"], D["summary_gold"]
     rk_m, rk_g = sm["recon_by_kind"], sg["recon_by_kind"]
-    ok_m, ok_g = sm["output_by_kind"], sg["output_by_kind"]
+    ok_m = sm["output_by_kind"]
     al_m, al_g = sm["alignment"], sg["alignment"]
     cs_m, cs_g = sm["claims"]["stats"], sg["claims"]["stats"]
 
@@ -868,6 +868,8 @@ def main() -> None:
     )
     a = p.parse_args()
     doc = build(extract(a.idx, a.main, a.gold))
+    # the templates are indented one level inside build(); drop that so the file is tidy
+    doc = "\n".join(ln[4:] if ln.startswith("    ") else ln for ln in doc.split("\n"))
     if not a.bare:
         # the generated document starts with <title>, <link>s and <style> (head material), then the markup
         head_end = doc.index("</style>") + len("</style>")
