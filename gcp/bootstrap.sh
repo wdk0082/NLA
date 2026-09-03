@@ -13,10 +13,13 @@ require PROJECT_ID ZONE TPU_NAME
 REPO_NAME="$(basename "${GIT_REMOTE%.git}")"
 REF="${GIT_REF:-main}"
 TORCH_XLA_VERSION="${TORCH_XLA_VERSION:-2.9.0}" # match the torch pin in pyproject (torch==2.9.0)
-# Big caches live on the VM's RAM disk (/dev/shm, 87 GB on a v6e-1 host with 172 GB RAM): the boot
-# disk is small and mostly full. RAM contents vanish on stop/reboot -> models re-download (~5 min).
-VM_HF_HOME="${VM_HF_HOME:-/dev/shm/hf}"
-VM_UV_CACHE_DIR="${VM_UV_CACHE_DIR:-/dev/shm/uv-cache}"
+# Big caches live on a RAM disk: the v6e-1 host has 172 GB RAM and a small, mostly full boot
+# disk. A dedicated tmpfs at $VM_RAMDISK (NOT /dev/shm: logind's RemoveIPC=yes wipes a user's
+# /dev/shm files at logout). RAM contents vanish on stop/reboot -> models re-download (~1 min).
+VM_RAMDISK="${VM_RAMDISK:-/mnt/ramdisk}"
+VM_RAMDISK_SIZE="${VM_RAMDISK_SIZE:-80G}"
+VM_HF_HOME="${VM_HF_HOME:-$VM_RAMDISK/hf}"
+VM_UV_CACHE_DIR="${VM_UV_CACHE_DIR:-$VM_RAMDISK/uv-cache}"
 
 scp_to_vm() { # scp_to_vm <local-path> <remote-path>
     gcloud compute tpus tpu-vm scp "$1" "$TPU_NAME:$2" \
@@ -40,6 +43,9 @@ cat > "$REMOTE" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 export PATH=\$HOME/.local/bin:\$PATH
+if ! mountpoint -q $VM_RAMDISK; then
+    sudo mkdir -p $VM_RAMDISK && sudo mount -t tmpfs -o size=$VM_RAMDISK_SIZE,mode=1777 tmpfs $VM_RAMDISK
+fi
 export UV_CACHE_DIR=$VM_UV_CACHE_DIR HF_HOME=$VM_HF_HOME
 mkdir -p $VM_UV_CACHE_DIR $VM_HF_HOME
 if [ -f \$HOME/.ssh/deploy_key ]; then
