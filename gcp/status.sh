@@ -10,7 +10,7 @@ gcloud compute tpus tpu-vm describe "${TPU_NAME:-}" \
 
 if [[ "$(tpu_state)" == "READY" && "${1:-}" != "--no-ssh" ]]; then
     echo "=== jobs on the VM ==="
-    tpu_ssh --command 'pgrep -af "bin/run python" || echo "(no ./bin/run python process)"; echo "--- disk ---"; df -h / | tail -1; echo "--- latest logs ---"; ls -t ~/scratch/logs 2>/dev/null | head -3' 2>/dev/null || true
+    tpu_ssh --command 'pgrep -af "[p]ython -u experiments/" || echo "(no experiment process)"; echo "--- disk ---"; df -h / | tail -1; echo "--- latest logs ---"; ls -t ~/scratch/logs 2>/dev/null | head -3' 2>/dev/null || true
 fi
 
 echo "=== storage (account ${GCS_ACCOUNT:-default}) ==="

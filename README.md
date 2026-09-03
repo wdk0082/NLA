@@ -34,3 +34,5 @@ gcp/stop.sh
 ```
 
 See `experiments/PLANS.md` (design) and `experiments/NOTEBOOKS.md` (what happened, per round).
+Results of EXP001 (n = 512, plus a 24-activation hand-edited gold cell) are in
+`experiments/results/exp_001{,_gold}/` — `summary.json`, `claim_metrics.csv`, `alignment.csv` and PNG plots.
