@@ -63,8 +63,8 @@ def sync_to_gcs(local_dir: Path, subdir: str | None = None) -> None:
     """Mirror `local_dir` to $GCS_ARTIFACTS[/subdir] with gsutil (VM). No-op when unset
     or when gsutil is missing (laptop analysis runs)."""
     dest = os.environ.get("GCS_ARTIFACTS", "")
-    if not dest or shutil.which("gsutil") is None:
-        return
+    if not dest or shutil.which("gsutil") is None or os.environ.get("DEVICE", "").lower() != "tpu":
+        return  # only the VM pushes; laptop runs work on pulled copies
     dest = dest.rstrip("/") + "/" + (subdir or local_dir.name)
     cmd = ["gsutil", "-m", "-q", "rsync", "-r", str(local_dir), dest]
     print(f"[gcs] {' '.join(cmd)}", flush=True)

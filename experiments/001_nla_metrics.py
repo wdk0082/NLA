@@ -59,7 +59,9 @@ class Config:
     target_batch: int = 16
     # nli
     nli_batch: int = 16
-    nli_max_idx: int = 128  # label-validity NLI only on activations idx < this
+    nli_max_idx: int = (
+        100000  # label-validity NLI only on activations idx < this (subset when slow)
+    )
     nli_premise_chars: int = 1000
     # models (env overridable)
     target_model: str = os.environ.get("TARGET_MODEL", "Qwen/Qwen2.5-7B-Instruct")
@@ -508,6 +510,7 @@ def stage_nli(cfg: Config, d: Path) -> None:
     t0 = time.time()
     torch.set_num_threads(max(1, (os.cpu_count() or 2) - 2))
     nli = NLI(cfg.nli_model, premise_tail_chars=cfg.nli_premise_chars)
+    log(f"NLI device {nli.device}")
     log(f"NLI loaded in {time.time() - t0:.0f}s")
 
     # S_x(c): premise = context x, hypothesis = claim

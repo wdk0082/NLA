@@ -1,5 +1,8 @@
 """NLI scoring (DeBERTa-v3 MNLI/FEVER/ANLI) for input-text consistency S_x(c) and for
-validating constructed equivalence labels. Runs on CPU (tiny model, dynamic shapes)."""
+validating constructed equivalence labels.
+
+Dynamic shapes -> not run under torch_xla. Device "auto" = Apple MPS when available (the
+laptop's M4 does ~57 ms/pair vs ~1.4 s/pair on the TPU VM's CPU), else CPU."""
 
 from __future__ import annotations
 
@@ -13,9 +16,20 @@ LABELS = ("entailment", "neutral", "contradiction")
 
 
 class NLI:
-    def __init__(self, model_id: str, max_length: int = 512, premise_tail_chars: int = 1500):
+    def __init__(
+        self,
+        model_id: str,
+        max_length: int = 512,
+        premise_tail_chars: int = 1500,
+        device: str = "auto",
+    ):
+        if device == "auto":
+            device = "mps" if torch.backends.mps.is_available() else "cpu"
+        self.device = torch.device(device)
         self.tok: Any = AutoTokenizer.from_pretrained(model_id)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_id).eval()
+        self.model = (
+            AutoModelForSequenceClassification.from_pretrained(model_id).eval().to(self.device)
+        )
         id2label = {int(k): v.lower() for k, v in self.model.config.id2label.items()}
         self.order = [
             next(i for i, lab in id2label.items() if lab.startswith(name[:6])) for name in LABELS
