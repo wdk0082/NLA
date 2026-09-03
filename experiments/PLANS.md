@@ -136,40 +136,44 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
     `Summary of the following text: <text>{explanation}</text> <summary>`, value read at the
     last token; `critic_suffix_ids` is null, so verify the suffix ourselves once;
   - injection is **not** the EXP001 embedding replacement: EasyNLA's Karvonen hook ADDS
-    the norm-matched vector to the residual at the marker position after block 1,
-    `h′_p = h_p + ‖h_p‖·v/‖v‖`, marker `㈜` (id 158983, neighbours 29 / 510), prompt
-    template as in `nla_meta.yaml`, chat template applied with `enable_thinking=False`;
+    the norm-matched vector to the residual stream at the marker position on the output
+    of the second block (`model.layers[1]`), `h′_p = h_p + ‖h_p‖·v/‖v‖`, marker `㈜`
+    (id 158983, neighbours 29 / 510), prompt template as in `nla_meta.yaml`, chat template
+    applied with `enable_thinking=False`;
   - sanity anchor: `data/example_activations.parquet` (64 layer-42 activations with source
-    text) must reproduce the author's FVE before anything else runs.
+    text) must land near the author's FVE (0.76 at adapter step 300, 0.78 at 800) before
+    anything else runs.
 - **Memory plan** target + AR resident together (89 GB) for extract / reconstruct / output;
   the AV (56 GB) swaps in for verbalize. Stages stay sequential and resumable.
-- **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled).
-  Clean = single-domain documents from a few expository domains, capped at 256 tokens.
-  **Clean start, random end.** The context begins at the start of a paragraph of running
-  prose (first character a capital letter, ≥ 40 words, no bullet / numbering / heading
-  pattern, ends with sentence punctuation), not at the raw document start — in EXP001 the
-  contexts started at token 0 of the web page, and 7 % began with a bullet, a date or a
-  non-Latin header while others opened with a product title before any sentence. The END
-  position (the extraction token t) is random: drawn uniformly ≥ 50 tokens after that fixed
-  start (as in NLA training), with one filter on it: the final token is a whole alphabetic word (leading-space word token,
-  no punctuation, no word-piece continuation), so that final-token claims are natural and
-  replaceable. Sentence-end cuts are deliberately avoided (every final token would be a
-  full stop).
-  Default n = 256 activations, one position per document; 8 resamples on the first 64.
+- **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled):
+  documents from a few expository domains (chosen in the first round), one context per
+  document, contexts of at most 256 tokens. **Fixed clean start, random end:**
+  - the context starts at the first token of a paragraph of running prose: first character
+    a capital letter, ≥ 40 words, no bullet / numbering / heading pattern, ending in
+    sentence punctuation (EXP001 started at token 0 of the raw page: 7 % of contexts opened
+    with a bullet, a date or a non-Latin header, others with a product title);
+  - the end position, the extraction token t, is drawn uniformly ≥ 50 tokens after that
+    start (as in NLA training) and must be a whole alphabetic word (leading-space word
+    token, no punctuation, no word-piece continuation), so final-token claims are natural
+    and replaceable. Sentence-end cuts are avoided on purpose: every final token would be
+    a full stop.
+  - Default n = 256 activations; 8 resamples on the first 64.
 - **Editing: hand edits by default** (`--editor hand`). The pipeline stops after
   verbalize, writes the template, the agent authors every item (forked subagents, ~24
-  explanations each), the run resumes from `edit` with the file. The local 7B/27B editor
-  is the fallback, off by default. Per explanation the hand-made set contains:
+  explanations each), the run resumes from `edit` with the file. A local model editor (the
+  target model prompted, as in EXP001) is the fallback, off by default. Per explanation
+  the hand-made set contains:
   - claims (≤ 4) with verbatim excerpt and an excerpt-level contradiction (as EXP001);
-  - **polarity flip**: every claim-bearing sentence negated with not / doesn't / un-,
+  - **polarity flip**: the meaning of every sentence flipped with not / doesn't / un-,
     vocabulary unchanged, existing negations removed rather than doubled;
-  - **vocabulary swap**: k content words replaced by antonyms or unrelated words of the
-    same category, structure unchanged (k logged so lexical change is matched);
-  - **final token → "cat"**: mechanical, every mention of the quoted final token replaced,
-    including continuation claims that depend on it;
-  - a paraphrase with lexical change matched to the vocabulary swap (its H = 1 twin);
+  - **vocabulary swap**: one content word per sentence replaced by an antonym, or by an
+    unrelated word of the same category when there is none, structure unchanged — one
+    word per sentence so its lexical change matches the polarity flip's;
+  - **final token → "cat"**: mechanical, every mention of the quoted final token replaced;
+  - a paraphrase whose lexical change matches the vocabulary swap (its H = 1 twin);
   - a French translation (kept for continuity, but treated as a weak H = 1 given EXP001).
-  Programmatic as before: deletion of each excerpt, snippet shuffle, unrelated.
+  Programmatic as before: deletion of each excerpt, snippet shuffle, unrelated. Every
+  variant records its lexical change (difflib ratio to z), so matching can be checked.
 
 ## Metrics
 
@@ -177,10 +181,11 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   S_o, I_h / I_o, N(z, z′) and the two alignment errors as curves over τ, calibration
   references (identity patch, mean activation, unrelated, resample).
 - Added: **NLI_claim** (excerpt vs replacement, both directions) next to **NLI_whole**
-  (z vs z′); per-kind distance and KL distributions for the three new whole-explanation
-  kinds and their matched paraphrase; histograms of the "cat" edit's S_h, S_o and of its
-  distance, and the same numbers for polarity flip vs vocabulary swap at equal lexical
-  change; the lexical-change-vs-distance scatter and the by-snippet table as in EXP001.
+  (z vs z′). For each whole-explanation kind k the per-activation effects
+  `ΔL_h(k) = L_h(z_k) − L_h(z)`, `ΔL_o(k) = L_o(z_k) − L_o(z)` and `dist(z, z_k)`: their
+  distributions (histograms) for the "cat" edit, and polarity flip vs vocabulary swap vs
+  matched paraphrase side by side; the lexical-change-vs-distance scatter and the
+  by-snippet table as in EXP001.
 - Optional diagnostic (not a headline metric): a local-window probe of token dominance,
   KL between p at t from the full context and from the last few tokens only.
 
@@ -188,8 +193,8 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 | stage | resident | notes |
 |---|---|---|
-| `sanity` | target + AR | FVE on the 64 shipped activations; AV adapter 300 vs 800 on them |
-| `extract` | target | contexts, h (raw), p top tokens, entropy of p |
+| `sanity` | AV, then AR | verbalize the 64 shipped activations with adapters 300 and 800, reconstruct, FVE |
+| `extract` | target | contexts, h (raw), p top tokens |
 | `verbalize` | AV | Karvonen injection hook, T = 1, ≤ 256 tokens, resamples |
 | `edit` | — | hand-edit file (default) or local editor; programmatic kinds |
 | `reconstruct` | AR | R(z′), L_h, distances |
@@ -199,9 +204,10 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 ## Knobs (defaults)
 
-- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--final-token-filter word`, `--n-resample 8`
-  on 64, `--max-claims 4`, `--av-adapter iter_000300`, `--editor hand`, `--vocab-swap-k 3`,
-  seed 0. Batch sizes to be set on the machine.
+- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--domains <set chosen in round 1>`,
+  `--start-filter prose`, `--final-token-filter word`, `--n-resample 8` on 64,
+  `--max-claims 4`, `--av-adapter iter_000300`, `--editor hand`,
+  `--vocab-swap-per-sentence 1`, seed 0. Batch sizes to be set on the machine.
 
 ## Hypotheses
 
@@ -210,12 +216,13 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 - H2 At matched lexical change, polarity flips move R(z) less than vocabulary swaps
   (the AR reads words, not polarity); if instead flips move it as much, the 27B AR reads
   meaning where the 7B AR did not.
-- H3 The "cat" edit's effect is wide and concentrated: large where the token identity is
-  load-bearing for the activation, near zero elsewhere.
-- H4 With lexical change matched, the EXP001 inversion (contradictions closer than
-  paraphrases, AUC 0.33) either disappears or is confirmed as a property of the AR.
-- H5 S_h stays uncorrelated with S_x on the 27B (confabulated claims supported as much as
-  entailed ones), or not.
+- H3 The "cat" edit's ΔL_h and ΔL_o are wide and concentrated: large where the token
+  identity is load-bearing for the activation, near zero elsewhere.
+- H4 With lexical change matched, contradictions are no longer closer to z than
+  paraphrases (AUC > 0.5); if the EXP001 inversion (AUC 0.33) persists, it is a property
+  of the AR rather than of the edit design.
+- H5 S_h stays uncorrelated with S_x on the 27B: the AR supports confabulated claims as
+  much as text-entailed ones.
 
 ## Parked / out of scope
 
