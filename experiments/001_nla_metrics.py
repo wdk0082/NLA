@@ -370,7 +370,7 @@ def stage_reconstruct(cfg: Config, d: Path) -> None:
     out["r_norm"] = np.linalg.norm(recon, axis=1)
     # distance between each variant and its own explanation's reconstruction (N(z,z') input)
     orig = out[out.kind == "orig"].set_index("idx").vid
-    r_orig = r[orig.loc[variants.idx].to_numpy()]
+    r_orig = r[torch.from_numpy(orig.loc[variants.idx].to_numpy().copy())]
     out["dist_to_orig"] = (mse_nrm(r_orig, r, scale) / v).numpy()
     # predict-the-mean reference
     hn = normalize_rows(h, scale)
