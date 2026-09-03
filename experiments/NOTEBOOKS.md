@@ -81,3 +81,23 @@ Round log for the plan in `PLANS.md` (# EXP001).
   or resamples (0.033): AUC of distance separating H=0 from H=1 is 0.39 (< 0.5); at the
   resample-median τ, ε_steg 0.79 and ε_alias 0.54. Full-run round decides whether this
   holds at n = 512.
+
+## Round 3 — full run (n = 512), 2026-09-03
+
+### Setup
+- `--stage extract,verbalize,edit,reconstruct,output --n 512 --av-batch 32 --ar-batch 32
+  --target-batch 16 --editor-batch 32 --n-resample 8 --resample-subset 64` on the TPU
+  (log `~/scratch/logs/001_nla_metrics_20260903_021003.log`), then `nli,analyze` on the
+  laptop (MPS) on the pulled artifacts. Plan defaults otherwise; editor v2. 1 seed.
+- Companion cell `exp_001_gold`: same extract/verbalize outputs (`--copy-from exp_001`),
+  `--editor file:configs/gold_edits_exp001.jsonl` — hand-authored claims / excerpts /
+  contradictions / paraphrases / translations for idx 0..23 (the user's option (i)).
+
+### Core thing to verify
+- H1–H4 of the plan at n = 512, and whether the smoke picture (contradictions barely move
+  R(z); paraphrases move it more; importance sits in the "Final token" snippet) holds.
+- Whether the local 7B editor's edits agree with hand-made ones on the same explanations
+  (gold cell): same direction and magnitude of S/I profiles and alignment errors.
+
+### Conclusion
+_(pending)_
