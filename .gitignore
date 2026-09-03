@@ -1,0 +1,71 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+downloads/
+*.egg-info/
+*.egg
+.eggs/
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+.pytest_cache/
+
+# Jupyter / IPython
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# Environments
+.env
+.envrc
+.venv
+env/
+venv/
+ENV/
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# Ruff
+.ruff_cache/
+
+# Project-specific
+.cache/
+outputs/
+artifacts/
+wandb/
+screenshots/
+*.code-workspace
+.vscode/
+
+# GCP credentials — NEVER commit service-account keys
+gcp/keys/
+*sa-key.json
+*service-account*.json
+application_default_credentials.json
+
+# Vendored third-party clones (kept locally, not tracked)
+third_party/*/
+!third_party/*/README.md
+
+# Local backups of env files
+.env.*.bak
+# Pulled artifacts / scratch
+artifacts/
+scratch/
