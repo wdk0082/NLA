@@ -10,8 +10,8 @@ Decisions from the discussion after reading the EXP001 walkthrough. Details live
    `data/example_activations.parquet` before anything else.
 2. **Data.** Start with clean in-distribution contexts (single-domain FineFineWeb
    documents, ≤ 256 tokens): the context starts at the start of a prose paragraph (a real
-   sentence start, not the raw page start), the cut position is random and ≥ 50 tokens
-   later, and the final token is a whole word (no sentence-end cuts). Constructed contexts
+   sentence start, not the raw page start), only the end position (the extraction token) is
+   random, ≥ 50 tokens after that start, and it must be a whole word (no sentence-end cuts). Constructed contexts
    with a planted fact come after, not in this experiment.
 3. **Hand edits are the default.** All claims, excerpts, contradictions, paraphrases and
    translations are authored by the agent (forked subagents); the local model editor is

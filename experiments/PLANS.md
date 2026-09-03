@@ -149,9 +149,9 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   prose (first character a capital letter, ≥ 40 words, no bullet / numbering / heading
   pattern, ends with sentence punctuation), not at the raw document start — in EXP001 the
   contexts started at token 0 of the web page, and 7 % began with a bullet, a date or a
-  non-Latin header while others opened with a product title before any sentence. The cut
-  position stays random and ≥ 50 tokens after that start (as in NLA training), with one
-  filter on the end: the final token is a whole alphabetic word (leading-space word token,
+  non-Latin header while others opened with a product title before any sentence. The END
+  position (the extraction token t) is random: drawn uniformly ≥ 50 tokens after that fixed
+  start (as in NLA training), with one filter on it: the final token is a whole alphabetic word (leading-space word token,
   no punctuation, no word-piece continuation), so that final-token claims are natural and
   replaceable. Sentence-end cuts are deliberately avoided (every final token would be a
   full stop).
