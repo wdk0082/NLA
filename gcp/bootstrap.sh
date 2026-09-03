@@ -13,6 +13,10 @@ require PROJECT_ID ZONE TPU_NAME
 REPO_NAME="$(basename "${GIT_REMOTE%.git}")"
 REF="${GIT_REF:-main}"
 TORCH_XLA_VERSION="${TORCH_XLA_VERSION:-2.9.0}" # match the torch pin in pyproject (torch==2.9.0)
+# Big caches live on the VM's RAM disk (/dev/shm, 87 GB on a v6e-1 host with 172 GB RAM): the boot
+# disk is small and mostly full. RAM contents vanish on stop/reboot -> models re-download (~5 min).
+VM_HF_HOME="${VM_HF_HOME:-/dev/shm/hf}"
+VM_UV_CACHE_DIR="${VM_UV_CACHE_DIR:-/dev/shm/uv-cache}"
 
 scp_to_vm() { # scp_to_vm <local-path> <remote-path>
     gcloud compute tpus tpu-vm scp "$1" "$TPU_NAME:$2" \
@@ -36,6 +40,8 @@ cat > "$REMOTE" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 export PATH=\$HOME/.local/bin:\$PATH
+export UV_CACHE_DIR=$VM_UV_CACHE_DIR HF_HOME=$VM_HF_HOME
+mkdir -p $VM_UV_CACHE_DIR $VM_HF_HOME
 if [ -f \$HOME/.ssh/deploy_key ]; then
     chmod 600 \$HOME/.ssh/deploy_key
     git config --global core.sshCommand "ssh -i \$HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
@@ -47,7 +53,7 @@ if [ ! -d \$HOME/$REPO_NAME/.git ]; then
 fi
 cd \$HOME/$REPO_NAME
 git fetch origin $REF && git checkout $REF && git pull --ff-only
-mkdir -p \$HOME/scratch/hf \$HOME/scratch/uv-cache \$HOME/scratch/artifacts \$HOME/scratch/logs
+mkdir -p \$HOME/scratch/artifacts \$HOME/scratch/logs
 uv sync --frozen --all-groups
 # torch_xla (TPU): Linux/TPU-only, pinned to match the torch in pyproject.
 uv pip install "torch_xla[tpu]==$TORCH_XLA_VERSION" --find-links https://storage.googleapis.com/libtpu-releases/index.html --find-links https://storage.googleapis.com/libtpu-wheels/index.html
@@ -60,8 +66,19 @@ scp_to_vm "$REMOTE" "~/bootstrap_remote.sh"
 rm -f "$REMOTE"
 tpu_ssh --command "bash ~/bootstrap_remote.sh"
 
-# 4. Drop a .env on the VM so bin/run works (launch.sh injects DEVICE=tpu etc.).
+# 4. Drop a .env on the VM so bin/run works (launch.sh injects DEVICE=tpu etc.), with the
+#    VM-only overrides appended (later lines win when bin/run sources the file).
 echo "Copying .env to the VM…"
-scp_to_vm "$REPO_DIR/.env" "~/$REPO_NAME/.env"
+VMENV="$(mktemp)"
+cat "$REPO_DIR/.env" > "$VMENV"
+cat >> "$VMENV" <<EOF2
+
+# --- [VM overrides] appended by gcp/bootstrap.sh ---
+DEVICE=tpu
+HF_HOME=$VM_HF_HOME
+UV_CACHE_DIR=$VM_UV_CACHE_DIR
+EOF2
+scp_to_vm "$VMENV" "~/$REPO_NAME/.env"
+rm -f "$VMENV"
 
 echo "Bootstrap complete. Run an experiment with:  gcp/launch.sh <script.py>"
