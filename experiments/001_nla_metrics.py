@@ -34,6 +34,7 @@ STAGES = ["extract", "verbalize", "edit", "reconstruct", "output", "nli", "analy
 class Config:
     exp: str = "exp_001"
     tag: str = ""  # suffix on the artifact dir, e.g. "smoke"
+    copy_from: str = ""  # seed a fresh tagged dir with another run's extract+verbalize outputs
     n: int = 512
     corpus: str = "ultrafineweb"
     corpus_skip: int = 0
@@ -570,6 +571,20 @@ RUNNERS = {
 def main() -> None:
     cfg, stages = parse_args()
     d = io.exp_dir(cfg.name)
+    if cfg.copy_from and not (d / "explanations.parquet").exists():
+        import shutil
+
+        src = io.artifact_root() / cfg.copy_from
+        for f in (
+            "contexts.parquet",
+            "h.npy",
+            "logits_top.parquet",
+            "explanations.parquet",
+            "resamples.parquet",
+        ):
+            if (src / f).exists():
+                shutil.copy(src / f, d / f)
+        log(f"seeded {d} with extract/verbalize outputs from {src}")
     io.write_json(asdict(cfg), d / f"config_{int(time.time())}.json")
     log(f"EXP001 stages={stages} dir={d} device={os.environ.get('DEVICE', '')}")
     for s in stages:
