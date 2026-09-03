@@ -104,3 +104,116 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 - Human equivalence labels; WildChat contexts; other NLA sizes; a learned norm for
   `R(z)` (we reuse `‖h‖`); multiple positions per document; API-based editors.
+
+# EXP002 — Same metrics on a 27B NLA, clean data, hand edits, matched edit kinds
+
+## Goal
+
+- Re-run the EXP001 metric pipeline on the community-released NLA for Qwen3.6-27B on an
+  H200, with cleaner in-distribution contexts, hand-authored edits by default, and three
+  whole-explanation edit kinds that separate *meaning change* from *wording change*, which
+  EXP001 could not (its contradictions were minimal, its meaning-preserving edits were
+  heavy rewordings, and reconstruction distance tracked lexical change at ρ = 0.90).
+- Same deliverable form as EXP001: plan, notebook rounds, `experiments/results/exp_002*/`,
+  and the two-page walkthrough (`experiments/001_walkthrough.py` generalised to a run tag).
+
+## Setup
+
+- **Hardware** one H200 (141 GB HBM); no TPU, no torch_xla. The model layer is plain HF
+  transformers on CUDA with forward hooks (the static-shape Qwen2 code of EXP001 is not
+  used); generation through HF `generate` with the LoRA adapter loaded via peft.
+- **Target model** `Qwen/Qwen3.6-27B`, text part only (`model_type qwen3_5`: 64 blocks,
+  48 gated-DeltaNet linear-attention + 16 full-attention, d = 5120, vocab 248 320). The HF
+  repo is a multimodal wrapper; load the language model (EasyNLA's `arch_adapters` shows
+  how). 54 GB bf16. Needs the `flash-linear-attention` kernels for the DeltaNet blocks.
+- **NLA** `ceselder/qwen3.6-27b-nla-rl` (built with EasyNLA, MATS, 2026-07):
+  - extraction after block 42 (⌊2·64/3⌋), raw activations, `norm: none`;
+  - AV = `av_base/` (base with the warm-start LoRA merged, 54 GB) + one RL adapter from
+    `av_rl_adapters/iter_000{100..800}` (r64 rsLoRA, 1.9 GB). Default `iter_000300` (the
+    author's suggestion); the first round also measures `iter_000800` (highest held-out
+    FVE, 0.78, and the adapter the released AR was co-trained with last);
+  - AR = `ar_reconstructor/` (43 blocks + `value_head` 5120×5120, 35 GB), critic template
+    `Summary of the following text: <text>{explanation}</text> <summary>`, value read at the
+    last token; `critic_suffix_ids` is null, so verify the suffix ourselves once;
+  - injection is **not** the EXP001 embedding replacement: EasyNLA's Karvonen hook ADDS
+    the norm-matched vector to the residual at the marker position after block 1,
+    `h′_p = h_p + ‖h_p‖·v/‖v‖`, marker `㈜` (id 158983, neighbours 29 / 510), prompt
+    template as in `nla_meta.yaml`, chat template applied with `enable_thinking=False`;
+  - sanity anchor: `data/example_activations.parquet` (64 layer-42 activations with source
+    text) must reproduce the author's FVE before anything else runs.
+- **Memory plan** target + AR resident together (89 GB) for extract / reconstruct / output;
+  the AV (56 GB) swaps in for verbalize. Stages stay sequential and resumable.
+- **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled).
+  Clean = single-domain documents from a few expository domains, capped at 256 tokens.
+  The cut position stays random and ≥ 50 tokens in (as in NLA training), with one filter:
+  the final token is a whole alphabetic word (leading-space word token, no punctuation,
+  no word-piece continuation), so that final-token claims are natural and replaceable.
+  Default n = 256 activations, one position per document; 8 resamples on the first 64.
+- **Editing: hand edits by default** (`--editor hand`). The pipeline stops after
+  verbalize, writes the template, the agent authors every item (forked subagents, ~24
+  explanations each), the run resumes from `edit` with the file. The local 7B/27B editor
+  is the fallback, off by default. Per explanation the hand-made set contains:
+  - claims (≤ 4) with verbatim excerpt and an excerpt-level contradiction (as EXP001);
+  - **polarity flip**: every claim-bearing sentence negated with not / doesn't / un-,
+    vocabulary unchanged, existing negations removed rather than doubled;
+  - **vocabulary swap**: k content words replaced by antonyms or unrelated words of the
+    same category, structure unchanged (k logged so lexical change is matched);
+  - **final token → "cat"**: mechanical, every mention of the quoted final token replaced,
+    including continuation claims that depend on it;
+  - a paraphrase with lexical change matched to the vocabulary swap (its H = 1 twin);
+  - a French translation (kept for continuity, but treated as a weak H = 1 given EXP001).
+  Programmatic as before: deletion of each excerpt, snippet shuffle, unrelated.
+
+## Metrics
+
+- Unchanged from EXP001 (# EXP001 → Metrics): L_h, L_o with the borrowed ‖h‖, S_x / S_h /
+  S_o, I_h / I_o, N(z, z′) and the two alignment errors as curves over τ, calibration
+  references (identity patch, mean activation, unrelated, resample).
+- Added: **NLI_claim** (excerpt vs replacement, both directions) next to **NLI_whole**
+  (z vs z′); per-kind distance and KL distributions for the three new whole-explanation
+  kinds and their matched paraphrase; histograms of the "cat" edit's S_h, S_o and of its
+  distance, and the same numbers for polarity flip vs vocabulary swap at equal lexical
+  change; the lexical-change-vs-distance scatter and the by-snippet table as in EXP001.
+- Optional diagnostic (not a headline metric): a local-window probe of token dominance,
+  KL between p at t from the full context and from the last few tokens only.
+
+## Pipeline (`experiments/002_*.py --stage …`, artifacts `exp_002[_tag]/`)
+
+| stage | resident | notes |
+|---|---|---|
+| `sanity` | target + AR | FVE on the 64 shipped activations; AV adapter 300 vs 800 on them |
+| `extract` | target | contexts, h (raw), p top tokens, entropy of p |
+| `verbalize` | AV | Karvonen injection hook, T = 1, ≤ 256 tokens, resamples |
+| `edit` | — | hand-edit file (default) or local editor; programmatic kinds |
+| `reconstruct` | AR | R(z′), L_h, distances |
+| `output` | target | patched KL, references |
+| `nli` | judge (same GPU) | NLI_whole, NLI_claim, S_x |
+| `analyze` | — | tables, curves, plots, walkthrough |
+
+## Knobs (defaults)
+
+- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--final-token-filter word`, `--n-resample 8`
+  on 64, `--max-claims 4`, `--av-adapter iter_000300`, `--editor hand`, `--vocab-swap-k 3`,
+  seed 0. Batch sizes to be set on the machine.
+
+## Hypotheses
+
+- H1 The shipped sample activations reproduce the author's FVE (pipeline correctness);
+  contexts sampled as above land near it (in-distribution).
+- H2 At matched lexical change, polarity flips move R(z) less than vocabulary swaps
+  (the AR reads words, not polarity); if instead flips move it as much, the 27B AR reads
+  meaning where the 7B AR did not.
+- H3 The "cat" edit's effect is wide and concentrated: large where the token identity is
+  load-bearing for the activation, near zero elsewhere.
+- H4 With lexical change matched, the EXP001 inversion (contradictions closer than
+  paraphrases, AUC 0.33) either disappears or is confirmed as a property of the AR.
+- H5 S_h stays uncorrelated with S_x on the 27B (confabulated claims supported as much as
+  entailed ones), or not.
+
+## Parked / out of scope
+
+- Two plausibility levels for the final-token edit (one version, "cat", only).
+- Constructed contexts with a planted fact (the stage after clean in-distribution data).
+- A learned norm for R(z) (‖h‖ is borrowed, as in EXP001); entropy of p as a proxy for
+  token dominance (confounded: "2+3=" has low entropy from the context, not the token).
+- Any training; vLLM/SGLang serving (HF generate is enough at this scale).
