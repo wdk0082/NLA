@@ -57,8 +57,9 @@ class NLI:
                 truncation="only_first",
                 max_length=self.max_length,
             )
+            enc = {k: v.to(self.device) for k, v in enc.items()}
             pr = torch.softmax(self.model(**enc).logits.float(), dim=-1)[:, self.order]
-            out[s : s + len(p)] = pr.numpy()
+            out[s : s + len(p)] = pr.cpu().numpy()
         return out
 
 
