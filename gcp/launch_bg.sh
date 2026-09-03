@@ -11,7 +11,7 @@ require PROJECT_ID ZONE TPU_NAME GIT_REMOTE
 
 REPO_NAME="$(basename "${GIT_REMOTE%.git}")"
 REF="${GIT_REF:-main}"
-LOG_DIR_VM="${LOG_DIR:-\$HOME/scratch/logs}"
+LOG_DIR_VM='$HOME/scratch/logs'   # expanded on the VM (the laptop .env would expand $HOME locally)
 stamp="$(date -u +%Y%m%d_%H%M%S)"
 name="$(basename "${1%.py}")_${stamp}"
 
@@ -25,7 +25,7 @@ for v in DRY_RUN; do
     [[ -n "${!v:-}" ]] && inject="$inject $v='${!v}'"
 done
 
-guard='if [[ "${FORCE:-0}" != "1" ]] && pgrep -f "bin/run python" >/dev/null; then echo "REFUSING: a ./bin/run python process is already running (FORCE=1 to override)"; pgrep -af "bin/run python"; exit 2; fi'
+guard='if [[ "${FORCE:-0}" != "1" ]] && pgrep -f "[p]ython -u experiments/" >/dev/null; then echo "REFUSING: an experiment process is already running (FORCE=1 to override)"; pgrep -af "[p]ython -u experiments/"; exit 2; fi'
 echo "Launching (detached) on $TPU_NAME:  $*"
 echo "  log: $LOG_DIR_VM/$name.log"
 tpu_ssh --command "FORCE=${FORCE:-0}; $guard; mkdir -p $LOG_DIR_VM && cd \$HOME/$REPO_NAME && nohup env PYTHONUNBUFFERED=1 $inject ./bin/run python -u $* > $LOG_DIR_VM/$name.log 2>&1 < /dev/null & sleep 2; echo PID \$!; tail -n 3 $LOG_DIR_VM/$name.log"
