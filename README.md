@@ -36,3 +36,5 @@ gcp/stop.sh
 See `experiments/PLANS.md` (design) and `experiments/NOTEBOOKS.md` (what happened, per round).
 Results of EXP001 (n = 512, plus a 24-activation hand-edited gold cell) are in
 `experiments/results/exp_001{,_gold}/` — `summary.json`, `claim_metrics.csv`, `alignment.csv` and PNG plots.
+A self-contained explainer (setup, one activation's full lifecycle, all plots) is
+`experiments/results/exp_001_walkthrough.html`, built by `experiments/001_walkthrough.py`.
