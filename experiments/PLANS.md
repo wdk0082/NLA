@@ -145,9 +145,16 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   the AV (56 GB) swaps in for verbalize. Stages stay sequential and resumable.
 - **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled).
   Clean = single-domain documents from a few expository domains, capped at 256 tokens.
-  The cut position stays random and ≥ 50 tokens in (as in NLA training), with one filter:
-  the final token is a whole alphabetic word (leading-space word token, no punctuation,
-  no word-piece continuation), so that final-token claims are natural and replaceable.
+  **Clean start, random end.** The context begins at the start of a paragraph of running
+  prose (first character a capital letter, ≥ 40 words, no bullet / numbering / heading
+  pattern, ends with sentence punctuation), not at the raw document start — in EXP001 the
+  contexts started at token 0 of the web page, and 7 % began with a bullet, a date or a
+  non-Latin header while others opened with a product title before any sentence. The cut
+  position stays random and ≥ 50 tokens after that start (as in NLA training), with one
+  filter on the end: the final token is a whole alphabetic word (leading-space word token,
+  no punctuation, no word-piece continuation), so that final-token claims are natural and
+  replaceable. Sentence-end cuts are deliberately avoided (every final token would be a
+  full stop).
   Default n = 256 activations, one position per document; 8 resamples on the first 64.
 - **Editing: hand edits by default** (`--editor hand`). The pipeline stops after
   verbalize, writes the template, the agent authors every item (forked subagents, ~24
