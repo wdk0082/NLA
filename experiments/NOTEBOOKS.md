@@ -45,3 +45,39 @@ Round log for the plan in `PLANS.md` (# EXP001).
   Round 2 switches to span-anchored edits.
 - French translation moves the reconstruction a lot (FVE 0.76 → 0.28, KL 4.7): for this
   NLA "translate" is not a meaning-preserving transformation from the AR's point of view.
+
+## Round 2 — smoke with span-anchored edits (n = 8), 2026-09-03
+
+### Setup
+- Same smoke data as round 1 (`--copy` of its extract/verbalize outputs), stages
+  `edit,reconstruct,output,nli,analyze`. Editor v2 (`src/nla/editor.py`): the editor
+  names a verbatim excerpt per claim; deletion removes the excerpt programmatically;
+  contradiction replaces the excerpt with an editor-written rewrite of the excerpt only;
+  paraphrase prompt asks for sentence-by-sentence rewording. NLI label validity on all
+  edited variants. Log `~/scratch/logs/001_nla_metrics_20260903_020016.log`. 1 seed.
+
+### Core thing to verify
+- The edits are real, minimal and correctly labelled (NLI), so that S/I profiles and the
+  alignment pairs mean what the spec says.
+
+### Conclusion
+| kind | n | L_h | FVE | dist to R(z) med | L_o mean / med | NLI z→z′ entail / contra |
+|---|---|---|---|---|---|---|
+| orig | 8 | 0.238 | 0.762 | 0 | 0.100 / 0.059 | — |
+| resample | 8 | 0.227 | 0.773 | 0.033 | 0.148 / 0.132 | — |
+| paraphrase (v2) | 8 | 0.389 | 0.611 | 0.097 | 0.157 / 0.115 | 0.996 / 0.001 (bwd 0.98 / 0.005) |
+| shuffle | 8 | 0.419 | 0.581 | 0.033 | 2.53 / 0.145 | — |
+| translate | 8 | 0.719 | 0.281 | 0.589 | 4.73 / 5.37 | 0.993 / 0.003 |
+| contradict (v2) | 16 | 0.236 | 0.764 | 0.003 | 0.103 / 0.051 | 0.074 / 0.857 |
+| delete (v2) | 16 | 0.321 | 0.679 | 0.027 | 1.05 / 0.072 | 0.814 / 0.150 |
+| unrelated | 8 | 2.19 | −1.19 | 2.19 | 10.3 / 11.9 | — |
+
+- Edits are now valid: contradictions are judged contradictions (P = 0.86), deletions
+  entailed (0.81), paraphrases entailed both ways (0.99 / 0.98) and no longer verbatim.
+  16 of 21 claims got an anchoring excerpt (2 per explanation).
+- Claim profiles (16 anchored claims): S_h mean 0.015 (48 % > 0), S_o 0.005, I_h 0.10
+  (71 % > 0), I_o 0.96 with one outlier (median 0). S_x mean 0.13.
+- Alignment: contradictions move R(z) far less (median 0.003) than paraphrases (0.097)
+  or resamples (0.033): AUC of distance separating H=0 from H=1 is 0.39 (< 0.5); at the
+  resample-median τ, ε_steg 0.79 and ε_alias 0.54. Full-run round decides whether this
+  holds at n = 512.
