@@ -29,12 +29,17 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 - **Verbalization** canonical sidecar prompt, activation rescaled to L2 = 150 and injected
   at the `<concept>` slot, sampling at T = 1 (as in training), ≤ 256 new tokens, seed 0.
   Resamples (seeds 1..k) on a subset give the sampling noise floor.
-- **Claim editor** (no API keys available): Qwen2.5-7B-Instruct itself, greedy, tag-based
-  outputs (`src/nla/editor.py`): ≤ 4 atomic claims per explanation; per claim a
-  *contradicted* and a *deleted* rewrite (minimal edits); per explanation a *paraphrase* and
-  a *French translation*. Programmatic: *shuffle* (snippet order) and *unrelated*
-  (another activation's explanation, derangement). A `FileEditor` backend accepts
-  hand-authored edits (gold subset, if time allows).
+- **Claim editor** (no API keys available): Qwen2.5-7B-Instruct itself, greedy, tag/line
+  based outputs (`src/nla/editor.py`), **span-anchored**: the editor lists ≤ 4 atomic claims,
+  each with a verbatim excerpt of the explanation that expresses it. *Deletion* removes the
+  excerpt programmatically; *contradiction* replaces the excerpt with an editor-written
+  rewrite of that excerpt only (so both edits are minimal and verifiable — whole-text
+  rewrites by a 7B model were not, see the notebook). Per explanation also a *paraphrase*
+  (sentence-by-sentence rewording) and a *French translation*. Programmatic: *shuffle*
+  (snippet order) and *unrelated* (another activation's explanation, derangement).
+  Every variant records its lexical similarity to the original (difflib ratio).
+  A `FileEditor` backend accepts hand-authored edits in the same excerpt/replacement
+  format (gold subset).
 
 ## Metrics (as implemented; `src/nla/metrics.py`)
 
@@ -59,7 +64,11 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   `F(h)` (KL should be ≈ 0 — checks the patching code).
 - Label validity diagnostics: NLI between `z` and each variant (paraphrase should be
   bidirectionally entailed; contradicted should contradict), parse/tag failure rates,
-  truncation rates.
+  anchoring rate, truncation rates.
+- Structure diagnostics: claim profiles broken down by the snippet the excerpt sits in
+  (first = genre/structure, middle = mid-sentence content, last = "Final token …"), and
+  the rank correlation between lexical change and reconstruction distance across edited
+  variants (is the AR's notion of distance lexical?).
 
 ## Pipeline (`experiments/001_nla_metrics.py --stage …`, resumable, artifacts under `exp_001/`)
 
@@ -77,7 +86,8 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 - `--n 512` activations; `--n-resample 8` extra AV samples on the first 64 activations;
   `--max-claims 4`; `--max-ctx 512`; `--min-pos 50`; `--max-new 256`; `--temperature 1.0`;
-  batch sizes AV 32, AR 32, target 16, editor 16; seed 0.
+  batch sizes AV 32, AR 32, target 16, editor 32; seed 0. The `nli` and `analyze` stages run
+  on the laptop (Apple MPS is ~25× faster than the VM's CPU for DeBERTa) on pulled artifacts.
 
 ## Hypotheses / diagnostics
 
