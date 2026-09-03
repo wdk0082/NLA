@@ -25,7 +25,16 @@ for v in DRY_RUN; do
     [[ -n "${!v:-}" ]] && inject="$inject $v='${!v}'"
 done
 
-guard='if [[ "${FORCE:-0}" != "1" ]] && pgrep -f "[p]ython -u experiments/" >/dev/null; then echo "REFUSING: an experiment process is already running (FORCE=1 to override)"; pgrep -af "[p]ython -u experiments/"; exit 2; fi'
+# The guard runs in its own ssh call: a wrapper that carried both the pattern and the
+# launch command would match itself.
+if [[ "${FORCE:-0}" != "1" ]]; then
+    running="$(tpu_ssh --command 'pgrep -af "[p]ython -u experiments/" || true' 2>/dev/null | grep -E 'python -u experiments/' || true)"
+    if [[ -n "$running" ]]; then
+        echo "REFUSING: an experiment process is already running on $TPU_NAME (FORCE=1 to override):" >&2
+        echo "$running" >&2
+        exit 2
+    fi
+fi
 echo "Launching (detached) on $TPU_NAME:  $*"
 echo "  log: $LOG_DIR_VM/$name.log"
-tpu_ssh --command "FORCE=${FORCE:-0}; $guard; mkdir -p $LOG_DIR_VM && cd \$HOME/$REPO_NAME && nohup env PYTHONUNBUFFERED=1 $inject ./bin/run python -u $* > $LOG_DIR_VM/$name.log 2>&1 < /dev/null & sleep 2; echo PID \$!; tail -n 3 $LOG_DIR_VM/$name.log"
+tpu_ssh --command "mkdir -p $LOG_DIR_VM && cd \$HOME/$REPO_NAME && nohup env PYTHONUNBUFFERED=1 $inject ./bin/run python -u $* > $LOG_DIR_VM/$name.log 2>&1 < /dev/null & sleep 2; echo PID \$!; tail -n 3 $LOG_DIR_VM/$name.log"
