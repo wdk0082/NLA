@@ -58,6 +58,8 @@ class Config:
     target_batch: int = 16
     # nli
     nli_batch: int = 16
+    nli_max_idx: int = 128  # label-validity NLI only on activations idx < this
+    nli_premise_chars: int = 1000
     # models (env overridable)
     target_model: str = os.environ.get("TARGET_MODEL", "Qwen/Qwen2.5-7B-Instruct")
     nla_av: str = os.environ.get("NLA_AV", "kitft/nla-qwen2.5-7b-L20-av")
@@ -229,7 +231,7 @@ def stage_verbalize(cfg: Config, d: Path) -> None:
 
 
 def stage_edit(cfg: Config, d: Path) -> None:
-    from nla.editor import FileEditor, LocalEditor, derangement, shuffle_snippets
+    from nla.editor import FileEditor, LocalEditor, derangement, shuffle_snippets, similarity
 
     ex = io.read_parquet(d / "explanations.parquet")
     expl = {
@@ -260,7 +262,15 @@ def stage_edit(cfg: Config, d: Path) -> None:
         z = expl[e.idx]
         var_rows.append({"idx": e.idx, "kind": "orig", "claim_id": -1, "text": z})
         for j, c in enumerate(e.claims):
-            claims_rows.append({"idx": e.idx, "claim_id": j, "claim": c})
+            claims_rows.append(
+                {
+                    "idx": e.idx,
+                    "claim_id": j,
+                    "claim": c,
+                    "excerpt": e.spans[j],
+                    "anchored": e.spans[j] is not None,
+                }
+            )
             if e.contradicted[j]:
                 var_rows.append(
                     {"idx": e.idx, "kind": "contradict", "claim_id": j, "text": e.contradicted[j]}
@@ -269,7 +279,7 @@ def stage_edit(cfg: Config, d: Path) -> None:
                 var_rows.append(
                     {"idx": e.idx, "kind": "delete", "claim_id": j, "text": e.deleted[j]}
                 )
-        if e.paraphrase:
+        if e.paraphrase and e.paraphrase != z:
             var_rows.append(
                 {"idx": e.idx, "kind": "paraphrase", "claim_id": -1, "text": e.paraphrase}
             )
@@ -303,6 +313,9 @@ def stage_edit(cfg: Config, d: Path) -> None:
     claims = pd.DataFrame(claims_rows)
     variants = pd.DataFrame(var_rows)
     variants["vid"] = np.arange(len(variants))
+    variants["sim_to_orig"] = [
+        similarity(expl[i], t) for i, t in zip(variants.idx, variants.text, strict=True)
+    ]
     io.write_parquet(claims, d / "claims.parquet")
     io.write_parquet(variants, d / "variants.parquet")
     (d / "edits_raw.jsonl").write_text(
@@ -311,9 +324,12 @@ def stage_edit(cfg: Config, d: Path) -> None:
     log(
         f"claims/explanation: {len(claims) / max(len(edits), 1):.2f}; variant counts:\n{variants.kind.value_counts().to_string()}"
     )
-    n_c = len(claims)
+    n_c = max(len(claims), 1)
     log(
-        f"edit success: contradict {variants.kind.eq('contradict').sum() / max(n_c, 1):.3f}  delete {variants.kind.eq('delete').sum() / max(n_c, 1):.3f}  paraphrase {variants.kind.eq('paraphrase').sum() / max(len(edits), 1):.3f}  translate {variants.kind.eq('translate').sum() / max(len(edits), 1):.3f}"
+        f"claims anchored {claims.anchored.mean() if len(claims) else 0:.3f};  edit success: contradict {variants.kind.eq('contradict').sum() / n_c:.3f}  delete {variants.kind.eq('delete').sum() / n_c:.3f}  paraphrase {variants.kind.eq('paraphrase').sum() / max(len(edits), 1):.3f}  translate {variants.kind.eq('translate').sum() / max(len(edits), 1):.3f}"
+    )
+    log(
+        f"similarity to original (difflib ratio):\n{variants.groupby('kind').sim_to_orig.describe()[['mean', '50%', 'min']].round(3).to_string()}"
     )
     finish(d, "edit", cfg)
 
@@ -326,7 +342,7 @@ def stage_reconstruct(cfg: Config, d: Path) -> None:
     from nla.hub import snapshot
 
     variants = io.read_parquet(d / "variants.parquet")
-    h = torch.from_numpy(load_h(d))
+    h = torch.from_numpy(load_h(d).copy())
     device = get_device()
     tok = tokenizer_for(cfg.nla_ar)
     t0 = time.time()
@@ -342,7 +358,7 @@ def stage_reconstruct(cfg: Config, d: Path) -> None:
 
     v = var_nrm(h, scale)
     r = torch.from_numpy(recon)
-    hh = h[variants.idx.to_numpy()]
+    hh = h[torch.from_numpy(variants.idx.to_numpy().copy())]
     m = mse_nrm(hh, r, scale).numpy()
     out = variants[["vid", "idx", "kind", "claim_id"]].copy()
     out["mse_nrm"] = m
@@ -385,7 +401,6 @@ def stage_output(cfg: Config, d: Path) -> None:
 
     ctx = io.read_parquet(d / "contexts.parquet")
     variants = io.read_parquet(d / "variants.parquet")
-    recon = load_h(d) * 0  # placeholder shape check below
     recon = np.load(d / "recon.npy")
     h = load_h(d)
     device = get_device()
@@ -490,7 +505,8 @@ def stage_nli(cfg: Config, d: Path) -> None:
     variants = io.read_parquet(d / "variants.parquet")
     orig = variants[variants.kind == "orig"].set_index("idx").text
     t0 = time.time()
-    nli = NLI(cfg.nli_model)
+    torch.set_num_threads(max(1, (os.cpu_count() or 2) - 2))
+    nli = NLI(cfg.nli_model, premise_tail_chars=cfg.nli_premise_chars)
     log(f"NLI loaded in {time.time() - t0:.0f}s")
 
     # S_x(c): premise = context x, hypothesis = claim
@@ -503,17 +519,23 @@ def stage_nli(cfg: Config, d: Path) -> None:
         f"S_x: mean {cl.S_x.mean():.3f}  frac>0 {(cl.S_x > 0).mean():.3f}  frac<0 {(cl.S_x < 0).mean():.3f}  ({time.time() - t0:.0f}s)"
     )
 
-    # label validity: NLI(z -> z') and NLI(z' -> z) for text variants
+    # label validity on a subset: NLI(z -> z') for edited variants, plus NLI(z' -> z) for paraphrases
     tv = variants[
-        variants.kind.isin(
-            ["contradict", "delete", "paraphrase", "translate", "shuffle", "unrelated"]
-        )
+        variants.kind.isin(["contradict", "delete", "paraphrase", "translate"])
+        & (variants.idx < cfg.nli_max_idx)
     ].copy()
     z = [orig.loc[i] for i in tv.idx]
+    t0 = time.time()
     fwd = nli.probs(z, tv.text.tolist(), cfg.nli_batch)
-    bwd = nli.probs(tv.text.tolist(), z, cfg.nli_batch)
     tv["p_entail_fwd"], tv["p_contra_fwd"] = fwd[:, 0], fwd[:, 2]
-    tv["p_entail_bwd"], tv["p_contra_bwd"] = bwd[:, 0], bwd[:, 2]
+    tv["p_entail_bwd"], tv["p_contra_bwd"] = np.nan, np.nan
+    is_par = (tv.kind == "paraphrase").to_numpy()
+    if is_par.any():
+        bwd = nli.probs(
+            tv.text[is_par].tolist(), [orig.loc[i] for i in tv.idx[is_par]], cfg.nli_batch
+        )
+        tv.loc[is_par, "p_entail_bwd"], tv.loc[is_par, "p_contra_bwd"] = bwd[:, 0], bwd[:, 2]
+    log(f"variant NLI on {len(tv)} pairs in {time.time() - t0:.0f}s")
     io.write_parquet(tv.drop(columns=["text"]), d / "nli_variants.parquet")
     summ = tv.groupby("kind")[
         ["p_entail_fwd", "p_contra_fwd", "p_entail_bwd", "p_contra_bwd"]

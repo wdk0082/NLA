@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 import json
+import os
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from nla.editor import FileEditor, _tag, derangement, parse_claims, shuffle_snippets
+from nla.editor import (
+    FileEditor,
+    _tag,
+    delete_span,
+    derangement,
+    locate_span,
+    parse_claims,
+    replace_span,
+    shuffle_snippets,
+)
 from nla.nlacfg import extract_explanation
+
+Z = 'Formal blog post, listing historical figures.\n\nThe phrase "x = 0" signals an aside, following the pattern of "The farm."\n\nFinal token "size" ends mid-sentence, expecting a noun phrase like "solved".'
 
 
 def test_extract_explanation():
@@ -17,20 +29,50 @@ def test_extract_explanation():
     assert extract_explanation("<explanation> unterminated") is None
 
 
-def test_parse_claims():
-    txt = 'Here you go:\n1. The text is formal.\n2) It mentions "kings".\n3. x\nignored line\n4. Fourth claim here.'
-    assert parse_claims(txt, 4) == [
-        "The text is formal.",
-        'It mentions "kings".',
-        "Fourth claim here.",
+def test_locate_span_exact_ci_fuzzy():
+    assert locate_span(Z, "listing historical figures") == (
+        Z.find("listing"),
+        Z.find("listing") + len("listing historical figures"),
+    )
+    assert (
+        locate_span(Z, '"Listing Historical Figures"') is not None
+    )  # quotes stripped + case-insensitive
+    assert locate_span(Z, "signals an aside, following the patern of") is not None  # fuzzy (typo)
+    assert locate_span(Z, "completely unrelated words here") is None
+
+
+def test_parse_claims_and_edits():
+    txt = (
+        "1. CLAIM: The post is formal. | EXCERPT: Formal blog post\n"
+        '2) CLAIM: The phrase signals an aside. | EXCERPT: "signals an aside"\n'
+        "3. CLAIM: Missing anchor. | EXCERPT: not in the text at all\n"
+        "4. CLAIM: Duplicate anchor. | EXCERPT: Formal blog post\n"
+        "5. CLAIM: Too many. | EXCERPT: Final token"
+    )
+    parsed = parse_claims(txt, Z, 4)
+    assert [c for c, _ in parsed] == [
+        "The post is formal.",
+        "The phrase signals an aside.",
+        "Missing anchor.",
+        "Duplicate anchor.",
     ]
-    assert parse_claims(txt, 1) == ["The text is formal."]
+    assert (
+        parsed[0][1] == (0, len("Formal blog post"))
+        and parsed[1][1] is not None
+        and parsed[2][1] is None
+        and parsed[3][1] is None
+    )
+    d = delete_span(Z, parsed[1][1])
+    assert d is not None and "signals an aside" not in d and "Formal blog post" in d
+    assert delete_span(Z, (0, 0)) is None  # no-op deletion -> None
+    r = replace_span(Z, parsed[0][1], "Informal blog post")
+    assert r is not None and r.startswith("Informal blog post, listing")
+    assert replace_span(Z, parsed[0][1], "Formal blog post") is None  # unchanged -> None
 
 
 def test_tag_parsing():
-    t = "<contradicted>\nA changed.\n</contradicted>\n<deleted>\nB.\n</deleted>"
-    assert _tag(t, "contradicted") == "A changed."
-    assert _tag(t, "deleted") == "B."
+    t = "<replacement>\nA changed.\n</replacement>"
+    assert _tag(t, "replacement") == "A changed."
     assert (
         _tag("<paraphrase>\nonly open tag then truncated", "paraphrase")
         == "only open tag then truncated"
@@ -39,9 +81,8 @@ def test_tag_parsing():
 
 
 def test_shuffle_and_derangement():
-    z = "First snippet.\n\nSecond snippet.\n\nThird snippet."
-    s = shuffle_snippets(z, 0)
-    assert s is not None and s != z and sorted(s.split("\n\n")) == sorted(z.split("\n\n"))
+    s = shuffle_snippets(Z, 0)
+    assert s is not None and s != Z and sorted(s.split("\n\n")) == sorted(Z.split("\n\n"))
     assert shuffle_snippets("One sentence only", 0) is None
     p = derangement(7, 3)
     assert sorted(p) == list(range(7)) and all(p[i] != i for i in range(7))
@@ -51,27 +92,25 @@ def test_file_editor(tmp_path):
     rows = [
         {
             "idx": 0,
-            "claims": ["c0", "c1"],
-            "edits": [{"claim_id": 0, "contradicted": "z0", "deleted": "d0"}],
+            "claims": [
+                {"claim": "c0", "excerpt": "Formal blog post", "contradiction": "Casual chat log"},
+                {"claim": "c1", "excerpt": "zzz"},
+            ],
             "paraphrase": "p0",
-            "translation": None,
         },
-        {"idx": 2, "claims": [], "edits": []},
+        {"idx": 2, "claims": []},
     ]
     f = tmp_path / "edits.jsonl"
     f.write_text("\n".join(json.dumps(r) for r in rows))
-    ed = FileEditor(f).edit_all({0: "z", 1: "y", 2: "x"}, max_claims=4)
+    ed = FileEditor(f).edit_all({0: Z, 1: "y", 2: "x"}, max_claims=4)
     assert [e.idx for e in ed] == [0, 2]
-    assert (
-        ed[0].claims == ["c0", "c1"]
-        and ed[0].contradicted == ["z0", None]
-        and ed[0].deleted == ["d0", None]
-    )
-    assert ed[0].paraphrase == "p0" and ed[0].translation is None
+    assert ed[0].claims == ["c0", "c1"] and ed[0].spans == ["Formal blog post", None]
+    assert ed[0].contradicted[0].startswith("Casual chat log") and ed[0].contradicted[1] is None
+    assert ed[0].deleted[0] is not None and ed[0].deleted[1] is None and ed[0].paraphrase == "p0"
 
 
 @pytest.mark.skipif(
-    not __import__("os").environ.get("NLA_NETWORK_TESTS"),
+    not os.environ.get("NLA_NETWORK_TESTS"),
     reason="needs HF hub tokenizer downloads (set NLA_NETWORK_TESTS=1)",
 )
 def test_sidecar_against_real_tokenizer():
@@ -124,7 +163,15 @@ def _fake_artifacts(d, n=6, d_model=8):
     for i in range(n):
         variants.append({"idx": i, "kind": "orig", "claim_id": -1, "text": f"A{i}. B{i}."})
         for j in range(2):
-            claims.append({"idx": i, "claim_id": j, "claim": f"claim {i}{j}"})
+            claims.append(
+                {
+                    "idx": i,
+                    "claim_id": j,
+                    "claim": f"claim {i}{j}",
+                    "excerpt": "A",
+                    "anchored": True,
+                }
+            )
             variants.append({"idx": i, "kind": "contradict", "claim_id": j, "text": "c"})
             variants.append({"idx": i, "kind": "delete", "claim_id": j, "text": "d"})
         for k in ("paraphrase", "translate", "shuffle", "unrelated"):
@@ -133,6 +180,7 @@ def _fake_artifacts(d, n=6, d_model=8):
             variants.append({"idx": i, "kind": "resample", "claim_id": k, "text": "rs"})
     variants = pd.DataFrame(variants)
     variants["vid"] = np.arange(len(variants))
+    variants["sim_to_orig"] = 0.5
     io.write_parquet(pd.DataFrame(claims), d / "claims.parquet")
     io.write_parquet(variants, d / "variants.parquet")
     rec = variants[["vid", "idx", "kind", "claim_id"]].copy()

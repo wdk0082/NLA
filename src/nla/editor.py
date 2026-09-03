@@ -1,18 +1,22 @@
-"""Claim decomposition and minimal edits of explanations.
+"""Claim decomposition and minimal edits of explanations (span-anchored).
 
-Backends:
-  * `LocalEditor` — Qwen2.5-7B-Instruct on the TPU through `nla.generate` (the automated
-    pipeline path; the weights are the target model's, so the edit stage reuses them).
-  * `FileEditor` — pre-authored edits from a JSONL file (one object per explanation:
-    {"idx", "claims": [...], "edits": [{"claim_id", "contradicted", "deleted"}],
-    "paraphrase", "translation"}) — the manual / gold path.
+A 7B editor asked to "rewrite the whole explanation with one claim changed" appends a
+negation or returns the text unchanged (EXP001 smoke round). So edits are anchored to a
+verbatim EXCERPT of the explanation that the editor names for each claim:
 
-Output formats are TAG-based (not JSON): explanations are full of double quotes, which
-7B models fail to escape reliably.
+  * deletion      z^{-c}  = z with the excerpt removed (programmatic, always minimal);
+  * contradiction z^{¬c}  = z with the excerpt replaced by an editor-written contradicting
+                            rewrite of that excerpt only (short output, verified != excerpt).
+
+Backends: `LocalEditor` (Qwen2.5-7B-Instruct on the TPU via `nla.generate`; the weights are
+the target model's) and `FileEditor` (pre-authored JSONL: manual / gold path).
+Output formats are TAG/line based (explanations are full of double quotes, which small
+models fail to escape in JSON).
 """
 
 from __future__ import annotations
 
+import difflib
 import json
 import random
 import re
@@ -38,37 +42,32 @@ DECOMPOSE = """<explanation>
 
 The text above is an explanation produced by an interpretability tool; it describes what a language model's internal state encodes about a text.
 
-Task: list the distinct atomic claims the explanation makes. Each claim must be a short, self-contained declarative sentence that can be checked on its own, reusing the explanation's own words where possible. Give at most {k} claims, most central first. Do not add claims the explanation does not make.
+Task: list the distinct atomic claims the explanation makes, at most {k}, most central first. For each claim give (a) the claim as a short self-contained declarative sentence and (b) the EXCERPT: the exact contiguous excerpt of the explanation that expresses this claim, copied verbatim character for character (a phrase, clause or sentence of at most 30 words; it must occur in the explanation exactly as written). Different claims must use different excerpts.
 
-Output ONLY a numbered list, one claim per line:
-1. ...
-2. ..."""
+Output ONLY lines of this form, nothing else:
+1. CLAIM: <sentence> | EXCERPT: <verbatim excerpt>
+2. CLAIM: <sentence> | EXCERPT: <verbatim excerpt>"""
 
-EDIT = """<explanation>
+CONTRADICT = """<explanation>
 {z}
 </explanation>
 
-<claim>
-{c}
-</claim>
+The explanation above contains this excerpt:
+<excerpt>{span}</excerpt>
+which makes the claim: {claim}
 
-Task: produce two edited versions of the explanation above.
-(A) CONTRADICTED: the same explanation, except that the claim is replaced by a claim that contradicts it (asserts the opposite, or an incompatible alternative). Change as little else as possible: keep every other claim, the structure, the wording and the length.
-(B) DELETED: the same explanation with the claim removed and not replaced. Change as little else as possible: keep every other claim and the wording; only fix grammar where the removal requires it.
+Task: rewrite ONLY that excerpt so that it asserts the opposite of the claim (or an incompatible alternative), keeping the excerpt's grammatical role, style and length, so that the rewrite can replace the original excerpt in place. Keep every other part of the explanation as it is (do not output it). Do not mention that anything was changed.
 
 Output exactly this format and nothing else:
-<contradicted>
+<replacement>
 ...
-</contradicted>
-<deleted>
-...
-</deleted>"""
+</replacement>"""
 
 PARAPHRASE = """<explanation>
 {z}
 </explanation>
 
-Task: rewrite the explanation so that it has exactly the same meaning but different wording: change sentence structure and vocabulary, keep every claim, add nothing, remove nothing, keep quoted words quoted.
+Task: rewrite the explanation in different words, sentence by sentence, using synonyms and different sentence structures throughout, so that no sentence is copied verbatim. Keep every claim, keep the paragraph structure, keep any quoted text unchanged inside its quotes, add nothing and remove nothing.
 
 Output exactly this format and nothing else:
 <paraphrase>
@@ -86,7 +85,9 @@ Output exactly this format and nothing else:
 ...
 </translation>"""
 
-_NUM_LINE = re.compile(r"^\s*(\d+)[.)]\s*(.+?)\s*$")
+_CLAIM_LINE = re.compile(
+    r"^\s*(\d+)[.)]\s*CLAIM:\s*(.+?)\s*\|\s*EXCERPT:\s*(.+?)\s*$", re.IGNORECASE
+)
 
 
 def _tag(text: str, tag: str) -> str | None:
@@ -97,22 +98,90 @@ def _tag(text: str, tag: str) -> str | None:
     return m.group(1).strip() if m and m.group(1).strip() else None
 
 
-def parse_claims(text: str, k: int) -> list[str]:
-    claims: list[str] = []
+def _unquote(s: str) -> str:
+    s = s.strip()
+    if len(s) >= 2 and s[0] in "\"'“‘" and s[-1] in "\"'”’":
+        return s[1:-1].strip()
+    return s
+
+
+def locate_span(z: str, excerpt: str, min_ratio: float = 0.85) -> tuple[int, int] | None:
+    """Find `excerpt` in `z`: exact, then case-insensitive, then the longest fuzzy match
+    (difflib) if it covers >= min_ratio of the excerpt. Returns (start, end) in z."""
+    for cand in (excerpt, _unquote(excerpt)):
+        if not cand:
+            continue
+        i = z.find(cand)
+        if i >= 0:
+            return i, i + len(cand)
+        i = z.lower().find(cand.lower())
+        if i >= 0:
+            return i, i + len(cand)
+    cand = _unquote(excerpt)
+    if len(cand) < 8:
+        return None
+    sm = difflib.SequenceMatcher(None, z, cand, autojunk=False)
+    m = sm.find_longest_match(0, len(z), 0, len(cand))
+    if m.size >= min_ratio * len(cand):
+        return m.a, m.a + m.size
+    return None
+
+
+def parse_claims(text: str, z: str, k: int) -> list[tuple[str, tuple[int, int] | None]]:
+    """-> [(claim, span or None)], at most k, spans located in z (None if not found)."""
+    out: list[tuple[str, tuple[int, int] | None]] = []
+    seen: set[tuple[int, int]] = set()
     for line in text.splitlines():
-        m = _NUM_LINE.match(line)
-        if m:
-            c = m.group(2).strip().strip('"').strip()
-            if len(c) > 3:
-                claims.append(c)
-    return claims[:k]
+        m = _CLAIM_LINE.match(line)
+        if not m:
+            continue
+        claim = _unquote(m.group(2))
+        if len(claim) < 4:
+            continue
+        span = locate_span(z, m.group(3))
+        if span is not None and span in seen:
+            span = None  # duplicate excerpt -> keep the claim, drop the anchor
+        if span is not None:
+            seen.add(span)
+        out.append((claim, span))
+        if len(out) >= k:
+            break
+    return out
+
+
+def delete_span(z: str, span: tuple[int, int]) -> str | None:
+    """Remove z[start:end] and tidy punctuation/whitespace; None if nothing changes."""
+    s, e = span
+    out = z[:s] + z[e:]
+    out = re.sub(r"\(\s*\)", "", out)
+    out = re.sub(r"[ \t]+([,.;:!?])", r"\1", out)
+    out = re.sub(r"([,;:])\s*([,;:])", r"\1", out)
+    out = re.sub(r"[ \t]{2,}", " ", out)
+    out = re.sub(r"^[ \t]*[,;:]\s*", "", out, flags=re.MULTILINE)
+    out = re.sub(r"\n{3,}", "\n\n", out)
+    lines = [ln.rstrip() for ln in out.split("\n")]
+    out = "\n".join(lines).strip()
+    return out if out and out != z else None
+
+
+def replace_span(z: str, span: tuple[int, int], new: str) -> str | None:
+    s, e = span
+    new = new.strip()
+    if not new or new == z[s:e].strip():
+        return None
+    return z[:s] + new + z[e:]
+
+
+def similarity(a: str, b: str) -> float:
+    return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
 @dataclass
 class Edits:
     idx: int
     claims: list[str] = field(default_factory=list)
-    contradicted: list[str | None] = field(default_factory=list)  # per claim
+    spans: list[str | None] = field(default_factory=list)  # excerpt text per claim
+    contradicted: list[str | None] = field(default_factory=list)  # per claim (full text)
     deleted: list[str | None] = field(default_factory=list)
     paraphrase: str | None = None
     translation: str | None = None
@@ -180,6 +249,8 @@ class LocalEditor:
     @torch.no_grad()
     def complete(self, prompts: list[str], max_new: int, log_tag: str = "") -> list[str]:
         """Greedy completions for a list of user prompts (batched, static shapes)."""
+        if not prompts:
+            return []
         manual_seed(0, self.device)
         outs: list[str] = []
         gen = GenConfig(max_new=max_new, temperature=0.0, eos_ids=self.eos_ids, check_every=16)
@@ -200,31 +271,40 @@ class LocalEditor:
 
     def edit_all(self, explanations: dict[int, str], max_claims: int = 4) -> list[Edits]:
         idxs = sorted(explanations)
-        # 1) claims
+        # 1) claims + anchoring excerpts
         dec = self.complete(
             [DECOMPOSE.format(z=explanations[i], k=max_claims) for i in idxs],
-            max_new=192,
+            max_new=320,
             log_tag="/claims",
         )
-        edits = {
-            i: Edits(idx=i, claims=parse_claims(t, max_claims), raw={"decompose": t})
-            for i, t in zip(idxs, dec, strict=True)
-        }
-        # 2) per-claim contradiction + deletion
-        jobs = [(i, j) for i in idxs for j in range(len(edits[i].claims))]
+        edits: dict[int, Edits] = {}
+        spans: dict[int, list[tuple[int, int] | None]] = {}
+        for i, t in zip(idxs, dec, strict=True):
+            parsed = parse_claims(t, explanations[i], max_claims)
+            e = Edits(idx=i, claims=[c for c, _ in parsed], raw={"decompose": t})
+            spans[i] = [s for _, s in parsed]
+            e.spans = [explanations[i][s[0] : s[1]] if s else None for s in spans[i]]
+            e.contradicted = [None] * len(parsed)
+            e.deleted = [delete_span(explanations[i], s) if s else None for s in spans[i]]
+            edits[i] = e
+        # 2) contradiction of the anchored excerpt only
+        jobs = [(i, j) for i in idxs for j, s in enumerate(spans[i]) if s is not None]
         res = self.complete(
-            [EDIT.format(z=explanations[i], c=edits[i].claims[j]) for i, j in jobs],
-            max_new=512,
-            log_tag="/edits",
+            [
+                CONTRADICT.format(
+                    z=explanations[i], span=edits[i].spans[j], claim=edits[i].claims[j]
+                )
+                for i, j in jobs
+            ],
+            max_new=96,
+            log_tag="/contradict",
         )
         for (i, j), t in zip(jobs, res, strict=True):
-            e = edits[i]
-            while len(e.contradicted) <= j:
-                e.contradicted.append(None)
-                e.deleted.append(None)
-            e.contradicted[j] = _tag(t, "contradicted")
-            e.deleted[j] = _tag(t, "deleted")
-            e.raw.setdefault("edit", {})[j] = t
+            rep = _tag(t, "replacement")
+            edits[i].contradicted[j] = (
+                replace_span(explanations[i], spans[i][j], rep) if rep else None
+            )
+            edits[i].raw.setdefault("contradict", {})[j] = t
         # 3) paraphrase, 4) translation
         par = self.complete(
             [PARAPHRASE.format(z=explanations[i]) for i in idxs], max_new=384, log_tag="/paraphrase"
@@ -240,7 +320,10 @@ class LocalEditor:
 
 
 class FileEditor:
-    """Edits pre-authored in a JSONL file (manual / gold path)."""
+    """Edits pre-authored in a JSONL file (manual / gold path). One object per explanation:
+    {"idx", "claims": [{"claim", "excerpt", "contradiction"}...], "paraphrase", "translation"}
+    where `excerpt` is a verbatim span of the explanation and `contradiction` is the
+    replacement for that span (deletion is derived programmatically)."""
 
     def __init__(self, path: str | Path):
         self.rows = {
@@ -253,19 +336,22 @@ class FileEditor:
             r = self.rows.get(i)
             if r is None:
                 continue
-            claims = list(r.get("claims", []))[:max_claims]
-            by_claim = {int(e["claim_id"]): e for e in r.get("edits", [])}
-            out.append(
-                Edits(
-                    idx=i,
-                    claims=claims,
-                    contradicted=[
-                        by_claim.get(j, {}).get("contradicted") for j in range(len(claims))
-                    ],
-                    deleted=[by_claim.get(j, {}).get("deleted") for j in range(len(claims))],
-                    paraphrase=r.get("paraphrase"),
-                    translation=r.get("translation"),
-                    raw={"source": "file"},
-                )
+            z = explanations[i]
+            e = Edits(
+                idx=i,
+                paraphrase=r.get("paraphrase"),
+                translation=r.get("translation"),
+                raw={"source": "file"},
             )
+            for c in list(r.get("claims", []))[:max_claims]:
+                span = locate_span(z, c.get("excerpt", "")) if c.get("excerpt") else None
+                e.claims.append(c["claim"])
+                e.spans.append(z[span[0] : span[1]] if span else None)
+                e.deleted.append(delete_span(z, span) if span else None)
+                e.contradicted.append(
+                    replace_span(z, span, c["contradiction"])
+                    if span and c.get("contradiction")
+                    else None
+                )
+            out.append(e)
         return out
