@@ -147,7 +147,8 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   the AV (56 GB) swaps in for verbalize. Stages stay sequential and resumable.
 - **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled):
   documents from a few expository domains (chosen in the first round), one context per
-  document, contexts of at most 256 tokens. **Fixed clean start, random end:**
+  document, contexts of at most 256 tokens; n = 256 activations by default, 8 resamples on
+  the first 64. **Fixed clean start, random end:**
   - the context starts at the first token of a paragraph of running prose: first character
     a capital letter, ≥ 40 words, no bullet / numbering / heading pattern, ending in
     sentence punctuation (EXP001 started at token 0 of the raw page: 7 % of contexts opened
@@ -157,7 +158,6 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
     token, no punctuation, no word-piece continuation), so final-token claims are natural
     and replaceable. Sentence-end cuts are avoided on purpose: every final token would be
     a full stop.
-  - Default n = 256 activations; 8 resamples on the first 64.
 - **Editing: hand edits by default** (`--editor hand`). The pipeline stops after
   verbalize, writes the template, the agent authors every item (forked subagents, ~24
   explanations each), the run resumes from `edit` with the file. A local model editor (the
@@ -193,10 +193,10 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 | stage | resident | notes |
 | --- | --- | --- |
-| `sanity` | AV, then AR | verbalize the 64 shipped activations with adapters 300 and 800, reconstruct, FVE |
+| `sanity` | AV, then AR | 64 shipped activations: verbalize with adapters 300 and 800, reconstruct, FVE |
 | `extract` | target | contexts, h (raw), p top tokens |
 | `verbalize` | AV | Karvonen injection hook, T = 1, ≤ 256 tokens, resamples |
-| `edit` | — | hand-edit file (default) or local editor; programmatic kinds |
+| `edit` | — (target for the fallback editor) | hand-edit file (default); programmatic kinds |
 | `reconstruct` | AR | R(z′), L_h, distances |
 | `output` | target | patched KL, references |
 | `nli` | judge (same GPU) | NLI_whole, NLI_claim, S_x |
@@ -204,15 +204,15 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 ## Knobs (defaults)
 
-- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--domains <set chosen in round 1>`,
-  `--start-filter prose`, `--final-token-filter word`, `--n-resample 8` on 64,
-  `--max-claims 4`, `--av-adapter iter_000300`, `--editor hand`,
+- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--domains …` (decided in round 1, recorded
+  in the notebook), `--start-filter prose`, `--final-token-filter word`, `--n-resample 8`,
+  `--resample-subset 64`, `--max-claims 4`, `--av-adapter iter_000300`, `--editor hand`,
   `--vocab-swap-per-sentence 1`, seed 0. Batch sizes to be set on the machine.
 
 ## Hypotheses
 
-- H1 The shipped sample activations reproduce the author's FVE (pipeline correctness);
-  contexts sampled as above land near it (in-distribution).
+- H1 The shipped sample activations land near the author's FVE (pipeline correctness);
+  contexts sampled as above land near it too (in-distribution).
 - H2 At matched lexical change, polarity flips move R(z) less than vocabulary swaps
   (the AR reads words, not polarity); if instead flips move it as much, the 27B AR reads
   meaning where the 7B AR did not.
@@ -227,7 +227,8 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 ## Parked / out of scope
 
 - Two plausibility levels for the final-token edit (one version, "cat", only).
-- Constructed contexts with a planted fact (the stage after clean in-distribution data).
+- Constructed contexts with a planted fact (the stage after clean in-distribution data);
+  WildChat contexts as an alternative in-distribution source.
 - A learned norm for R(z) (‖h‖ is borrowed, as in EXP001); entropy of p as a proxy for
   token dominance (confounded: "2+3=" has low entropy from the context, not the token).
 - Any training; vLLM/SGLang serving (HF generate is enough at this scale).
