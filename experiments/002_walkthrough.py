@@ -411,8 +411,10 @@ def build(D: dict) -> str:
     def variant_block(kind, title, what):
         v = V(kind)
         txt = paragraphs(esc(v["text"])) if v else "<p>— (not produced for this activation)</p>"
+        d_h = (v["L_h"] - orig_v["L_h"]) if v and orig_v.get("L_h") is not None else None
+        d_o = (v["L_o"] - orig_v["L_o"]) if v and orig_v.get("L_o") is not None else None
         n = (
-            f"lexical change {f3(1 - v['sim_to_orig'])} · dist {f3(v['dist_to_orig'])} · L_h {f3(v['L_h'])} · KL {f3(v['L_o'])}"
+            f"ΔL_h {fd(d_h)} · ΔL_o {fd(d_o)} nats · dist to R(z) {f3(v['dist_to_orig'])} · lexical change {f3(1 - v['sim_to_orig'])} · L_h {f3(v['L_h'])} · KL {f3(v['L_o'])}"
             + (
                 f" · NLI z→z′ entail {f3(v['p_entail_fwd'])} / contra {f3(v['p_contra_fwd'])}"
                 if v and v.get("p_entail_fwd") is not None
@@ -591,6 +593,7 @@ def build(D: dict) -> str:
     <p>I_h = L_h(z−c) − L_h(z) and I_o = KL(z−c) − KL(z): what the reconstruction loses when the claim is removed.</p>
     <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>dist to R(z)</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>
     <h3>Whole-explanation variants</h3>
+    <p>For a whole-explanation edit k the support-style numbers are ΔL_h = L_h(z_k) − L_h(z) and ΔL_o = KL(z_k) − KL(z), the change relative to the original (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}); the resamples above give the noise floor for these.</p>
     {variant_block("polarity", "Polarity flip", "Every sentence's meaning flipped with function words only; the vocabulary is unchanged.")}
     {variant_block("vocab", "Vocabulary swap", "One content word per sentence swapped for an antonym or an unrelated word; the structure is unchanged. Same number of changed words as the flip.")}
     {variant_block("paraphrase", "Matched paraphrase", "A rewording whose lexical change matches the vocabulary swap's; every claim kept.")}
