@@ -283,14 +283,14 @@ def population(R: dict) -> dict:
         rows.append(row)
     kinds = [k for k in PLOT_KINDS if k in set(r.kind)]
     res = r[r.kind == "resample"]
-    stats = {
+    stats = {  # median with the 10th and 90th percentiles (the effects are heavy-tailed)
         k: {
-            "dL_h": (float(r[r.kind == k].dL_h.mean()), float(r[r.kind == k].dL_h.std())),
-            "dL_o": (float(r[r.kind == k].dL_o.mean()), float(r[r.kind == k].dL_o.std())),
+            key: tuple(float(v) for v in r[r.kind == k][key].quantile([0.5, 0.1, 0.9]))
+            for key in ("dL_h", "dL_o")
         }
         for k in kinds
     }
-    ref = {"dL_h": float(res.dL_h.mean()), "dL_o": float(res.dL_o.mean())} if len(res) else None
+    ref = {"dL_h": float(res.dL_h.median()), "dL_o": float(res.dL_o.median())} if len(res) else None
     return {"rows": rows, "bars": bar_plot(kinds, stats, ref), "ref": ref}
 
 
@@ -305,12 +305,13 @@ def bar_plot(kinds: list[str], stats: dict, ref: dict | None) -> bytes:
     for ax, key, title in zip(
         axes, ("dL_h", "dL_o"), ("FVE drop", "KL increase (nats)"), strict=True
     ):
-        means = [stats[k][key][0] for k in kinds]
-        stds = [stats[k][key][1] for k in kinds]
+        med = np.array([stats[k][key][0] for k in kinds])
+        lo = np.array([stats[k][key][1] for k in kinds])
+        hi = np.array([stats[k][key][2] for k in kinds])
         ax.bar(
             x,
-            means,
-            yerr=stds,
+            med,
+            yerr=[med - lo, hi - med],
             capsize=3,
             color=[KIND_COLOR.get(k, "#888") for k in kinds],
             error_kw={"lw": 0.9, "ecolor": "#333"},
@@ -322,7 +323,7 @@ def bar_plot(kinds: list[str], stats: dict, ref: dict | None) -> bytes:
         ax.set_xticklabels(kinds, rotation=30, ha="right", fontsize=8.5)
         ax.set_title(title)
         ax.axhline(0, lw=0.5, color="#999")
-    fig.suptitle("Whole-explanation edits: mean per kind, whiskers ± one standard deviation")
+    fig.suptitle("Whole-explanation edits: median per kind, whiskers 10th to 90th percentile")
     fig.tight_layout()
     buf = _io.BytesIO()
     fig.savefig(buf, format="png", dpi=130)
@@ -747,7 +748,7 @@ def population_page(R: dict, P: dict) -> str:
     figs = [
         (
             P["bars"],
-            f"Whole-explanation edits, all {n} activations: the FVE drop and the KL increase of each kind, both relative to the primary explanation of the same activation (bar: mean; whiskers: ± one standard deviation; dashed line: the resamples, FVE drop {ref.get('dL_h', float('nan')):.3f}, KL increase {ref.get('dL_o', float('nan')):.3f}).",
+            f"Whole-explanation edits, all {n} activations: the FVE drop and the KL increase of each kind, both relative to the primary explanation of the same activation (bar: median over activations; whiskers: 10th and 90th percentiles; dashed line: the resample medians, FVE drop {ref.get('dL_h', float('nan')):.3f}, KL increase {ref.get('dL_o', float('nan')):.3f}).",
         ),
         (
             R["plots"] / "cat_hist.png",
