@@ -528,7 +528,6 @@ def build(D: dict) -> str:
         if s in snip
     )
     at_m = al.get("at", {}).get("tau_resample_median", {})
-    at_m_alias = f"{at_m.get('eps_alias', float('nan')):.2f}"
     we = sm.get("whole_effects", {})
     sxw = sm.get("S_x_whole", {})
     nliv = sm.get("nli_variants", {})
@@ -561,22 +560,17 @@ def build(D: dict) -> str:
         f"Denying every claim (polarity flip) moves the reconstruction by {pol_w.get('dist_med', float('nan')):.3f} at the median, swapping the vocabulary while keeping the token by {voc_w.get('dist_med', float('nan')):.3f}, a full paraphrase by {par_w.get('dist_med', float('nan')):.3f}; the resample floor is {rk['resample']['dist_med']:.3f}. "
         f"The NLI judge reads the flip and the swap as contradictions of z (p_contra {nliv.get('polarity', {}).get('p_contra_fwd', float('nan')):.2f} and {nliv.get('vocab', {}).get('p_contra_fwd', float('nan')):.2f}); the input-consistency score S_x of the flip is {sxw.get('polarity', {}).get('mean', float('nan')):.2f} against {sxw.get('orig', {}).get('mean', float('nan')):.2f} for z. "
         f"An unrelated explanation that keeps only the final token comes back from {un_w.get('dist_med', float('nan')):.2f} to {ut_w.get('dist_med', float('nan')):.2f} in distance and from {un_w.get('dL_o_med', float('nan')):.1f} to {ut_w.get('dL_o_med', float('nan')):.1f} nats in output loss. "
-        f"AUC of the distance separating H = 0 from H = 1 pairs: {al.get('auc_dist_separates_H', float('nan')):.2f}; aliasing at the resample-median τ: {at_m_alias}."
+        f"AUC of the distance separating H = 0 from H = 1 pairs: {al.get('auc_dist_separates_H', float('nan')):.2f}; at the resample-median τ the polarity flip is judged equivalent for {at_m.get('err_polarity', float('nan')):.0%} of activations, the paraphrase judged different for {at_m.get('err_paraphrase', float('nan')):.0%}."
     )
     figs = [
         (
             "delta_by_kind.png",
             "Whole-explanation edits: how much each kind moves the reconstruction (dist), the activation loss (ΔL_h) and the output loss (ΔL_o).",
         ),
-        (
-            "matched_pairs.png",
-            "Per activation: polarity flip against vocabulary swap. Points above the diagonal are activations where denying every claim moved the reconstruction more than swapping the vocabulary.",
-        ),
         ("cat_hist.png", "Final token → “cat”: the effect distribution over explanations."),
-        ("distance_by_kind.png", "Distance of every variant kind to R(z)."),
         (
             "alignment_curves.png",
-            f"Alignment errors versus the threshold τ. At the resample-median τ = {at_m.get('tau', float('nan')):.3f}: ε_steg = {at_m.get('eps_steg', float('nan')):.2f}, ε_alias = {at_m.get('eps_alias', float('nan')):.2f}; equal-error rate {al.get('equal_error_rate', float('nan')):.2f}; AUC {al.get('auc_dist_separates_H', float('nan')):.2f}.",
+            f"Alignment errors versus the threshold τ: P(N=0 | H=1) over the paraphrase, shuffle and translation pairs, P(N=1 | H=0) over the polarity-flip pairs. At the resample-median τ = {at_m.get('tau', float('nan')):.3f}: P(N=0 | H=1) = {at_m.get('eps_steg', float('nan')):.2f}, P(N=1 | H=0, polarity) = {at_m.get('err_polarity', float('nan')):.2f}; AUC of the distance separating H = 0 from H = 1 pairs {al.get('auc_dist_separates_H', float('nan')):.2f}.",
         ),
         ("claim_profiles.png", "Claim profiles, one point per claim."),
         ("fve_hist.png", f"FVE of the primary explanations: mean {rk['orig']['FVE']:.3f}."),
@@ -646,7 +640,6 @@ def build(D: dict) -> str:
     <h3>Whole-explanation variants</h3>
     <p>For a whole-explanation edit k: ΔL_h = L_h(z_k) − L_h(z) and ΔL_o = KL(z_k) − KL(z), the change relative to the original (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}); the resamples above give the noise floor. S_x is the input consistency of the edited text itself.</p>
     {variant_block("polarity", "Polarity flip", "Every predicate-bearing phrase negated once with function words only; the vocabulary is unchanged, so the text denies every claim in the same words.")}
-    {variant_block("vocab", "Vocabulary swap", "Every content word outside quotes swapped for an antonym or an unrelated word; structure unchanged, the final token kept.")}
     {variant_block("paraphrase", "Paraphrase", "A full rewording that keeps every claim and every quoted string.")}
     {variant_block("cat", "Final token → “cat”", "Every mention of the final token replaced by “cat” (code).")}
     {variant_block("unrelated_token", "Unrelated, final token kept", f"The explanation of activation {D['unrelated_source_idx']} with its own final-token mentions replaced by this activation's token (code).")}

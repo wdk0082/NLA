@@ -476,15 +476,20 @@ def make_plots(
     pd_ = d / "plots"
     pd_.mkdir(exist_ok=True)
 
-    # 1. alignment curves
+    # 1. alignment curves: two lines only — the human-equivalent kinds pooled (judged different
+    # by the NLA) and the polarity flip alone (judged equivalent); the pooled aliasing rate over
+    # every H = 0 kind depends on the kind mix, so it stays in the JSON / CSV, not in the figure
+    h1 = [k for k in H1_KINDS if f"err_{k}" in curves]
+    lines = []
+    if h1:
+        lines.append((curves.eps_steg, f"P(N=0 | H=1): {', '.join(h1)}"))
+    if "err_polarity" in curves:
+        lines.append((curves.err_polarity, "P(N=1 | H=0): polarity flip"))
+    elif (curves.eps_alias.notna()).any():
+        lines.append((curves.eps_alias, "P(N=1 | H=0): all H=0 kinds"))
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=curves.tau, y=curves.eps_steg, name="ε_steg = P(N=0|H=1)"))
-    fig.add_trace(go.Scatter(x=curves.tau, y=curves.eps_alias, name="ε_alias = P(N=1|H=0)"))
-    for c in curves.columns:
-        if c.startswith("err_"):
-            fig.add_trace(
-                go.Scatter(x=curves.tau, y=curves[c], name=c, line={"dash": "dot"}, opacity=0.6)
-            )
+    for y, name in lines:
+        fig.add_trace(go.Scatter(x=curves.tau, y=y, name=name))
     fig.update_layout(
         title="Language alignment errors vs equivalence threshold τ",
         xaxis_title="τ (normalised reconstruction distance)",
@@ -492,14 +497,11 @@ def make_plots(
     )
     fig.write_html(pd_ / "alignment_curves.html")
     plt.figure(figsize=(7, 4))
-    plt.plot(curves.tau, curves.eps_steg, label="ε_steg (H=1 judged different)")
-    plt.plot(curves.tau, curves.eps_alias, label="ε_alias (H=0 judged equivalent)")
-    for c in curves.columns:
-        if c.startswith("err_"):
-            plt.plot(curves.tau, curves[c], ":", alpha=0.6, label=c)
+    for y, name in lines:
+        plt.plot(curves.tau, y, label=name)
     plt.xlabel("τ (normalised distance ‖R(z)−R(z′)‖²/V_h)")
     plt.ylabel("error rate")
-    plt.legend(fontsize=7)
+    plt.legend()
     plt.title("Alignment errors vs τ")
     plt.tight_layout()
     plt.savefig(pd_ / "alignment_curves.png", dpi=130)
@@ -616,7 +618,6 @@ def make_plots(
             for ax, c in zip(np.atleast_1d(axes), cols_w, strict=True):
                 x = cat[c].dropna().to_numpy()
                 ax.hist(x, bins=30)
-                ax.axvline(0, color="k", lw=0.6)
                 ax.set_xlabel(
                     {
                         "dL_h": "ΔL_h",
