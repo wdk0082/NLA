@@ -252,13 +252,16 @@ def extract_example(R: dict, idx: int) -> dict:
 
 
 def population(R: dict) -> dict:
-    """Per-kind table (FVE, FVE drop, output KL, top-1, NLI) and the bar plot, from the run's
-    tables; the FVE drop of a variant is L_h(z′) − L_h(z) of the same activation."""
+    """Per-kind table (FVE / FVE drop, KL / KL increase, top-1, NLI) and the bar plot, from the
+    run's tables; the FVE drop of a variant is L_h(z′) − L_h(z) and its KL increase is
+    L_o(z′) − L_o(z), both against the primary explanation of the same activation."""
     rec, out, nv = R["rec"], R["out"], R["nv"]
     o = rec[rec.kind == "orig"].set_index("idx").L_h
     r = rec.assign(dL_h=rec.L_h - rec.idx.map(o)).merge(
         out[["vid", "L_o", "top1_agree"]], on="vid", how="left"
     )
+    o_kl = r[r.kind == "orig"].set_index("idx").L_o
+    r["dL_o"] = r.L_o - r.idx.map(o_kl)
     nli = nv.groupby("kind")[["p_entail_fwd", "p_contra_fwd"]].mean()
     rows = []
     for k in KIND_ORDER:
@@ -271,6 +274,7 @@ def population(R: dict) -> dict:
             "FVE": float(1 - g.L_h.mean()),
             "fve_drop_med": float(g.dL_h.median()),
             "kl_med": float(g.L_o.median()),
+            "kl_inc_med": float(g.dL_o.median()),
             "top1": float(g.top1_agree.mean()),
         }
         if k in nli.index:
@@ -282,11 +286,11 @@ def population(R: dict) -> dict:
     stats = {
         k: {
             "dL_h": (float(r[r.kind == k].dL_h.mean()), float(r[r.kind == k].dL_h.std())),
-            "L_o": (float(r[r.kind == k].L_o.mean()), float(r[r.kind == k].L_o.std())),
+            "dL_o": (float(r[r.kind == k].dL_o.mean()), float(r[r.kind == k].dL_o.std())),
         }
         for k in kinds
     }
-    ref = {"dL_h": float(res.dL_h.mean()), "L_o": float(res.L_o.mean())} if len(res) else None
+    ref = {"dL_h": float(res.dL_h.mean()), "dL_o": float(res.dL_o.mean())} if len(res) else None
     return {"rows": rows, "bars": bar_plot(kinds, stats, ref), "ref": ref}
 
 
@@ -298,7 +302,9 @@ def bar_plot(kinds: list[str], stats: dict, ref: dict | None) -> bytes:
 
     fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.8))
     x = np.arange(len(kinds))
-    for ax, key, title in zip(axes, ("dL_h", "L_o"), ("FVE drop", "output KL (nats)"), strict=True):
+    for ax, key, title in zip(
+        axes, ("dL_h", "dL_o"), ("FVE drop", "KL increase (nats)"), strict=True
+    ):
         means = [stats[k][key][0] for k in kinds]
         stds = [stats[k][key][1] for k in kinds]
         ax.bar(
@@ -458,7 +464,7 @@ def setup_page(R: dict) -> str:
     <div class="formula">L_h(z) = mse_nrm(h, R(z)) / var_nrm          var_nrm = {var_nrm:.3f}   FVE = 1 − L_h</div>
     <div class="formula">L_o(z) = KL( p ‖ p̂(z) )      p̂(z) = F( R(z) · ‖h‖ / ‖R(z)‖ ) patched in at token t      “output KL”</div>
     <div class="formula">S_x(z′) = P(entail | x, z′) − P(contradict | x, z′)      for z and every whole-explanation variant</div>
-    <div class="formula">FVE drop(k) = L_h(z_k) − L_h(z)      dist(z, z_k) = mse_nrm(R(z), R(z_k)) / var_nrm      for each whole-explanation kind k</div>
+    <div class="formula">FVE drop(k) = L_h(z_k) − L_h(z)      KL increase(k) = L_o(z_k) − L_o(z)      dist(z, z_k) = mse_nrm(R(z), R(z_k)) / var_nrm      for each whole-explanation kind k</div>
     <div class="formula">N(z, z′) = 1[ dist ≤ τ ]      P(N=0 | H=1): human-equivalent, NLA-different      P(N=1 | H=0): human-different, NLA-equivalent</div>
 
     <h2>Labels by construction</h2>
@@ -486,6 +492,15 @@ def example_article(R: dict, D: dict, first: bool) -> str:
 
     def drop(v):
         return (v["L_h"] - L_h0) if v and L_h0 is not None else None
+
+    def inc(v):
+        return (v["L_o"] - L_o0) if v and L_o0 is not None else None
+
+    def fve_pair(v):
+        return f"{f3(1 - v['L_h'])} / {fd(drop(v))}" if v else "—"
+
+    def kl_pair(v):
+        return f"{f3(v['L_o'])} / {fd(inc(v))}" if v else "—"
 
     x = D["x_text"]
     last_tok = D["final_token"].strip()
@@ -541,7 +556,7 @@ def example_article(R: dict, D: dict, first: bool) -> str:
         txt = paragraphs(esc(v["text"])) if v else "<p>— (not produced for this activation)</p>"
         line = ""
         if v:
-            line = f"FVE drop {fd(drop(v))} · output KL {f3(v['L_o'])} · S_x {f3(v.get('S_x'))}"
+            line = f"FVE / FVE drop {fve_pair(v)} · KL / KL increase {kl_pair(v)} · S_x {f3(v.get('S_x'))}"
             if v.get("p_entail_fwd") is not None:
                 line += (
                     f" · NLI z→z′ entail {f3(v['p_entail_fwd'])} / contra {f3(v['p_contra_fwd'])}"
@@ -554,12 +569,12 @@ def example_article(R: dict, D: dict, first: bool) -> str:
 
     if D["resamples"]:
         resample_rows = "".join(
-            f"<tr><td class=num>{r['k']}</td><td class=num>{fd(drop(V('resample', r['k'])))}</td><td class=num>{f3((V('resample', r['k']) or {}).get('L_o'))}</td></tr>"
+            f"<tr><td class=num>{r['k']}</td><td class=num>{fve_pair(V('resample', r['k']))}</td><td class=num>{kl_pair(V('resample', r['k']))}</td></tr>"
             for r in D["resamples"]
         )
         resample_html = f"""<h3>Resamples set the noise floor</h3>
     <details><summary>resample 1</summary><div class="specimen small">{paragraphs(esc(D["resamples"][0]["text"]))}</div></details>
-    <div class="tbl"><table><thead><tr><th class=num>sample</th><th class=num>FVE drop</th><th class=num>output KL</th></tr></thead><tbody>{resample_rows}</tbody></table></div>"""
+    <div class="tbl"><table><thead><tr><th class=num>sample</th><th class=num>FVE / FVE drop</th><th class=num>KL / KL increase</th></tr></thead><tbody>{resample_rows}</tbody></table></div>"""
     else:
         resample_html = """<h3>Resamples set the noise floor</h3>
     <p>Resamples were drawn for the first 64 activations only, so this activation has none; the population's resample floor is on page 3.</p>"""
@@ -583,12 +598,12 @@ def example_article(R: dict, D: dict, first: bool) -> str:
                     )
                 )
                 rows.append(
-                    f"<tr><td>{kind_chip(k)}</td><td>{esc(who)}</td><td class=num>{f3(1 - v['L_h'])}</td><td class=num>{fd(drop(v))}</td><td class=num>{f3(v['L_o'])}</td></tr>"
+                    f"<tr><td>{kind_chip(k)}</td><td>{esc(who)}</td><td class=num>{fve_pair(v)}</td><td class=num>{kl_pair(v)}</td></tr>"
                 )
-        return f'<div class="tbl"><table><thead><tr><th>variant</th><th></th><th class=num>FVE</th><th class=num>FVE drop</th><th class=num>output KL</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        return f'<div class="tbl"><table><thead><tr><th>variant</th><th></th><th class=num>FVE / FVE drop</th><th class=num>KL / KL increase</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
 
     refs_rows = "".join(
-        f"<tr><td>{esc(r['kind'].replace('ref_', 'reference: '))}</td><td class=num>{f3(r['L_o'])}</td></tr>"
+        f"<tr><td>{esc(r['kind'].replace('ref_', 'reference: '))}</td><td class=num>{f3(r['L_o'])} / {fd(r['L_o'] - L_o0) if L_o0 is not None else '—'}</td></tr>"
         for r in D["refs"]
     )
     profile_rows = "".join(
@@ -647,7 +662,7 @@ def example_article(R: dict, D: dict, first: bool) -> str:
         "hand-written flip, paraphrase, translation; code for the rest",
         f"""{claim_edit_html}
     <h3>Whole-explanation variants</h3>
-    <p>For a whole-explanation edit k the FVE drop is L_h(z_k) − L_h(z), the explained variance the edit costs relative to the original (FVE of z: {f3(1 - L_h0) if L_h0 is not None else "—"}); the output KL is KL(p ‖ p̂(z_k)) of the edited text itself (z: {f3(L_o0)}). S_x is the input consistency of the edited text.</p>
+    <p>For a whole-explanation edit k the FVE drop is L_h(z_k) − L_h(z), the explained variance the edit costs relative to the original (FVE of z: {f3(1 - L_h0) if L_h0 is not None else "—"}); the KL increase is L_o(z_k) − L_o(z), the extra output KL the edit causes (KL of z: {f3(L_o0)}); both are shown next to the variant's own FVE and KL. S_x is the input consistency of the edited text.</p>
     {variant_block("polarity", "Polarity flip", "Every predicate-bearing phrase negated once with function words only; the vocabulary is unchanged, so the text denies every claim in the same words.")}
     {variant_block("paraphrase", "Paraphrase", "A full rewording that keeps every claim and every quoted string.")}
     {variant_block("cat", "Final token → “cat”", "Every mention of the final token replaced by “cat” (code).")}
@@ -662,7 +677,7 @@ def example_article(R: dict, D: dict, first: bool) -> str:
         "AR, blocks 0–42 + value head",
         f"""
     <h3>Every variant back to a vector</h3>
-    <p>Each text is wrapped in the AR's summary prompt and reconstructed. FVE compares R(z′) with the real h; the FVE drop is relative to the original explanation z; the output KL comes from the next step.</p>
+    <p>Each text is wrapped in the AR's summary prompt and reconstructed. FVE compares R(z′) with the real h and the FVE drop is relative to the original explanation z; the KL and its increase come from the next step.</p>
     {var_table()}""",
     )
     step_out = step(
@@ -672,7 +687,7 @@ def example_article(R: dict, D: dict, first: bool) -> str:
         f"""
     <h3>Put the reconstruction back into the model</h3>
     <p>R(z′) is rescaled to ‖h‖ and written into the residual stream at token t; blocks 43–63 and the head give p̂; the output KL is KL(p ‖ p̂). References for this activation:</p>
-    <div class="tbl"><table><thead><tr><th>patch</th><th class=num>output KL</th></tr></thead><tbody>{refs_rows}<tr><td>the explanation z itself</td><td class=num>{f3(L_o0)}</td></tr></tbody></table></div>""",
+    <div class="tbl"><table><thead><tr><th>patch</th><th class=num>KL / KL increase</th></tr></thead><tbody>{refs_rows}<tr><td>the explanation z itself</td><td class=num>{f3(L_o0)} / +0.000</td></tr></tbody></table></div>""",
     )
     steps = [step_extract, step_verbalize, *claim_steps, step_edit, step_recon, step_out]
     if claims:
@@ -724,15 +739,15 @@ def population_page(R: dict, P: dict) -> str:
     at_m = al.get("at", {}).get("tau_resample_median", {})
     fve = next(r["FVE"] for r in P["rows"] if r["kind"] == "orig")
     rows = "".join(
-        f"<tr><td>{kind_chip(r['kind'])}</td><td class=num>{r['n']}</td><td class=num>{f3(r['FVE'])}</td><td class=num>{fd(r['fve_drop_med'])}</td><td class=num>{f3(r['kl_med'])}</td><td class=num>{f3(r['top1'])}</td><td class=num>{' / '.join(f3(x) for x in r['nli']) if 'nli' in r else '—'}</td></tr>"
+        f"<tr><td>{kind_chip(r['kind'])}</td><td class=num>{r['n']}</td><td class=num>{f3(r['FVE'])} / {fd(r['fve_drop_med'])}</td><td class=num>{f3(r['kl_med'])} / {fd(r['kl_inc_med'])}</td><td class=num>{f3(r['top1'])}</td><td class=num>{' / '.join(f3(x) for x in r['nli']) if 'nli' in r else '—'}</td></tr>"
         for r in P["rows"]
     )
-    table = f'<div class="tbl"><table><thead><tr><th>kind</th><th class=num>n</th><th class=num>FVE</th><th class=num>FVE drop median</th><th class=num>output KL median</th><th class=num>top-1 agree</th><th class=num>NLI z→z′ entail / contradict / neutral</th></tr></thead><tbody>{rows}</tbody></table></div>'
+    table = f'<div class="tbl"><table><thead><tr><th>kind</th><th class=num>n</th><th class=num>FVE / FVE drop (median)</th><th class=num>KL / KL increase (medians)</th><th class=num>top-1 agree</th><th class=num>NLI z→z′ entail / contradict / neutral</th></tr></thead><tbody>{rows}</tbody></table></div>'
     ref = P["ref"] or {}
     figs = [
         (
             P["bars"],
-            f"Whole-explanation edits, all {n} activations: the FVE drop and the output KL of each kind (bar: mean; whiskers: ± one standard deviation; dashed line: the resamples, FVE drop {ref.get('dL_h', float('nan')):.3f}, output KL {ref.get('L_o', float('nan')):.3f}).",
+            f"Whole-explanation edits, all {n} activations: the FVE drop and the KL increase of each kind, both relative to the primary explanation of the same activation (bar: mean; whiskers: ± one standard deviation; dashed line: the resamples, FVE drop {ref.get('dL_h', float('nan')):.3f}, KL increase {ref.get('dL_o', float('nan')):.3f}).",
         ),
         (
             R["plots"] / "cat_hist.png",
@@ -756,7 +771,7 @@ def population_page(R: dict, P: dict) -> str:
     <section id="population" hidden>
     <p class="eyebrow">all {n} activations</p>
     <h1>Population results</h1>
-    <p class="lede">The numbers of page 2 over all {n} activations. FVE of the primary explanations is {fve:.3f}; every variant kind is summarised by its FVE drop, its output KL and the NLI judge's reading of z → z′.</p>
+    <p class="lede">The numbers of page 2 over all {n} activations. FVE of the primary explanations is {fve:.3f}; every variant kind is summarised by its FVE and FVE drop, its KL and KL increase (medians over activations) and the NLI judge's reading of z → z′.</p>
     <h2>By variant kind</h2>
     {table}
     <h2>Plots</h2>
