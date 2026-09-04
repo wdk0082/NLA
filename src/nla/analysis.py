@@ -18,6 +18,7 @@ H1_KINDS = ("paraphrase", "shuffle", "translate")  # human-equivalent by constru
 H0_KINDS = (
     "contradict",
     "unrelated",
+    "unrelated_token",
     "polarity",
     "vocab",
     "cat",
@@ -33,10 +34,25 @@ KIND_ORDER = (
     "polarity",
     "vocab",
     "cat",
+    "unrelated_token",
     "unrelated",
 )
-WHOLE_KINDS = ("paraphrase", "translate", "shuffle", "polarity", "vocab", "cat", "unrelated")
-MATCHED = (("polarity", "vocab"), ("polarity", "paraphrase"), ("vocab", "paraphrase"))
+WHOLE_KINDS = (
+    "paraphrase",
+    "translate",
+    "shuffle",
+    "polarity",
+    "vocab",
+    "cat",
+    "unrelated_token",
+    "unrelated",
+)
+MATCHED = (
+    ("polarity", "vocab"),
+    ("polarity", "paraphrase"),
+    ("vocab", "paraphrase"),
+    ("unrelated", "unrelated_token"),
+)
 
 
 def _spearman(a: pd.Series, b: pd.Series) -> tuple[float, float]:
@@ -47,8 +63,14 @@ def _spearman(a: pd.Series, b: pd.Series) -> tuple[float, float]:
     return float(r.statistic), float(r.pvalue)
 
 
-def build_claim_table(d: Path) -> pd.DataFrame:
+def build_claim_table(d: Path) -> pd.DataFrame | None:
+    """Per-claim profiles (EXP001; dormant in EXP002 from round 3): None when the run has no
+    claims."""
+    if not (d / "claims.parquet").exists():
+        return None
     claims = io.read_parquet(d / "claims.parquet")
+    if len(claims) == 0 or "claim_id" not in claims:
+        return None
     rec = io.read_parquet(d / "recon_index.parquet")
     out = io.read_parquet(d / "output.parquet") if (d / "output.parquet").exists() else None
     nli = io.read_parquet(d / "nli_claims.parquet") if (d / "nli_claims.parquet").exists() else None
@@ -119,8 +141,9 @@ def build_whole_effects(d: Path) -> pd.DataFrame:
         base_o = out[out.kind == "orig"].set_index("idx").L_o
         w = w.merge(out[["vid", "L_o"]], on="vid", how="left")
         w["dL_o"] = w.L_o - w.idx.map(base_o)
-    w = w.merge(var[["vid", "sim_to_orig"]], on="vid", how="left")
-    w["lex"] = 1 - w.sim_to_orig
+    if "sim_to_orig" in var and var.sim_to_orig.notna().any():
+        w = w.merge(var[["vid", "sim_to_orig"]], on="vid", how="left")
+        w["lex"] = 1 - w.sim_to_orig
     w["dist"] = w.dist_to_orig
     return w
 
@@ -234,8 +257,84 @@ def analyze(d: Path) -> dict:
         print("\n=== output reconstruction by kind (L_o = KL(p||p_hat) nats) ===")
         print(go.round(3).to_string())
 
-    # --- claim profiles
+    # --- whole-explanation input consistency (EXP002 round 3+): S_x(z') = P(entail|x,z') - P(contra|x,z')
+    if (d / "nli_x_whole.parquet").exists():
+        nx = io.read_parquet(d / "nli_x_whole.parquet")
+        gx = nx.groupby("kind").S_x.agg(
+            n="size",
+            mean="mean",
+            median="median",
+            frac_pos=lambda v: float((v > 0).mean()),
+            frac_neg=lambda v: float((v < 0).mean()),
+        )
+        gx = gx.reindex([k for k in ("orig", *KIND_ORDER) if k in gx.index])
+        summary["S_x_whole"] = gx.round(4).to_dict("index")
+        print("\n=== input consistency of the whole explanation, S_x(z') by kind ===")
+        print(gx.round(3).to_string())
+
+    # --- claim profiles (EXP001 / EXP002 round 2; dormant when the run has no claims)
     t = build_claim_table(d)
+    if t is None:
+        summary["claims"] = {"n_claims": 0}
+    else:
+        summary.update(_claim_sections(d, t, ex))
+
+    # --- whole-explanation edit kinds (EXP002): effects per kind, matched comparisons, "cat"
+    w = build_whole_effects(d)
+    whole = w[w.kind.isin(WHOLE_KINDS)]
+    if len(whole):
+        summary.update(_whole_sections(d, w, whole))
+    w.to_csv(d / "whole_effects.csv", index=False)
+
+    # --- alignment
+    pairs, curves, refs = build_alignment(d)
+    curves.to_csv(d / "alignment.csv", index=False)
+    summary["alignment"] = refs
+    print("\n=== alignment (steganography / aliasing) ===")
+    print(json.dumps(refs, indent=1))
+    dist_by_kind = pairs.groupby("kind").dist_to_orig.describe()[["count", "mean", "50%"]]
+    summary["dist_by_kind"] = dist_by_kind.round(4).to_dict("index")
+    print("\nnormalised distance R(z') vs R(z) by kind:")
+    print(dist_by_kind.round(3).to_string())
+
+    # --- label validity
+    if (d / "nli_variants.parquet").exists():
+        nv = io.read_parquet(d / "nli_variants.parquet")
+        gv = nv.groupby("kind")[
+            ["p_entail_fwd", "p_contra_fwd", "p_entail_bwd", "p_contra_bwd"]
+        ].mean()
+        summary["nli_variants"] = gv.round(4).to_dict("index")
+        print("\n=== NLI label validity (z -> z' fwd, z' -> z bwd) ===")
+        print(gv.round(3).to_string())
+
+    vpath = d / "variants.parquet"
+    if vpath.exists():
+        var = io.read_parquet(vpath)
+        if "sim_to_orig" in var and var.sim_to_orig.notna().any():
+            m = pairs.merge(
+                var[["idx", "kind", "claim_id", "sim_to_orig"]],
+                on=["idx", "kind", "claim_id"],
+                how="left",
+            )
+            m = m[m.sim_to_orig.notna() & (m.kind != "resample")]
+            if len(m) > 5:
+                r, pv = _spearman(1 - m.sim_to_orig, m.dist_to_orig)
+                summary["dist_vs_lexical_change_spearman"] = {
+                    "spearman": round(r, 4),
+                    "p": pv,
+                    "n": len(m),
+                }
+                print(
+                    f"\nSpearman(lexical change, reconstruction distance) over edited variants = {r:.3f} (n={len(m)})"
+                )
+    io.write_json(summary, d / "summary.json")
+    make_plots(d, t, curves, pairs, rec)
+    return summary
+
+
+def _claim_sections(d: Path, t: pd.DataFrame, ex: pd.DataFrame) -> dict:
+    """Per-claim profile tables (EXP001 / EXP002 round 2)."""
+    summary: dict = {}
     t.to_csv(d / "claim_metrics.csv", index=False)
     cols = [c for c in ("S_x", "S_h", "S_o", "I_h", "I_o") if c in t]
     desc = t[cols].describe().T[["count", "mean", "50%", "std"]]
@@ -284,128 +383,88 @@ def analyze(d: Path) -> dict:
         summary["by_S_x_bin"] = gb.round(4).to_dict("index")
         print("\n=== mean support/importance by S_x bin ===")
         print(gb.round(3).to_string())
+    return summary
 
-    # --- whole-explanation edit kinds (EXP002): effects per kind, matched comparisons, "cat"
-    w = build_whole_effects(d)
-    whole = w[w.kind.isin(WHOLE_KINDS)]
-    if len(whole):
-        cols_w = [c for c in ("dL_h", "dL_o", "dist", "lex") if c in whole]
-        gw = whole.groupby("kind")[cols_w].median()
-        gw.columns = [f"{c}_med" for c in cols_w]
+
+def _whole_sections(d: Path, w: pd.DataFrame, whole: pd.DataFrame) -> dict:
+    """Whole-explanation effects per kind, matched pairs, the "cat" edit (EXP002)."""
+    summary: dict = {}
+    cols_w = [c for c in ("dL_h", "dL_o", "dist", "lex") if c in whole]
+    gw = whole.groupby("kind")[cols_w].median()
+    gw.columns = [f"{c}_med" for c in cols_w]
+    for c in cols_w:
+        gw[f"{c}_mean"] = whole.groupby("kind")[c].mean()
+    gw["n"] = whole.groupby("kind").size()
+    gw = gw.reindex([k for k in KIND_ORDER if k in gw.index])
+    summary["whole_effects"] = gw.round(4).to_dict("index")
+    print(
+        "\n=== whole-explanation kinds: dL_h = L_h(z_k) - L_h(z), dL_o likewise, dist to R(z), lex = lexical change ==="
+    )
+    print(gw.round(3).to_string())
+    matched = {}
+    for a, b in MATCHED:
         for c in cols_w:
-            gw[f"{c}_mean"] = whole.groupby("kind")[c].mean()
-        gw["n"] = whole.groupby("kind").size()
-        gw = gw.reindex([k for k in KIND_ORDER if k in gw.index])
-        summary["whole_effects"] = gw.round(4).to_dict("index")
+            r = matched_pairs(w, a, b, c)
+            if r is not None:
+                matched[f"{a}_vs_{b}:{c}"] = r
+    if matched:
+        summary["matched"] = matched
         print(
-            "\n=== whole-explanation kinds: dL_h = L_h(z_k) - L_h(z), dL_o likewise, dist to R(z), lex = lexical change ==="
+            "\n=== matched pairs (per activation): median diff, frac first > second, Wilcoxon p ==="
         )
-        print(gw.round(3).to_string())
-        matched = {}
-        for a, b in MATCHED:
-            for c in cols_w:
-                r = matched_pairs(w, a, b, c)
-                if r is not None:
-                    matched[f"{a}_vs_{b}:{c}"] = r
-        if matched:
-            summary["matched"] = matched
-            print(
-                "\n=== matched pairs (per activation): median diff, frac first > second, Wilcoxon p ==="
-            )
-            print(
-                pd.DataFrame(matched)
-                .T[["n", "median_diff", "wilcoxon_p"]]
-                .join(pd.DataFrame(matched).T.filter(like="frac_"))
-                .round(4)
-                .to_string()
-            )
-        cat = whole[whole.kind == "cat"]
-        if len(cat):
-            q = {}
-            for c in cols_w:
-                x = cat[c].dropna()
-                q[c] = {
-                    "n": int(x.size),
-                    "p10": float(x.quantile(0.1)),
-                    "median": float(x.median()),
-                    "p90": float(x.quantile(0.9)),
-                    "mean": float(x.mean()),
-                    "frac_gt_0.1": float((x > 0.1).mean()),
-                    "frac_gt_1": float((x > 1).mean()),
-                }
-            summary["cat"] = q
-            print('\n=== final token -> "cat": distribution of the effect ===')
-            print(pd.DataFrame(q).T.round(4).to_string())
-            # token dominance (KL between p from the full context and from the last k tokens)
-            # against the size of the "cat" effect
-            lt_path = d / "logits_top.parquet"
-            lt = io.read_parquet(lt_path) if lt_path.exists() else None
-            kcol = [c for c in (lt.columns if lt is not None else []) if c.startswith("kl_local")]
-            if lt is not None and kcol:
-                m = cat.merge(lt[["idx", kcol[0]]], on="idx", how="inner")
-                dom = {}
-                for c in [c for c in ("dL_h", "dL_o", "dist") if c in m]:
-                    r, pv = _spearman(m[kcol[0]], m[c])
-                    dom[f"{kcol[0]}~cat_{c}"] = {
-                        "spearman": round(r, 4),
-                        "p": pv,
-                        "n": int(m[c].notna().sum()),
-                    }
-                summary["token_dominance"] = dom
-                print(
-                    "token dominance vs cat effect (Spearman):",
-                    json.dumps({k: v["spearman"] for k, v in dom.items()}),
-                )
-    w.to_csv(d / "whole_effects.csv", index=False)
-
-    # --- alignment
-    pairs, curves, refs = build_alignment(d)
-    curves.to_csv(d / "alignment.csv", index=False)
-    summary["alignment"] = refs
-    print("\n=== alignment (steganography / aliasing) ===")
-    print(json.dumps(refs, indent=1))
-    dist_by_kind = pairs.groupby("kind").dist_to_orig.describe()[["count", "mean", "50%"]]
-    summary["dist_by_kind"] = dist_by_kind.round(4).to_dict("index")
-    print("\nnormalised distance R(z') vs R(z) by kind:")
-    print(dist_by_kind.round(3).to_string())
-
-    # --- label validity
-    if (d / "nli_variants.parquet").exists():
-        nv = io.read_parquet(d / "nli_variants.parquet")
-        gv = nv.groupby("kind")[
-            ["p_entail_fwd", "p_contra_fwd", "p_entail_bwd", "p_contra_bwd"]
-        ].mean()
-        summary["nli_variants"] = gv.round(4).to_dict("index")
-        print("\n=== NLI label validity (z -> z' fwd, z' -> z bwd) ===")
-        print(gv.round(3).to_string())
-
-    vpath = d / "variants.parquet"
-    if vpath.exists():
-        var = io.read_parquet(vpath)
-        if "sim_to_orig" in var:
-            m = pairs.merge(
-                var[["idx", "kind", "claim_id", "sim_to_orig"]],
-                on=["idx", "kind", "claim_id"],
-                how="left",
-            )
-            m = m[m.sim_to_orig.notna() & (m.kind != "resample")]
-            if len(m) > 5:
-                r, pv = _spearman(1 - m.sim_to_orig, m.dist_to_orig)
-                summary["dist_vs_lexical_change_spearman"] = {
+        print(
+            pd.DataFrame(matched)
+            .T[["n", "median_diff", "wilcoxon_p"]]
+            .join(pd.DataFrame(matched).T.filter(like="frac_"))
+            .round(4)
+            .to_string()
+        )
+    cat = whole[whole.kind == "cat"]
+    if len(cat):
+        q = {}
+        for c in cols_w:
+            x = cat[c].dropna()
+            q[c] = {
+                "n": int(x.size),
+                "p10": float(x.quantile(0.1)),
+                "median": float(x.median()),
+                "p90": float(x.quantile(0.9)),
+                "mean": float(x.mean()),
+                "frac_gt_0.1": float((x > 0.1).mean()),
+                "frac_gt_1": float((x > 1).mean()),
+            }
+        summary["cat"] = q
+        print('\n=== final token -> "cat": distribution of the effect ===')
+        print(pd.DataFrame(q).T.round(4).to_string())
+        # token dominance (KL between p from the full context and from the last k tokens)
+        # against the size of the "cat" effect
+        lt_path = d / "logits_top.parquet"
+        lt = io.read_parquet(lt_path) if lt_path.exists() else None
+        kcol = [c for c in (lt.columns if lt is not None else []) if c.startswith("kl_local")]
+        if lt is not None and kcol:
+            m = cat.merge(lt[["idx", kcol[0]]], on="idx", how="inner")
+            dom = {}
+            for c in [c for c in ("dL_h", "dL_o", "dist") if c in m]:
+                r, pv = _spearman(m[kcol[0]], m[c])
+                dom[f"{kcol[0]}~cat_{c}"] = {
                     "spearman": round(r, 4),
                     "p": pv,
-                    "n": len(m),
+                    "n": int(m[c].notna().sum()),
                 }
-                print(
-                    f"\nSpearman(lexical change, reconstruction distance) over edited variants = {r:.3f} (n={len(m)})"
-                )
-    io.write_json(summary, d / "summary.json")
-    make_plots(d, t, curves, pairs, rec)
+            summary["token_dominance"] = dom
+            print(
+                "token dominance vs cat effect (Spearman):",
+                json.dumps({k: v["spearman"] for k, v in dom.items()}),
+            )
     return summary
 
 
 def make_plots(
-    d: Path, t: pd.DataFrame, curves: pd.DataFrame, pairs: pd.DataFrame, rec: pd.DataFrame
+    d: Path,
+    t: pd.DataFrame | None,
+    curves: pd.DataFrame,
+    pairs: pd.DataFrame,
+    rec: pd.DataFrame,
 ) -> None:
     import matplotlib
 
@@ -472,7 +531,7 @@ def make_plots(
     prs = [
         (a, b)
         for a, b in (("S_x", "S_h"), ("S_x", "S_o"), ("S_h", "S_o"), ("I_h", "I_o"))
-        if a in t and b in t
+        if t is not None and a in t and b in t
     ]
     if prs:
         fig, axes = plt.subplots(1, len(prs), figsize=(4 * len(prs), 3.6))

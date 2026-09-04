@@ -31,16 +31,18 @@ KIND_ORDER = [
     "polarity",
     "vocab",
     "cat",
+    "unrelated_token",
     "unrelated",
 ]
 KIND_H = {
-    "paraphrase": "H = 1 (matched to vocab)",
+    "paraphrase": "H = 1",
     "shuffle": "H = 1",
     "translate": "weak H = 1",
     "contradict": "H = 0",
-    "polarity": "H = 0 (matched to vocab)",
+    "polarity": "H = 0",
     "vocab": "H = 0",
     "cat": "H = 0 (final token)",
+    "unrelated_token": "H = 0 (final token kept)",
     "unrelated": "H = 0",
     "delete": "weak H = 0",
     "resample": "noise floor",
@@ -48,14 +50,15 @@ KIND_H = {
 }
 KIND_WHAT = {
     "resample": "another AV sample of the same activation (first 64 activations, 8 each)",
-    "paraphrase": "hand-made rewording, about one content word per sentence, lexical change matched to the vocabulary swap",
+    "paraphrase": "hand-made full rewording that keeps every claim and every quoted string",
     "shuffle": "the snippets in a different order (code)",
     "translate": "hand-made French translation",
     "contradict": "the excerpt of claim c replaced by a hand-written contradiction",
     "delete": "the excerpt of claim c removed (code)",
-    "polarity": "every sentence's polarity flipped with function words only, vocabulary unchanged (hand-made)",
-    "vocab": "one content word per sentence swapped for an antonym or unrelated word, structure unchanged (hand-made)",
+    "polarity": "every predicate-bearing phrase negated once with function words, vocabulary unchanged (hand-made)",
+    "vocab": "every content word outside quotes swapped for an antonym or unrelated word, structure and the final token kept (hand-made)",
     "cat": 'every mention of the context\'s final token replaced by "cat" (code)',
+    "unrelated_token": "another activation's explanation with its final-token mentions replaced by this activation's token (code)",
     "unrelated": "another activation's explanation (derangement)",
 }
 
@@ -90,10 +93,16 @@ def extract(idx: int, run: str) -> dict:
         rp(d / "recon_index.parquet"),
         rp(d / "output.parquet"),
     )
-    t = pd.read_csv(d / "claim_metrics.csv")
+    has_claims = (d / "claim_metrics.csv").exists() and len(cl) > 0 and "claim_id" in cl
+    t = pd.read_csv(d / "claim_metrics.csv") if has_claims else pd.DataFrame()
     nv = rp(d / "nli_variants.parquet")
     rs = rp(d / "resamples.parquet") if (d / "resamples.parquet").exists() else pd.DataFrame()
-    nc = rp(d / "nli_claims.parquet")
+    nc = (
+        rp(d / "nli_claims.parquet")
+        if has_claims and (d / "nli_claims.parquet").exists()
+        else pd.DataFrame()
+    )
+    nx = rp(d / "nli_x_whole.parquet") if (d / "nli_x_whole.parquet").exists() else pd.DataFrame()
     m = rec[rec.idx == idx].merge(
         out[out.idx == idx][["vid", "L_o", "top1_agree", "p_top1_under_q"]], on="vid", how="left"
     )
@@ -103,6 +112,12 @@ def extract(idx: int, run: str) -> dict:
         on="vid",
         how="left",
     )
+    if len(nx):
+        m = m.merge(nx[nx.idx == idx][["vid", "S_x"]], on="vid", how="left")
+    else:
+        m["S_x"] = np.nan
+    if "sim_to_orig" not in m:
+        m["sim_to_orig"] = np.nan
     cols = [
         "vid",
         "kind",
@@ -117,29 +132,35 @@ def extract(idx: int, run: str) -> dict:
         "p_entail_fwd",
         "p_contra_fwd",
         "p_entail_bwd",
+        "S_x",
     ]
     c, tp = ctx.set_index("idx").loc[idx], top.set_index("idx").loc[idx]
-    cm = cl[cl.idx == idx].merge(
-        t[t.idx == idx][["claim_id", "snippet", "S_x", "S_h", "S_o", "I_h", "I_o"]], on="claim_id"
-    )
-    cm = cm.merge(
-        nc[nc.idx == idx][
-            [
-                c_
-                for c_ in nc.columns
-                if c_
-                in (
-                    "claim_id",
-                    "p_entail",
-                    "p_neutral",
-                    "p_contra",
-                    "p_contra_claim_fwd",
-                    "p_contra_claim_bwd",
-                )
-            ]
-        ],
-        on="claim_id",
-    )
+    if has_claims:
+        cm = cl[cl.idx == idx].merge(
+            t[t.idx == idx][["claim_id", "snippet", "S_x", "S_h", "S_o", "I_h", "I_o"]],
+            on="claim_id",
+        )
+        if len(nc):
+            cm = cm.merge(
+                nc[nc.idx == idx][
+                    [
+                        c_
+                        for c_ in nc.columns
+                        if c_
+                        in (
+                            "claim_id",
+                            "p_entail",
+                            "p_neutral",
+                            "p_contra",
+                            "p_contra_claim_fwd",
+                            "p_contra_claim_bwd",
+                        )
+                    ]
+                ],
+                on="claim_id",
+            )
+    else:
+        cm = pd.DataFrame()
     kl_cols = [c_ for c_ in top.columns if c_.startswith("kl_local")]
     return {
         "idx": idx,
@@ -183,8 +204,8 @@ def extract(idx: int, run: str) -> dict:
         ),
         "stats": {
             "n": len(ctx),
-            "claims": len(cl),
-            "anchored": int(cl.anchored.sum()),
+            "claims": len(cl) if has_claims else 0,
+            "anchored": int(cl.anchored.sum()) if has_claims else 0,
             "domains": sorted(ctx.domain.unique().tolist()),
         },
         "plots": d / "plots",
@@ -315,7 +336,7 @@ def build(D: dict) -> str:
     <div class="grid3">
      <div class="card"><h3>The model</h3><p>The community NLA for <code>Qwen/Qwen3.6-27B</code> (64 hybrid blocks, d = 5120), extraction after block 42. The verbalizer is the base with a merged warm-start LoRA plus one RL adapter; the activation is <em>added</em>, norm-matched, to the residual stream at block 1 rather than written over an embedding.</p></div>
      <div class="card"><h3>The data</h3><p>FineFineWeb documents from {", ".join(D["stats"]["domains"])}. Every context starts at the first paragraph of running prose and ends at a whole word drawn uniformly at least 50 tokens later, at most 256 tokens in.</p></div>
-     <div class="card"><h3>The edits</h3><p>Claims, excerpts, contradictions, paraphrases and translations are all hand-written. Three new whole-explanation kinds: a polarity flip (meaning changes, words stay), a vocabulary swap (one word per sentence), and the final token replaced by “cat”. The paraphrase is matched in lexical change to the vocabulary swap.</p></div>
+     <div class="card"><h3>The edits</h3><p>Every edit is a whole-explanation edit, hand-written: a phrase-level polarity flip (every claim denied, words kept), a vocabulary swap (every content word replaced, the final token kept), a full paraphrase and a translation; code does the “cat” edit, the shuffle, the unrelated swap and the unrelated swap that keeps the final token.</p></div>
     </div>
 
     <h2>The cast</h2>
@@ -323,8 +344,8 @@ def build(D: dict) -> str:
     <tr><td>target model</td><td><code>Qwen/Qwen3.6-27B</code>, text part of the multimodal checkpoint: 48 gated-DeltaNet blocks and 16 full-attention blocks, d = 5120. We read the residual stream after block 42 (HF <code>hidden_states[43]</code>) at one token t. F is blocks 43–63 plus the final norm and unembedding.</td><td class=num>54 GB</td></tr>
     <tr><td>AV, verbalizer</td><td><code>ceselder/qwen3.6-27b-nla-rl</code>: <code>av_base</code> (warm-start LoRA merged) plus the RL adapter <code>av_rl_adapters/iter_000300</code> (r64 rsLoRA on attention, MLP and DeltaNet projections). The raw activation is added at the marker token of a fixed prompt on the output of block 1: h′ = h + ‖h‖·v/‖v‖.</td><td class=num>56 GB</td></tr>
     <tr><td>AR, reconstructor</td><td><code>ar_reconstructor</code>: blocks 0–42, no final norm, plus a 5120×5120 value head read at the last token of <code>Summary of the following text: &lt;text&gt;z&lt;/text&gt; &lt;summary&gt;</code> after normalising that state to √d. It predicts a direction only.</td><td class=num>35 GB</td></tr>
-    <tr><td>claim editor</td><td>Hand-written (the agent, in parallel subagents): claims with verbatim excerpts, contradictions of the excerpts, polarity flips, vocabulary swaps, matched paraphrases, French translations. Code does deletions, snippet shuffles, unrelated swaps and the “cat” edit.</td><td class=num>—</td></tr>
-    <tr><td>NLI judge</td><td><code>MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli</code> for S_x, for checking that edits are what their label says (whole explanation) and for the excerpt-level contradiction check.</td><td class=num>GPU</td></tr>
+    <tr><td>hand editor</td><td>Hand-written (the agent, in parallel subagents at effort xhigh): polarity flips, vocabulary swaps, paraphrases, French translations. Code does snippet shuffles, unrelated swaps (with and without the final token) and the “cat” edit.</td><td class=num>—</td></tr>
+    <tr><td>NLI judge</td><td><code>MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli</code> for the input consistency S_x of every whole text and for checking that edits are what their label says.</td><td class=num>GPU</td></tr>
     </tbody></table></div>
     <p>One H200 (141 GB). One 27B-class model is resident per stage; a load takes about ten seconds from the page cache, so the pipeline is seven sequential, resumable stages.</p>
 
@@ -335,8 +356,7 @@ def build(D: dict) -> str:
     <p>Activations and reconstructions are compared as directions: both are scaled to L2 = √d before a per-element MSE, so mse = 2(1 − cos). The variance term is the per-element variance of the scaled activations over the {D["stats"]["n"]} evaluated ones (the AR's own training baseline uses the same definition).</p>
     <div class="formula">L_h(z) = mse_nrm(h, R(z)) / var_nrm          var_nrm = {var_nrm:.3f}   FVE = 1 − L_h</div>
     <div class="formula">L_o(z) = KL( p ‖ p̂(z) )      p̂(z) = F( R(z) · ‖h‖ / ‖R(z)‖ ) patched in at token t</div>
-    <div class="formula">S_x(c) = P(entail | x, c) − P(contradict | x, c)      S_h(c) = L_h(z¬c) − L_h(z)      S_o(c) = L_o(z¬c) − L_o(z)</div>
-    <div class="formula">I_h(c) = L_h(z−c) − L_h(z)      I_o(c) = L_o(z−c) − L_o(z)</div>
+    <div class="formula">S_x(z′) = P(entail | x, z′) − P(contradict | x, z′)      for z and every whole-explanation variant</div>
     <div class="formula">ΔL_h(k) = L_h(z_k) − L_h(z)      ΔL_o(k) = L_o(z_k) − L_o(z)      dist(z, z_k) = mse_nrm(R(z), R(z_k)) / var_nrm      for each whole-explanation kind k</div>
     <div class="formula">N(z, z′) = 1[ dist ≤ τ ]      ε_steg(τ) = P(N=0 | H=1)      ε_alias(τ) = P(N=1 | H=0)</div>
 
@@ -414,7 +434,7 @@ def build(D: dict) -> str:
         d_h = (v["L_h"] - orig_v["L_h"]) if v and orig_v.get("L_h") is not None else None
         d_o = (v["L_o"] - orig_v["L_o"]) if v and orig_v.get("L_o") is not None else None
         n = (
-            f"ΔL_h {fd(d_h)} · ΔL_o {fd(d_o)} nats · dist to R(z) {f3(v['dist_to_orig'])} · lexical change {f3(1 - v['sim_to_orig'])} · L_h {f3(v['L_h'])} · KL {f3(v['L_o'])}"
+            f"ΔL_h {fd(d_h)} · ΔL_o {fd(d_o)} nats · dist to R(z) {f3(v['dist_to_orig'])} · S_x {f3(v.get('S_x'))} · L_h {f3(v['L_h'])} · KL {f3(v['L_o'])}"
             + (
                 f" · NLI z→z′ entail {f3(v['p_entail_fwd'])} / contra {f3(v['p_contra_fwd'])}"
                 if v and v.get("p_entail_fwd") is not None
@@ -504,9 +524,13 @@ def build(D: dict) -> str:
         for s in ("first", "middle", "last", "unanchored")
         if s in snip
     )
+    at_m = al.get("at", {}).get("tau_resample_median", {})
+    at_m_alias = f"{at_m.get('eps_alias', float('nan')):.2f}"
     we = sm.get("whole_effects", {})
+    sxw = sm.get("S_x_whole", {})
+    nliv = sm.get("nli_variants", {})
     we_rows = "".join(
-        f"<tr><td>{kind_chip(k)}</td><td class=num>{int(v['n'])}</td><td class=num>{f3(v.get('lex_med'))}</td><td class=num>{f3(v.get('dist_med'))}</td><td class=num>{f3(v.get('dL_h_med'))}</td><td class=num>{f3(v.get('dL_o_med'))}</td><td class=num>{f3(v.get('dL_o_mean'))}</td></tr>"
+        f"<tr><td>{kind_chip(k)}</td><td class=num>{int(v['n'])}</td><td class=num>{f3(v.get('dist_med'))}</td><td class=num>{f3(v.get('dL_h_med'))}</td><td class=num>{f3(v.get('dL_o_med'))}</td><td class=num>{f3(v.get('dL_o_mean'))}</td><td class=num>{f3(sxw.get(k, {}).get('mean'))}</td><td class=num>{f3(nliv.get(k, {}).get('p_contra_fwd'))}</td></tr>"
         for k, v in we.items()
     )
     mt = sm.get("matched", {})
@@ -514,25 +538,41 @@ def build(D: dict) -> str:
         f"<tr><td><code>{esc(k)}</code></td><td class=num>{int(v['n'])}</td><td class=num>{f3(v['median_diff'])}</td><td class=num>{f3(next(x for kk, x in v.items() if kk.startswith('frac_')))}</td><td class=num>{v['wilcoxon_p']:.2g}</td></tr>"
         for k, v in mt.items()
     )
-    at_m = al.get("at", {}).get("tau_resample_median", {})
+    claim_pop_html = ""
+    if cs and D["stats"]["claims"]:
+        claim_pop_html = f"""<h3>Claim profiles</h3>
+    {pop_claim_table()}
+    <div class="grid2">
+    <div><h3>Rank correlations between the profile columns</h3><div class="tbl"><table><thead><tr><th>pair</th><th class=num>Spearman</th></tr></thead><tbody>{corr_rows}</tbody></table></div></div>
+    <div><h3>By snippet of the explanation</h3><div class="tbl"><table><thead><tr><th>snippet</th><th class=num>claims</th><th class=num>S_x median</th><th class=num>S_h mean</th><th class=num>I_h mean</th><th class=num>I_o mean</th></tr></thead><tbody>{snip_rows}</tbody></table></div></div>
+    </div>"""
+    pop_intro = (
+        f"{D['stats']['claims']} hand-written claims ({D['stats']['anchored']} anchored). "
+        if D["stats"]["claims"]
+        else ""
+    ) + f"FVE of the primary explanations is {rk['orig']['FVE']:.3f}."
+    cat_w, pol_w, voc_w, par_w = (we.get(k, {}) for k in ("cat", "polarity", "vocab", "paraphrase"))
+    ut_w, un_w = we.get("unrelated_token", {}), we.get("unrelated", {})
+    callout = (
+        f"What the population says. Replacing the final token by “cat” costs most of the explained variance (ΔL_h median {cat_w.get('dL_h_med', float('nan')):.2f}, FVE {rk['orig']['FVE']:.3f} → {rk.get('cat', {}).get('FVE', float('nan')):.3f}) and moves the patched output by {cat_w.get('dL_o_med', float('nan')):.1f} nats at the median. "
+        f"Denying every claim (polarity flip, dist {pol_w.get('dist_med', float('nan')):.3f}), swapping the vocabulary while keeping the token (dist {voc_w.get('dist_med', float('nan')):.3f}) and a full paraphrase (dist {par_w.get('dist_med', float('nan')):.3f}) all stay far inside the resample floor ({rk['resample']['dist_med']:.3f}), although the NLI judge reads the flip and the swap as contradictions and the input judges the flip inconsistent (S_x {sxw.get('polarity', {}).get('mean', float('nan')):.2f} vs {sxw.get('orig', {}).get('mean', float('nan')):.2f} for z). "
+        f"An unrelated explanation that keeps only the final token comes back from {un_w.get('dist_med', float('nan')):.2f} to {ut_w.get('dist_med', float('nan')):.2f} in distance and from {un_w.get('dL_o_med', float('nan')):.1f} to {ut_w.get('dL_o_med', float('nan')):.1f} nats in output loss. "
+        f"AUC of the distance separating H = 0 from H = 1 pairs: {al.get('auc_dist_separates_H', float('nan')):.2f}; aliasing at the resample-median τ: {at_m_alias}."
+    )
     figs = [
         (
             "delta_by_kind.png",
-            "Whole-explanation edits: how much each kind moves the reconstruction (dist), the activation loss (ΔL_h) and the output loss (ΔL_o), next to its lexical change. Polarity flip and vocabulary swap change the same number of words; the paraphrase is matched to the swap.",
+            "Whole-explanation edits: how much each kind moves the reconstruction (dist), the activation loss (ΔL_h) and the output loss (ΔL_o).",
         ),
         (
             "matched_pairs.png",
-            "The matched pair per activation: polarity flip against vocabulary swap. Points above the diagonal are activations where flipping the meaning moved the reconstruction more than swapping a word.",
+            "Per activation: polarity flip against vocabulary swap. Points above the diagonal are activations where denying every claim moved the reconstruction more than swapping the vocabulary.",
         ),
         ("cat_hist.png", "Final token → “cat”: the effect distribution over explanations."),
         ("distance_by_kind.png", "Distance of every variant kind to R(z)."),
         (
             "alignment_curves.png",
             f"Alignment errors versus the threshold τ. At the resample-median τ = {at_m.get('tau', float('nan')):.3f}: ε_steg = {at_m.get('eps_steg', float('nan')):.2f}, ε_alias = {at_m.get('eps_alias', float('nan')):.2f}; equal-error rate {al.get('equal_error_rate', float('nan')):.2f}; AUC {al.get('auc_dist_separates_H', float('nan')):.2f}.",
-        ),
-        (
-            "distance_vs_lexical.png",
-            f"Reconstruction distance against lexical change for every edited variant (Spearman {sm.get('dist_vs_lexical_change_spearman', {}).get('spearman', float('nan')):.2f}).",
         ),
         ("claim_profiles.png", "Claim profiles, one point per claim."),
         ("fve_hist.png", f"FVE of the primary explanations: mean {rk['orig']['FVE']:.3f}."),
@@ -546,89 +586,100 @@ def build(D: dict) -> str:
     def step(n, name, model, body):
         return f'<div class="step"><div class="rail"><div class="n">{n}</div><div class="name">{esc(name)}</div><div class="model">{esc(model)}</div></div><div class="body">{body}</div></div>'
 
-    steps = [
-        step(
-            1,
-            "Extract",
-            "target, blocks 0–42",
-            f"""
+    orig_v = V("orig") or {}
+    step_extract = step(
+        1,
+        "Extract",
+        "target, blocks 0–42",
+        f"""
     <h3>The text x and its extraction token</h3>
     <p>A {esc(D["domain"])} document of FineFineWeb ({esc(D["doc_id"])}). The context starts at its first paragraph of running prose and is cut at a whole word drawn at random at least 50 tokens in; the activation is read at that last token, highlighted. The residual vector h has 5120 dimensions and norm {D["h_norm"]:.1f}.</p>
     <div class="specimen">{ctx_tail_html}</div>
     <details><summary>full context, {D["n_ctx"]} tokens</summary><div class="specimen small">{ctx_full_html}</div></details>
     <h3>The target's own next-token distribution p</h3>
     <div class="tbl"><table><thead><tr><th>next token</th><th class=num>p</th></tr></thead><tbody>{top_rows}</tbody></table></div>""",
-        ),
-        step(
-            2,
-            "Verbalize",
-            "AV, sampled at T = 1",
-            f"""
+    )
+    step_verbalize = step(
+        2,
+        "Verbalize",
+        "AV, sampled at T = 1",
+        f"""
     <h3>The explanation z</h3>
-    <p>The raw activation is added, norm-matched, to the residual stream at the marker token of the AV's fixed prompt on the output of block 1; the AV then writes {D["n_tokens"]} tokens.</p>
+    <p>The raw activation is added, norm-matched, to the residual stream at the marker token of the AV's fixed prompt on the output of block 1; the AV then writes {D["n_tokens"]} tokens. Input consistency of the whole explanation, S_x(z) = P(entail | x, z) − P(contradict | x, z): {f3(orig_v.get("S_x"))}.</p>
     <div class="specimen">{z_plain}</div>
     <h3>Resamples set the noise floor</h3>
     <details><summary>resample 1</summary><div class="specimen small">{res1}</div></details>
     <div class="tbl"><table><thead><tr><th class=num>sample</th><th class=num>dist to R(z)</th><th class=num>L_h</th><th class=num>KL</th></tr></thead><tbody>{resample_rows}</tbody></table></div>""",
-        ),
-        step(
-            3,
-            "Decompose",
-            "hand-written",
-            f"""
+    )
+    claim_steps = []
+    claim_edit_html = ""
+    if claims:
+        claim_steps.append(
+            step(
+                3,
+                "Decompose",
+                "hand-written",
+                f"""
     <h3>Claims with a verbatim excerpt each</h3>
     {claims_list()}
     <p>The excerpts, marked in z:</p>
     <div class="specimen">{z_marked}</div>""",
-        ),
-        step(
-            4,
-            "Edit",
-            "hand-written contradictions, flips, swaps, paraphrase, translation; code for the rest",
-            f"""
+            )
+        )
+        claim_edit_html = f"""
     <h3>Contradict: replace the excerpt, keep everything else</h3>
     <p>Each claim shows its support scores first: S_h = L_h(z¬c) − L_h(z) and S_o = KL(z¬c) − KL(z), the change caused by the contradiction relative to the original explanation (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}). Positive means the original claim reconstructs better than its contradiction.</p>
     {contradiction_rows()}
     <h3>Delete: remove the excerpt</h3>
     <p>I_h = L_h(z−c) − L_h(z) and I_o = KL(z−c) − KL(z): what the reconstruction loses when the claim is removed.</p>
-    <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>dist to R(z)</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>
+    <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>dist to R(z)</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>"""
+    n_edit = 4 if claims else 3
+    step_edit = step(
+        n_edit,
+        "Edit",
+        "hand-written flips, swaps, paraphrase, translation; code for the rest",
+        f"""{claim_edit_html}
     <h3>Whole-explanation variants</h3>
-    <p>For a whole-explanation edit k the support-style numbers are ΔL_h = L_h(z_k) − L_h(z) and ΔL_o = KL(z_k) − KL(z), the change relative to the original (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}); the resamples above give the noise floor for these.</p>
-    {variant_block("polarity", "Polarity flip", "Every sentence's meaning flipped with function words only; the vocabulary is unchanged.")}
-    {variant_block("vocab", "Vocabulary swap", "One content word per sentence swapped for an antonym or an unrelated word; the structure is unchanged. Same number of changed words as the flip.")}
-    {variant_block("paraphrase", "Matched paraphrase", "A rewording whose lexical change matches the vocabulary swap's; every claim kept.")}
+    <p>For a whole-explanation edit k: ΔL_h = L_h(z_k) − L_h(z) and ΔL_o = KL(z_k) − KL(z), the change relative to the original (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}); the resamples above give the noise floor. S_x is the input consistency of the edited text itself.</p>
+    {variant_block("polarity", "Polarity flip", "Every predicate-bearing phrase negated once with function words only; the vocabulary is unchanged, so the text denies every claim in the same words.")}
+    {variant_block("vocab", "Vocabulary swap", "Every content word outside quotes swapped for an antonym or an unrelated word; structure unchanged, the final token kept.")}
+    {variant_block("paraphrase", "Paraphrase", "A full rewording that keeps every claim and every quoted string.")}
     {variant_block("cat", "Final token → “cat”", "Every mention of the final token replaced by “cat” (code).")}
+    {variant_block("unrelated_token", "Unrelated, final token kept", f"The explanation of activation {D['unrelated_source_idx']} with its own final-token mentions replaced by this activation's token (code).")}
+    {variant_block("unrelated", "Unrelated", f"The explanation of activation {D['unrelated_source_idx']} as it is (a derangement over all activations).")}
     {variant_block("translate", "Translate", "French translation, quoted English kept.")}
-    {variant_block("shuffle", "Shuffle", "The snippets in a different order (code).")}
-    {variant_block("unrelated", "Unrelated", f"The explanation of activation {D['unrelated_source_idx']} (a derangement over all activations).")}""",
-        ),
-        step(
-            5,
-            "Reconstruct",
-            "AR, blocks 0–42 + value head",
-            f"""
+    {variant_block("shuffle", "Shuffle", "The snippets in a different order (code).")}""",
+    )
+    step_recon = step(
+        n_edit + 1,
+        "Reconstruct",
+        "AR, blocks 0–42 + value head",
+        f"""
     <h3>Every variant back to a vector</h3>
     <p>Each text is wrapped in the AR's summary prompt and reconstructed. L_h compares R(z′) with the real h; “dist” compares R(z′) with R(z), the quantity the equivalence threshold τ looks at.</p>
     {var_table()}""",
-        ),
-        step(
-            6,
-            "Patch and score the output",
-            "target, blocks 43–63",
-            f"""
+    )
+    step_out = step(
+        n_edit + 2,
+        "Patch and score the output",
+        "target, blocks 43–63",
+        f"""
     <h3>Put the reconstruction back into the model</h3>
     <p>R(z′) is rescaled to ‖h‖ and written into the residual stream at token t; blocks 43–63 and the head give p̂; L_o is KL(p ‖ p̂). References for this activation:</p>
-    <div class="tbl"><table><thead><tr><th>patch</th><th class=num>KL</th></tr></thead><tbody>{refs_rows}<tr><td>the explanation z itself</td><td class=num>{f3((V("orig") or {}).get("L_o"))}</td></tr></tbody></table></div>""",
-        ),
-        step(
-            7,
-            "Score the claims",
-            "NLI on the GPU, then arithmetic",
-            f"""
+    <div class="tbl"><table><thead><tr><th>patch</th><th class=num>KL</th></tr></thead><tbody>{refs_rows}<tr><td>the explanation z itself</td><td class=num>{f3(orig_v.get("L_o"))}</td></tr></tbody></table></div>""",
+    )
+    steps = [step_extract, step_verbalize, *claim_steps, step_edit, step_recon, step_out]
+    if claims:
+        steps.append(
+            step(
+                n_edit + 3,
+                "Score the claims",
+                "NLI on the GPU, then arithmetic",
+                f"""
     <h3>Support and importance profiles</h3>
     <div class="tbl"><table><thead><tr><th>claim</th><th>S_x</th><th>S_h</th><th>S_o</th><th>I_h</th><th>I_o</th></tr></thead><tbody>{profile_rows}</tbody></table></div>""",
-        ),
-    ]
+            )
+        )
     page2 = f"""
     <section id="lifecycle" hidden>
     <p class="eyebrow">activation idx {D["idx"]} of {D["stats"]["n"]} · token “{esc(last_tok)}”</p>
@@ -637,19 +688,14 @@ def build(D: dict) -> str:
     <div class="steps">{"".join(steps)}</div>
 
     <h2 id="population">Population: all {D["stats"]["n"]} activations</h2>
-    <p>{D["stats"]["claims"]} hand-written claims ({D["stats"]["anchored"]} anchored). FVE of the primary explanations is {rk["orig"]["FVE"]:.3f}.</p>
+    <p>{pop_intro}</p>
     {pop_kind_table()}
-    <div class="callout"><p>What the population says. Replacing the final token by “cat” costs most of the explained variance (ΔL_h median {we.get("cat", {}).get("dL_h_med", float("nan")):.2f}, FVE {rk["orig"]["FVE"]:.3f} → {rk.get("cat", {}).get("FVE", float("nan")):.3f}) and moves the patched output by {we.get("cat", {}).get("dL_o_med", float("nan")):.1f} nats at the median, in nearly every explanation. The three matched edits — polarity flip, vocabulary swap, paraphrase — all land within {max(we.get(k, {}).get("dist_med", 0) for k in ("polarity", "vocab", "paraphrase")):.3f} of R(z), twenty times closer than a resample ({rk["resample"]["dist_med"]:.3f}), although the NLI judge calls the flip and the swap contradictions: the reconstructor reads the words and above all the quoted token, not the polarity. With edit size matched, contradictions are now farther than paraphrases (AUC {al.get("auc_dist_separates_H", float("nan")):.2f}), but at the resample-median τ the aliasing rate is still {at_m.get("eps_alias", float("nan")):.2f}. Activation support stays uncorrelated with input truth (S_x~S_h = {corr.get("S_x~S_h", float("nan")):.2f}).</p></div>
+    <div class="callout"><p>{callout}</p></div>
     <h3>Whole-explanation edit kinds (medians per activation)</h3>
-    <div class="tbl"><table><thead><tr><th>kind</th><th class=num>n</th><th class=num>lexical change</th><th class=num>dist</th><th class=num>ΔL_h</th><th class=num>ΔL_o median</th><th class=num>ΔL_o mean</th></tr></thead><tbody>{we_rows}</tbody></table></div>
+    <div class="tbl"><table><thead><tr><th>kind</th><th class=num>n</th><th class=num>dist</th><th class=num>ΔL_h</th><th class=num>ΔL_o median</th><th class=num>ΔL_o mean</th><th class=num>S_x(z′) mean</th><th class=num>NLI z→z′ contra</th></tr></thead><tbody>{we_rows}</tbody></table></div>
     <h3>Matched pairs (per activation)</h3>
     <div class="tbl"><table><thead><tr><th>comparison : quantity</th><th class=num>n</th><th class=num>median difference</th><th class=num>share first &gt; second</th><th class=num>Wilcoxon p</th></tr></thead><tbody>{mt_rows}</tbody></table></div>
-    <h3>Claim profiles</h3>
-    {pop_claim_table()}
-    <div class="grid2">
-    <div><h3>Rank correlations between the profile columns</h3><div class="tbl"><table><thead><tr><th>pair</th><th class=num>Spearman</th></tr></thead><tbody>{corr_rows}</tbody></table></div></div>
-    <div><h3>By snippet of the explanation</h3><div class="tbl"><table><thead><tr><th>snippet</th><th class=num>claims</th><th class=num>S_x median</th><th class=num>S_h mean</th><th class=num>I_h mean</th><th class=num>I_o mean</th></tr></thead><tbody>{snip_rows}</tbody></table></div></div>
-    </div>
+    {claim_pop_html}
     <div class="plots">{fig_html}</div>
     </section>
     """

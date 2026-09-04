@@ -64,6 +64,7 @@ class Config:
     max_claims: int = 4
     editor: str = "hand"  # hand | file:<path.jsonl> | local
     editor_batch: int = 16
+    prefill_from: str = ""  # previous hand_edits.jsonl: reuse its translation / cat (round 3+)
     # reconstruct / output
     ar_batch: int = 32
     ar_max_len: int = 384
@@ -472,12 +473,11 @@ def stage_edit(cfg: Config, d: Path) -> None:
     top: deletion of each excerpt, snippet shuffle, unrelated (derangement), final token ->
     "cat" (mechanical unless the file overrides it), resamples."""
     from nla.editor import (
-        WHOLE_KINDS,
         FileEditor,
         cat_edit,
         derangement,
         shuffle_snippets,
-        similarity,
+        swap_token,
         write_hand_template,
     )
 
@@ -496,6 +496,14 @@ def stage_edit(cfg: Config, d: Path) -> None:
     path = Path(cfg.editor[5:]) if cfg.editor.startswith("file:") else d / "hand_edits.jsonl"
     if not path.exists():
         tpl = d / "hand_edits_template.jsonl"
+        prev: dict[int, dict] = {}
+        if (
+            cfg.prefill_from
+        ):  # reuse unchanged arms (translation, cat overrides) from an earlier round
+            for ln in Path(cfg.prefill_from).read_text().splitlines():
+                if ln.strip():
+                    r = json.loads(ln)
+                    prev[int(r["idx"])] = r
         write_hand_template(
             tpl,
             [
@@ -504,6 +512,8 @@ def stage_edit(cfg: Config, d: Path) -> None:
                     "final_token": ctx.final_token.loc[i],
                     "x_tail": ctx.x_text.loc[i][-400:],
                     "explanation": z,
+                    "translation": prev.get(i, {}).get("translation"),
+                    "cat": prev.get(i, {}).get("cat"),
                 }
                 for i, z in sorted(expl.items())
             ],
@@ -520,10 +530,17 @@ def stage_edit(cfg: Config, d: Path) -> None:
     claims_rows, var_rows, cat_counts = [], [], []
     idxs = [e.idx for e in edits]
     perm = derangement(len(idxs), cfg.seed) if len(idxs) > 1 else [0]
+    cat_text: dict[int, str | None] = {}
+    for e in edits:  # the "cat" text of every explanation first (unrelated_token needs donors')
+        text = e.whole.get("cat")
+        if not text:
+            text, n_rep = cat_edit(expl[e.idx], str(ctx.final_token.loc[e.idx]))
+            cat_counts.append(n_rep)
+        cat_text[e.idx] = text if text and text != expl[e.idx] else None
     for pos_i, e in enumerate(edits):
         z = expl[e.idx]
         var_rows.append({"idx": e.idx, "kind": "orig", "claim_id": -1, "text": z})
-        for j, c in enumerate(e.claims):
+        for j, c in enumerate(e.claims):  # dormant EXP001-style per-claim edits
             claims_rows.append(
                 {
                     "idx": e.idx,
@@ -550,25 +567,23 @@ def stage_edit(cfg: Config, d: Path) -> None:
             var_rows.append(
                 {"idx": e.idx, "kind": "translate", "claim_id": -1, "text": e.translation}
             )
-        for k in WHOLE_KINDS:
+        for k in ("polarity", "vocab"):
             text = e.whole.get(k)
-            n_rep = -1
-            if k == "cat" and not text:
-                text, n_rep = cat_edit(z, str(ctx.final_token.loc[e.idx]))
-                cat_counts.append(n_rep)
             if text and text != z:
-                var_rows.append({"idx": e.idx, "kind": k, "claim_id": n_rep, "text": text})
+                var_rows.append({"idx": e.idx, "kind": k, "claim_id": -1, "text": text})
+        if cat_text[e.idx]:
+            var_rows.append({"idx": e.idx, "kind": "cat", "claim_id": -1, "text": cat_text[e.idx]})
         sh = shuffle_snippets(z, cfg.seed + e.idx)
         if sh:
             var_rows.append({"idx": e.idx, "kind": "shuffle", "claim_id": -1, "text": sh})
-        var_rows.append(
-            {
-                "idx": e.idx,
-                "kind": "unrelated",
-                "claim_id": idxs[perm[pos_i]],
-                "text": expl[idxs[perm[pos_i]]],
-            }
-        )
+        donor = idxs[perm[pos_i]]
+        var_rows.append({"idx": e.idx, "kind": "unrelated", "claim_id": donor, "text": expl[donor]})
+        if cat_text.get(donor):  # the donor's text with OUR final token in its final-token slots
+            ut = swap_token(cat_text[donor], str(ctx.final_token.loc[e.idx]))
+            if ut and ut != expl[donor]:
+                var_rows.append(
+                    {"idx": e.idx, "kind": "unrelated_token", "claim_id": donor, "text": ut}
+                )
     rs_path = d / "resamples.parquet"
     if rs_path.exists():
         keep = set(idxs)
@@ -585,21 +600,15 @@ def stage_edit(cfg: Config, d: Path) -> None:
     claims = pd.DataFrame(claims_rows)
     variants = pd.DataFrame(var_rows)
     variants["vid"] = np.arange(len(variants))
-    variants["sim_to_orig"] = [
-        similarity(expl[i], t) for i, t in zip(variants.idx, variants.text, strict=True)
-    ]
     io.write_parquet(claims, d / "claims.parquet")
     io.write_parquet(variants, d / "variants.parquet")
-    n_c = max(len(claims), 1)
     log(
-        f"claims/explanation: {len(claims) / max(len(edits), 1):.2f}; variant counts:\n{variants.kind.value_counts().to_string()}"
+        f"claims/explanation: {len(claims) / max(len(edits), 1):.2f} (dormant path); variant counts:\n{variants.kind.value_counts().to_string()}"
     )
     log(
-        f"claims anchored {claims.anchored.mean() if len(claims) else 0:.3f}; contradict {variants.kind.eq('contradict').sum() / n_c:.3f} delete {variants.kind.eq('delete').sum() / n_c:.3f} of claims; "
-        f"cat replacements per explanation: mean {np.mean(cat_counts) if cat_counts else float('nan'):.2f}, none in {sum(1 for c in cat_counts if c == 0)} explanations"
-    )
-    log(
-        f"lexical similarity to the original (difflib ratio):\n{variants.groupby('kind').sim_to_orig.describe()[['count', 'mean', '50%', 'min']].round(3).to_string()}"
+        f"cat replacements per explanation (mechanical items): mean {np.mean(cat_counts) if cat_counts else float('nan'):.2f}, "
+        f"none in {sum(1 for c in cat_counts if c == 0)}; overrides {sum(1 for e in edits if e.whole.get('cat'))}; "
+        f"unrelated_token built for {variants.kind.eq('unrelated_token').sum()} of {len(edits)}"
     )
     finish(d, "edit", cfg)
 
@@ -789,51 +798,87 @@ def stage_nli(cfg: Config, d: Path) -> None:
     from nla.nli import NLI, support_x
 
     ctx = io.read_parquet(d / "contexts.parquet").set_index("idx")
-    claims = io.read_parquet(d / "claims.parquet")
+    claims = (
+        io.read_parquet(d / "claims.parquet") if (d / "claims.parquet").exists() else pd.DataFrame()
+    )
     variants = io.read_parquet(d / "variants.parquet")
     orig = variants[variants.kind == "orig"].set_index("idx").text
     t0 = time.time()
     nli = NLI(cfg.nli_model, premise_tail_chars=cfg.nli_premise_chars, device=cfg.nli_device)
     log(f"NLI loaded in {time.time() - t0:.0f}s on {nli.device}")
 
-    # S_x(c): premise = context x, hypothesis = claim; NLI_claim: excerpt <-> replacement
-    pr = nli.probs([ctx.x_text.loc[i] for i in claims.idx], claims.claim.tolist(), cfg.nli_batch)
-    cl = claims.copy()
-    cl["p_entail"], cl["p_neutral"], cl["p_contra"] = pr[:, 0], pr[:, 1], pr[:, 2]
-    cl["S_x"] = support_x(pr)
-    for c in (
-        "p_entail_claim_fwd",
-        "p_contra_claim_fwd",
-        "p_entail_claim_bwd",
-        "p_contra_claim_bwd",
-    ):
-        cl[c] = np.nan
-    has = (
-        cl.excerpt.notna() & cl.replacement.notna()
-        if "replacement" in cl
-        else pd.Series(False, index=cl.index)
-    )
-    if has.any():
-        exc, rep = cl.excerpt[has].tolist(), cl.replacement[has].tolist()
-        f = nli.probs(exc, rep, cfg.nli_batch)
-        b = nli.probs(rep, exc, cfg.nli_batch)
-        cl.loc[has, "p_entail_claim_fwd"], cl.loc[has, "p_contra_claim_fwd"] = f[:, 0], f[:, 2]
-        cl.loc[has, "p_entail_claim_bwd"], cl.loc[has, "p_contra_claim_bwd"] = b[:, 0], b[:, 2]
-    io.write_parquet(cl, d / "nli_claims.parquet")
+    # S_x at the whole-explanation level: premise = context x, hypothesis = z or a whole-explanation variant
+    whole_kinds = [
+        "orig",
+        "paraphrase",
+        "translate",
+        "shuffle",
+        "polarity",
+        "vocab",
+        "cat",
+        "unrelated_token",
+        "unrelated",
+    ]
+    wx = variants[variants.kind.isin(whole_kinds)].copy()
+    t0 = time.time()
+    pr = nli.probs([ctx.x_text.loc[i] for i in wx.idx], wx.text.tolist(), cfg.nli_batch)
+    wx["p_entail"], wx["p_neutral"], wx["p_contra"] = pr[:, 0], pr[:, 1], pr[:, 2]
+    wx["S_x"] = support_x(pr)
+    io.write_parquet(wx.drop(columns=["text"]), d / "nli_x_whole.parquet")
     log(
-        f"S_x: mean {cl.S_x.mean():.3f}  frac>0 {(cl.S_x > 0).mean():.3f}  frac<0 {(cl.S_x < 0).mean():.3f}; "
-        f"NLI_claim contradiction fwd {cl.p_contra_claim_fwd.mean():.3f} bwd {cl.p_contra_claim_bwd.mean():.3f} ({time.time() - t0:.0f}s)"
+        f"S_x(z') on {len(wx)} whole texts in {time.time() - t0:.0f}s:\n"
+        + wx.groupby("kind").S_x.agg(["mean", "median"]).round(3).to_string()
     )
 
+    # per-claim S_x and NLI_claim (dormant EXP001-style path; only when the run has claims)
+    if len(claims) and "claim_id" in claims:
+        pr = nli.probs(
+            [ctx.x_text.loc[i] for i in claims.idx], claims.claim.tolist(), cfg.nli_batch
+        )
+        cl = claims.copy()
+        cl["p_entail"], cl["p_neutral"], cl["p_contra"] = pr[:, 0], pr[:, 1], pr[:, 2]
+        cl["S_x"] = support_x(pr)
+        for c in (
+            "p_entail_claim_fwd",
+            "p_contra_claim_fwd",
+            "p_entail_claim_bwd",
+            "p_contra_claim_bwd",
+        ):
+            cl[c] = np.nan
+        has = (
+            cl.excerpt.notna() & cl.replacement.notna()
+            if "replacement" in cl
+            else pd.Series(False, index=cl.index)
+        )
+        if has.any():
+            exc, rep = cl.excerpt[has].tolist(), cl.replacement[has].tolist()
+            f = nli.probs(exc, rep, cfg.nli_batch)
+            b = nli.probs(rep, exc, cfg.nli_batch)
+            cl.loc[has, "p_entail_claim_fwd"], cl.loc[has, "p_contra_claim_fwd"] = f[:, 0], f[:, 2]
+            cl.loc[has, "p_entail_claim_bwd"], cl.loc[has, "p_contra_claim_bwd"] = b[:, 0], b[:, 2]
+        io.write_parquet(cl, d / "nli_claims.parquet")
+        log(f"per-claim S_x: mean {cl.S_x.mean():.3f}  frac>0 {(cl.S_x > 0).mean():.3f}")
+
     # NLI_whole: z -> z' for every edited kind; z' -> z for the meaning-preserving kinds
-    kinds = ["contradict", "delete", "paraphrase", "translate", "polarity", "vocab", "cat"]
+    kinds = [
+        "contradict",
+        "delete",
+        "paraphrase",
+        "translate",
+        "shuffle",
+        "polarity",
+        "vocab",
+        "cat",
+        "unrelated_token",
+        "unrelated",
+    ]
     tv = variants[variants.kind.isin(kinds)].copy()
     z = [orig.loc[i] for i in tv.idx]
     t0 = time.time()
     fwd = nli.probs(z, tv.text.tolist(), cfg.nli_batch)
     tv["p_entail_fwd"], tv["p_contra_fwd"] = fwd[:, 0], fwd[:, 2]
     tv["p_entail_bwd"], tv["p_contra_bwd"] = np.nan, np.nan
-    is_h1 = tv.kind.isin(["paraphrase", "translate"]).to_numpy()
+    is_h1 = tv.kind.isin(["paraphrase", "translate", "shuffle"]).to_numpy()
     if is_h1.any():
         bwd = nli.probs(
             tv.text[is_h1].tolist(), [orig.loc[i] for i in tv.idx[is_h1]], cfg.nli_batch

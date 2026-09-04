@@ -2,158 +2,322 @@
 # # EXP002 — hand-edit helpers: split the template for parallel authoring, check, merge
 #
 #     ./bin/run python experiments/002_hand_edits.py split --exp exp_002 --chunks 11
-#     ./bin/run python experiments/002_hand_edits.py check artifacts/exp_002/hand_edits_parts/part_00.jsonl
+#     ./bin/run python experiments/002_hand_edits.py check artifacts/exp_002/hand_edits_parts/part_00.jsonl --diag
 #     ./bin/run python experiments/002_hand_edits.py merge --exp exp_002
 #
-# File format (one JSON object per line, see `nla.editor.write_hand_template`): idx, claims
-# [{claim, excerpt, contradiction}], polarity, vocab, paraphrase, translation, cat (optional).
-# `check` verifies excerpts are verbatim spans, contradictions replace them, the whole-explanation
-# texts exist and differ from z, and reports the lexical change of polarity / vocab / paraphrase
-# (the matching rule: vocab and paraphrase within 0.05 of each other, polarity close to vocab).
+# File format (one JSON object per line, see `nla.editor.write_hand_template`): idx, final_token,
+# x_tail, explanation, polarity, vocab, paraphrase, translation, cat (optional override; may be
+# prefilled). `check` enforces the round-3 rules of `experiments/guides/HAND_EDITS.md`:
+#   polarity  — every sentence negated at the phrase level: >= 1 negation word per sentence, at
+#               most one per phrase (phrases split at , ; : — –), vocabulary otherwise unchanged
+#               (the multiset of non-negation words equals the original's), quotes untouched;
+#   vocab     — many content words changed (>= 40 % of the content words outside quotes), sentence
+#               count unchanged, quotes untouched, the final token's mentions untouched;
+#   paraphrase — substantially reworded (< 70 % of content words shared), quotes untouched,
+#               paragraph count unchanged;
+#   translation — present; quoted English strings kept verbatim.
+# Old EXP001-style `claims` entries are validated when present (dormant path).
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import statistics
 import sys
+from collections import Counter
 from pathlib import Path
 
 from nla import io
-from nla.editor import locate_span, similarity
+from nla.editor import locate_span
 
 FIELDS = ("polarity", "vocab", "paraphrase", "translation")
 NEG_WORDS = {
     "not",
     "no",
     "never",
-    "doesn't",
-    "does",
-    "don't",
-    "do",
-    "isn't",
-    "is",
-    "aren't",
-    "are",
-    "won't",
-    "will",
-    "cannot",
-    "can't",
-    "can",
     "nor",
-    "without",
     "neither",
-    "did",
-    "didn't",
+    "cannot",
+    "without",
+    "none",
+    "doesn't",
+    "don't",
+    "isn't",
+    "aren't",
     "wasn't",
-    "was",
+    "weren't",
+    "won't",
+    "can't",
+    "didn't",
     "hasn't",
-    "has",
     "haven't",
+    "hadn't",
+    "couldn't",
+    "wouldn't",
+    "shouldn't",
+}
+DO_SUPPORT = {
+    "does",
+    "do",
+    "did",
+    "is",
+    "are",
+    "was",
+    "were",
+    "has",
     "have",
-    "lacks",
-    "lack",
-    "fails",
-    "fail",
+    "had",
+    "will",
+    "can",
+    "could",
+    "would",
+    "should",
     "to",
 }
+STOP = (
+    {
+        "a",
+        "an",
+        "the",
+        "of",
+        "to",
+        "in",
+        "on",
+        "at",
+        "for",
+        "with",
+        "by",
+        "from",
+        "as",
+        "and",
+        "or",
+        "but",
+        "that",
+        "this",
+        "these",
+        "those",
+        "it",
+        "its",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "has",
+        "have",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "can",
+        "could",
+        "should",
+        "may",
+        "might",
+        "than",
+        "then",
+        "so",
+        "such",
+        "into",
+        "onto",
+        "over",
+        "under",
+        "about",
+        "after",
+        "before",
+        "between",
+        "through",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "what",
+        "where",
+        "when",
+        "while",
+        "here",
+        "there",
+        "their",
+        "they",
+        "them",
+        "he",
+        "she",
+        "his",
+        "her",
+        "we",
+        "our",
+        "you",
+        "your",
+        "i",
+        "my",
+        "me",
+        "up",
+        "out",
+        "off",
+        "very",
+        "just",
+        "also",
+        "each",
+        "every",
+        "all",
+        "any",
+        "some",
+        "both",
+        "either",
+        "own",
+        "same",
+        "more",
+        "most",
+        "less",
+        "least",
+        "e",
+        "g",
+        "i.e",
+        "etc",
+        "like",
+        "vs",
+    }
+    | NEG_WORDS
+    | DO_SUPPORT
+)
 _WORD = re.compile(r"[A-Za-z][A-Za-z'’-]*")
 
 
-def _sentences(text: str) -> list[str]:
-    return [s for s in re.split(r"(?<=[.!?])\s+|\n+", text) if s.strip()]
+def is_neg(w: str) -> bool:
+    w = w.lower()
+    return w in NEG_WORDS or w.startswith("non-")
 
 
-def word_diff(a: str, b: str) -> tuple[list[str], list[str]]:
-    """Words removed from a / added in b (multiset difference, case-insensitive)."""
-    from collections import Counter
-
-    ca, cb = (
-        Counter(w.lower() for w in _WORD.findall(a)),
-        Counter(w.lower() for w in _WORD.findall(b)),
-    )
-    return sorted((ca - cb).elements()), sorted((cb - ca).elements())
-
-
-def diagnostics(z: str, r: dict) -> dict:
-    """Word-level audit: vocab should change ~1 word per sentence; polarity should only add/remove
-    negation function words (or un-/in- prefixes); paraphrase should change ~1 word per sentence."""
-    out: dict = {}
-    n_sent = max(len(_sentences(z)), 1)
-    for k in ("vocab", "paraphrase", "polarity"):
-        v = r.get(k) or ""
-        if not v:
-            continue
-        rem, add = word_diff(z, v)
-        out[f"{k}_removed"] = rem
-        out[f"{k}_added"] = add
-        out[f"{k}_changes_per_sentence"] = round(max(len(rem), len(add)) / n_sent, 2)
-    if "polarity_added" in out:
-        removed = set(out.get("polarity_removed", []))
-
-        def same_stem(w: str) -> bool:  # do-support changes inflection: sets -> does not set
-            return any(
-                w + suf in removed or w.rstrip("e") + suf in removed
-                for suf in ("", "s", "es", "ed", "d", "ing")
-            )
-
-        odd = [
-            w
-            for w in out["polarity_added"]
-            if w not in NEG_WORDS
-            and w not in ("a", "an", "the", "any")
-            and not w.startswith(("un", "in", "im", "non", "dis"))
-            and not same_stem(w)
-        ]
-        out["polarity_non_negation_words_added"] = odd
-    return out
+_QUOTE = re.compile(r'"([^"\n]{2,})"')
 
 
 def load_jsonl(path: Path) -> list[dict]:
     return [json.loads(ln) for ln in path.read_text().splitlines() if ln.strip()]
 
 
+def _sentences(text: str) -> list[str]:
+    return [t for t in re.split(r"(?<=[.!?])\s+|\n+", text) if t.strip()]
+
+
+def _strip_quotes(text: str) -> str:
+    return _QUOTE.sub('""', text)
+
+
+def _content_words(text: str) -> Counter:
+    return Counter(w.lower() for w in _WORD.findall(_strip_quotes(text)) if w.lower() not in STOP)
+
+
+def _words(text: str) -> Counter:
+    return Counter(w.lower() for w in _WORD.findall(_strip_quotes(text)))
+
+
+def quotes_kept(z: str, v: str) -> list[str]:
+    """Double-quoted strings of z (>= 2 chars) that do not occur verbatim, quotes included, in v."""
+    return [q for q in _QUOTE.findall(z) if f'"{q}"' not in v]
+
+
+def check_polarity(z: str, v: str) -> tuple[list[str], dict]:
+    issues, st = [], {}
+    sents = [s for s in _sentences(_strip_quotes(v)) if _WORD.search(s)]
+    n_neg = [sum(1 for w in _WORD.findall(s) if is_neg(w)) for s in sents]
+    zero = [i for i, n in enumerate(n_neg) if n == 0]
+    st["neg_per_sentence"] = round(sum(n_neg) / max(len(sents), 1), 2)
+    if zero:
+        issues.append(f"polarity: sentence(s) {zero} have no negation")
+    over = []
+    for i, s in enumerate(sents):
+        for ph in re.split(r"[,;:—–()]|\b(?:and|but|or|nor|while|whereas|which|that)\b", s):
+            if sum(1 for w in _WORD.findall(ph) if is_neg(w)) > 1:
+                over.append(i)
+                break
+    if over:
+        issues.append(f"polarity: sentence(s) {over} stack two negations in one phrase")
+    # vocabulary unchanged: words that are not negation / do-support must match the original's
+    wz, wv = _words(z), _words(v)
+    changed = [w for w in ((wz - wv) + (wv - wz)) if w not in NEG_WORDS | DO_SUPPORT]
+    stem_ok = [
+        w
+        for w in changed
+        if not any(
+            w + suf in wz or w.rstrip("e") + suf in wz or w in (x + suf for x in wz)
+            for suf in ("", "s", "es", "ed", "d", "ing")
+        )
+    ]
+    stem_ok = [w for w in stem_ok if not w.startswith(("un", "in", "im", "non", "dis"))]
+    if stem_ok:
+        issues.append(f"polarity: vocabulary changed {stem_ok[:5]}")
+    return issues, st
+
+
+def check_vocab(z: str, v: str, token: str) -> tuple[list[str], dict]:
+    issues, st = [], {}
+    cz, cv = _content_words(z), _content_words(v)
+    n_changed = sum((cz - cv).values())
+    frac = n_changed / max(sum(cz.values()), 1)
+    st["vocab_changed_frac"] = round(frac, 2)
+    if frac < 0.4:
+        issues.append(f"vocab: only {frac:.0%} of content words changed (need >= 40 %)")
+    if len(_sentences(z)) != len(_sentences(v)):
+        issues.append("vocab: sentence count changed")
+    tok = token.strip()
+    if tok and z.count(f'"{tok}"') != v.count(f'"{tok}"'):
+        issues.append(f'vocab: quoted final token "{tok}" mentions changed')
+    return issues, st
+
+
+def check_paraphrase(z: str, v: str) -> tuple[list[str], dict]:
+    issues, st = [], {}
+    cz, cv = _content_words(z), _content_words(v)
+    shared = sum((cz & cv).values()) / max(sum(cz.values()), 1)
+    st["paraphrase_shared_frac"] = round(shared, 2)
+    if shared > 0.7:
+        issues.append(f"paraphrase: {shared:.0%} of content words kept (need < 70 %)")
+    if z.count("\n\n") != v.count("\n\n"):
+        issues.append("paraphrase: paragraph count changed")
+    return issues, st
+
+
 def check_item(r: dict, z: str) -> tuple[list[str], dict]:
     issues: list[str] = []
     stats: dict = {}
-    claims = r.get("claims") or []
-    if not claims:
-        issues.append("no claims")
-    if len(claims) > 4:
-        issues.append(f"{len(claims)} claims (max 4)")
-    for j, c in enumerate(claims):
-        exc, con = (c.get("excerpt") or "").strip(), (c.get("contradiction") or "").strip()
-        if not c.get("claim"):
-            issues.append(f"claim {j}: empty claim")
-        if not exc:
-            issues.append(f"claim {j}: no excerpt")
-        elif exc not in z:
-            loc = locate_span(z, exc)
-            issues.append(
-                f"claim {j}: excerpt not verbatim"
-                + (" (fuzzy match only)" if loc else " (not found)")
-            )
-        if not con:
-            issues.append(f"claim {j}: no contradiction")
-        elif con == exc:
-            issues.append(f"claim {j}: contradiction equals excerpt")
     for k in FIELDS:
         v = (r.get(k) or "").strip()
         if not v:
             issues.append(f"{k}: missing")
         elif v == z:
             issues.append(f"{k}: identical to the explanation")
-        else:
-            stats[f"lex_{k}"] = round(1 - similarity(z, v), 3)
-    if (
-        "lex_vocab" in stats
-        and "lex_paraphrase" in stats
-        and abs(stats["lex_vocab"] - stats["lex_paraphrase"]) > 0.05
-    ):
-        issues.append(
-            f"paraphrase lexical change {stats['lex_paraphrase']} not matched to vocab {stats['lex_vocab']} (±0.05)"
-        )
+    tok = str(r.get("final_token") or "")
+    if r.get("polarity"):
+        i, st = check_polarity(z, r["polarity"])
+        issues += i
+        stats.update(st)
+    if r.get("vocab"):
+        i, st = check_vocab(z, r["vocab"], tok)
+        issues += i
+        stats.update(st)
+    if r.get("paraphrase"):
+        i, st = check_paraphrase(z, r["paraphrase"])
+        issues += i
+        stats.update(st)
+    for k in ("polarity", "vocab", "paraphrase", "translation"):
+        if r.get(k):
+            missing = quotes_kept(z, r[k])
+            if missing:
+                issues.append(f"{k}: quoted string(s) changed: {missing[:2]}")
     if r.get("cat") and r["cat"] == z:
         issues.append("cat: identical to the explanation")
+    for j, c in enumerate(r.get("claims") or []):  # dormant EXP001-style claims
+        exc, con = (c.get("excerpt") or "").strip(), (c.get("contradiction") or "").strip()
+        if exc and exc not in z:
+            issues.append(
+                f"claim {j}: excerpt not verbatim" + (" (fuzzy)" if locate_span(z, exc) else "")
+            )
+        if exc and con == exc:
+            issues.append(f"claim {j}: contradiction equals excerpt")
     return issues, stats
 
 
@@ -174,58 +338,25 @@ def cmd_split(a: argparse.Namespace) -> None:
 
 
 def cmd_check(a: argparse.Namespace) -> int:
-    tpl = {
-        r["idx"]: r for r in load_jsonl(io.artifact_root() / a.exp / "hand_edits_template.jsonl")
-    }
+    tpl_path = io.artifact_root() / a.exp / "hand_edits_template.jsonl"
+    tpl = {r["idx"]: r for r in load_jsonl(tpl_path)} if tpl_path.exists() else {}
     n_bad = 0
-    lex: dict[str, list[float]] = {}
-    diag_rows = []
+    agg: dict[str, list[float]] = {}
     for path in a.files:
         rows = load_jsonl(Path(path))
         for r in rows:
             z = tpl[r["idx"]]["explanation"] if r["idx"] in tpl else r.get("explanation", "")
             issues, st = check_item(r, z)
             for k, v in st.items():
-                lex.setdefault(k, []).append(v)
+                agg.setdefault(k, []).append(v)
             if issues:
                 n_bad += 1
                 print(f"idx {r['idx']}: " + "; ".join(issues))
             if getattr(a, "diag", False):
-                dg = diagnostics(z, r)
-                diag_rows.append(dg)
-                odd = dg.get("polarity_non_negation_words_added", [])
-                swaps = ", ".join(
-                    f"{x}->{y}"
-                    for x, y in zip(
-                        dg.get("vocab_removed", []), dg.get("vocab_added", []), strict=False
-                    )
-                )
-                print(
-                    f"idx {r['idx']}: vocab {dg.get('vocab_changes_per_sentence')} changes/sentence ({swaps}); "
-                    f"paraphrase {dg.get('paraphrase_changes_per_sentence')}; polarity adds {dg.get('polarity_added')}"
-                    + (f" NON-NEGATION {odd}" if odd else "")
-                )
+                print(f"idx {r['idx']}: " + ", ".join(f"{k} {v}" for k, v in st.items()))
         print(f"{path}: {len(rows)} items, {n_bad} with issues")
-    if diag_rows:
-        import statistics
-
-        for k in (
-            "vocab_changes_per_sentence",
-            "paraphrase_changes_per_sentence",
-            "polarity_changes_per_sentence",
-        ):
-            v = [d[k] for d in diag_rows if k in d]
-            if v:
-                print(f"{k}: median {statistics.median(v):.2f}, max {max(v):.2f}")
-        odd = sum(1 for d in diag_rows if d.get("polarity_non_negation_words_added"))
-        print(f"polarity flips adding non-negation words: {odd}/{len(diag_rows)}")
-    if lex:
-        import statistics
-
-        print(
-            "lexical change (1 - difflib ratio), median: "
-            + ", ".join(f"{k} {statistics.median(v):.3f}" for k, v in lex.items())
-        )
+    if agg:
+        print("medians: " + ", ".join(f"{k} {statistics.median(v):.2f}" for k, v in agg.items()))
     return n_bad
 
 
@@ -252,7 +383,7 @@ def main() -> None:
     c = sub.add_parser("check")
     c.add_argument("files", nargs="+")
     c.add_argument("--exp", default="exp_002")
-    c.add_argument("--diag", action="store_true", help="word-level diagnostics per item")
+    c.add_argument("--diag", action="store_true", help="per-item statistics")
     m = sub.add_parser("merge")
     m.add_argument("--exp", default="exp_002")
     a = p.parse_args()

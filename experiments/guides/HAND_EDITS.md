@@ -1,69 +1,71 @@
-# Hand edits (EXP002) — authoring guide
+# Hand edits (EXP002) — authoring guide (round 3 rules)
 
 The `edit` stage of `experiments/002_nla_metrics.py` writes `hand_edits_template.jsonl` (one
-JSON object per explanation) and stops. Every item is authored by hand (the agent, in forked
-subagents of ~24 items each; `experiments/002_hand_edits.py split|check|merge`). The authored
-file is `hand_edits.jsonl` in the run's artifact dir. Fields to fill, per item:
+JSON object per explanation) and stops. Every item is authored by hand (the project agent
+`hand-editor`, effort `xhigh`, in parts of ~24 items; `experiments/002_hand_edits.py
+split|check|merge`). The authored file is `hand_edits.jsonl` in the run's artifact dir. The
+experiment works at the **whole-explanation level**: no claim decomposition (the EXP001-style
+`claims` field is dormant). Fields to fill, per item:
 
-## `claims` — at most 4 objects `{claim, excerpt, contradiction}`
+## `polarity` — phrase-level polarity flip, vocabulary fixed
 
-- `claim`: the atomic claim as one short self-contained declarative sentence.
-- `excerpt`: a contiguous, **verbatim** span of the explanation that expresses the claim
-  (copy it character for character, including quotes and punctuation; at most ~30 words;
-  different claims use different, non-overlapping excerpts). Prefer whole clauses or
-  sentences so that deleting the excerpt leaves grammatical text.
-- `contradiction`: a rewrite of the **excerpt only** asserting the opposite (or an
-  incompatible alternative), same grammatical role, style and length, so it can replace the
-  excerpt in place. Do not negate by inserting "not" if a concrete alternative reads better
-  ("a formal medical article" → "a casual sports blog"). For the "Final token" claim,
-  change the token itself (`"happening"` → `"recipe"`), not only its role.
-- Cover the explanation's three parts when present: genre/structure, the mid-text content,
-  the final token. Most central claims first.
+The whole explanation with **every predicate-bearing phrase of every sentence negated once**,
+using function words only: *not* / *no* / *never* / *does not* / *did not* / *cannot*, or
+*un-* / *in-* / *non-* on an adjective. Phrases that carry a claim and must each get their own
+negation: the finite verb of the main clause, every participle or gerund clause ("listing …",
+"requiring …", "expecting …", "following …"), every clause after a dash, semicolon or colon,
+verbless fragments ("Not a professional biography format …"). Rules:
 
-## `polarity` — polarity flip, vocabulary fixed
+- never two negations whose scopes overlap (no "no-no is yes"): at most one negation per
+  phrase; phrases are the segments between commas, semicolons, colons, dashes, parentheses;
+- a sentence or phrase that already contains a negation **loses** it instead of getting a
+  second one;
+- every content word stays exactly as it is (the checker compares the word multiset apart
+  from negation and do-support words); do-support re-inflection is fine ("sets up" → "does
+  not set up");
+- quoted strings and the trailing quoted excerpt stay verbatim; keep the paragraph breaks.
 
-The whole explanation with the **meaning of every sentence flipped** using only function
-words: insert *not* / *doesn't* / *no* / *never*, or *un-*/*in-* on an adjective, at the
-main predicate of every sentence or independent clause. Keep every content word (nouns,
-verbs, adjectives, quoted text) exactly as it is. If a sentence already contains a negation,
-**remove** it instead of doubling. Keep paragraph breaks. One flip per sentence is enough;
-the lexical change should be small (a few words per sentence).
+Example (idx 79): "Academic credentials sequence in progress — undergraduate degree listed
+("…"), requiring a specific university name to complete the parallel credential structure."
+→ "Academic credentials sequence not in progress — undergraduate degree not listed ("…"),
+not requiring a specific university name to complete the parallel credential structure."
 
-## `vocab` — vocabulary swap, structure fixed
+## `vocab` — vocabulary swap, structure fixed, final token protected
 
-The whole explanation with **exactly one content word per sentence replaced** by its antonym
-when one exists (formal → informal, beginning → ending, increases → decreases), otherwise by
-an unrelated word of the same category (a different genre, topic, part of speech kept).
-Everything else — word order, function words, punctuation, the other content words, quoted
-text — stays identical. Do not touch the quoted final token in the "Final token" sentence
-unless it is the only content word. The number of changed words per sentence must match the
-polarity flip (one), so the two edits have the same lexical change.
+The whole explanation with **as many content words as possible outside quoted text
+replaced** (at least 40 % of them; nouns, verbs, adjectives, adverbs) by an antonym when one
+exists (formal → informal, beginning → ending, increases → decreases) or otherwise by an
+unrelated word of the same category. Sentence structure, function words, punctuation, the
+number of sentences and every quoted string stay identical. **The final token is protected**:
+its quoted mentions (`"from"`) and the "Final token" phrase's token stay verbatim — the "cat"
+edit probes that spot on its own — but the rest of the "Final token …" sentence is swapped
+like any other.
 
-## `paraphrase` — meaning-preserving twin of the vocabulary swap
+## `paraphrase` — meaning-preserving full rewording
 
-A rewording that keeps every claim and the paragraph structure, changes roughly **one
-content word per sentence to a synonym** (or a light reordering of one phrase) and nothing
-else, so that its lexical change (difflib distance to the original) matches the vocabulary
-swap's within ±0.05 (`002_hand_edits.py check` reports both). Quoted text stays unchanged
-inside its quotes. This is deliberately NOT a full rewrite: it is the H = 1 control for the
-H = 0 vocabulary swap at the same edit size.
+A sentence-by-sentence rewording that keeps every claim, the paragraph structure and every
+quoted string, and changes the wording substantially (fewer than 70 % of the content words
+kept; synonyms, different constructions, reordered clauses). There is no size-matching rule
+any more (lexical change is not a metric). Do not add or drop claims.
 
-## `translation` — French
+## `translation` — French (reused)
 
 A literal French translation preserving every claim; quoted English words stay in English
-inside their quotes. (Kept for continuity with EXP001; treated as a weak H = 1.)
+inside their quotes. Round 3 reuses round 2's translations (the template arrives prefilled);
+do not rewrite them.
 
-## `cat` — optional override
+## `cat` — optional override (reused)
 
-The final-token edit is mechanical (every whole-word mention of the final token, quoted or
-bare, becomes "cat"). Leave `null` unless the mechanical edit would be wrong for this item
-(e.g. the token also occurs as an ordinary word elsewhere), then give the full edited text.
+The final-token edit is mechanical (every whole-word mention of the final token becomes
+"cat"). The template arrives prefilled with round 2's overrides for items whose token also
+occurs as an ordinary word; leave the field as it is.
 
 ## Checks
 
-`./bin/run python experiments/002_hand_edits.py check <part.jsonl>` flags: excerpts that are
-not verbatim, contradictions equal to the excerpt, missing fields, texts identical to the
-original, and a paraphrase whose lexical change is not within ±0.05 of the vocabulary
-swap's. Fix every flagged item before `merge`. `--diag` adds word-level diagnostics per item
-(changed words per sentence for the vocabulary swap and the paraphrase; the words the polarity
-flip adds, flagging any that are not negation function words) for the reviewer's audit.
+`./bin/run python experiments/002_hand_edits.py check <part.jsonl>` flags: missing fields or
+texts identical to the original; polarity sentences without a negation, phrases with two,
+and vocabulary changes; vocab swaps below 40 % changed content words, with a changed sentence
+count or touched final-token mentions; paraphrases keeping ≥ 70 % of the content words or
+changing the paragraph count; any changed quoted string in any field. `--diag` prints the
+per-item statistics (negations per sentence, fraction of content words changed, fraction
+kept). Fix every flagged item before `merge`.

@@ -174,38 +174,49 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
     and replaceable. Sentence-end cuts are avoided on purpose: every final token would be
     a full stop.
 - **Editing: hand edits by default** (`--editor hand`). The `edit` stage writes
-  `hand_edits_template.jsonl` and stops; the agent authors every item (forked subagents,
-  ~24 explanations each; `experiments/002_hand_edits.py split|check|merge`), the run resumes
-  from `edit` with `hand_edits.jsonl`. A local model editor (the target model prompted, as in
-  EXP001) is the parked fallback. Per explanation the hand-made set contains:
-  - claims (≤ 4) with verbatim excerpt and an excerpt-level contradiction (as EXP001);
-  - **polarity flip**: the meaning of every sentence flipped with not / doesn't / un-,
-    vocabulary unchanged, existing negations removed rather than doubled;
-  - **vocabulary swap**: one content word per sentence replaced by an antonym, or by an
-    unrelated word of the same category when there is none, structure unchanged — one
-    word per sentence so its lexical change matches the polarity flip's;
+  `hand_edits_template.jsonl` and stops; the agent authors every item (forked subagents of
+  ~24 explanations, the project agent `hand-editor` at effort `xhigh`;
+  `experiments/002_hand_edits.py split|check|merge`), the run resumes from `edit` with
+  `hand_edits.jsonl`. A local model editor is the parked fallback. **Whole-explanation level
+  only** (from round 3): the per-claim decomposition of EXP001 (claims, excerpts, excerpt-level
+  contradictions and deletions, S/I profiles) is dormant code kept for the EXP001 record; round
+  2 has its numbers. Per explanation the hand-made set contains:
+  - **polarity flip**, phrase level: every predicate-bearing phrase of every sentence is
+    negated once with function words only (not / no / never / does not; un-/in- on an
+    adjective) — finite verbs, participle and gerund clauses ("listing …", "requiring …"),
+    dash and semicolon clauses, verbless fragments ("Not a professional biography …"); never
+    two negations with overlapping scope (no "no-no"), never inside quoted text; an existing
+    negation is removed rather than doubled; vocabulary otherwise unchanged;
+  - **vocabulary swap**: every content word outside quoted text replaced by an antonym or an
+    unrelated word of the same category, sentence structure unchanged; the final token is
+    protected (its quoted mentions and every quoted string stay verbatim), since the "cat"
+    edit probes that spot on its own;
+  - **paraphrase**: a full sentence-by-sentence rewording that keeps every claim, the
+    paragraph structure and every quoted string (no size matching — lexical change is no
+    longer a metric);
   - **final token → "cat"**: mechanical (code), every whole-word mention of the final token
-    replaced, quoted or bare; the file may override it;
-  - a paraphrase whose lexical change matches the vocabulary swap (its H = 1 twin);
-  - a French translation (kept for continuity, but treated as a weak H = 1 given EXP001).
-  Programmatic as before: deletion of each excerpt, snippet shuffle, unrelated. Every
-  variant records its lexical change (difflib ratio to z), so matching can be checked.
+    replaced, quoted or bare; the file overrides it where the token also occurs as an
+    ordinary word (round 2 overrides reused);
+  - a French translation (round 2's, reused; treated as a weak H = 1).
+  Programmatic: snippet shuffle, unrelated (another activation's explanation, derangement),
+  **unrelated_token** (the same donor explanation with the donor's final-token mentions
+  replaced by this activation's token — built from the donor's "cat" text — so the pair
+  unrelated / unrelated_token isolates the token's share of the unrelated distance), resamples.
 
 ## Metrics
 
-- Unchanged from EXP001 (# EXP001 → Metrics): L_h, L_o with the borrowed ‖h‖, S_x / S_h /
-  S_o, I_h / I_o, N(z, z′) and the two alignment errors as curves over τ, calibration
-  references (identity patch, mean activation, unrelated, resample).
-- Added: **NLI_claim** (excerpt vs replacement, both directions) next to **NLI_whole**
-  (z vs z′). For each whole-explanation kind k the per-activation effects
-  `ΔL_h(k) = L_h(z_k) − L_h(z)`, `ΔL_o(k) = L_o(z_k) − L_o(z)` and `dist(z, z_k)`: their
-  distributions (histograms) for the "cat" edit, and polarity flip vs vocabulary swap vs
-  matched paraphrase side by side; the lexical-change-vs-distance scatter and the
-  by-snippet table as in EXP001.
-- Parked diagnostic: a local-window probe `KL(p_full ‖ p_last-8)` between p at t from the
-  full context and from the last 8 tokens only (extract stage, `logits_top.parquet`). It
-  measures how much the preceding context matters, not the final token's importance, so it
-  is recorded but not used in the analysis or the walkthrough.
+- L_h, L_o with the borrowed ‖h‖, N(z, z′) and the two alignment errors as curves over τ,
+  calibration references (identity patch, mean activation, unrelated, resample): unchanged
+  from EXP001 (# EXP001 → Metrics).
+- Whole-explanation effects: for every kind k the per-activation `ΔL_h(k) = L_h(z_k) − L_h(z)`,
+  `ΔL_o(k) = L_o(z_k) − L_o(z)` and `dist(z, z_k)`, their distributions, and paired
+  comparisons (Wilcoxon) polarity vs vocab vs paraphrase and unrelated vs unrelated_token.
+- Input consistency at the whole-explanation level: `S_x(z) = P(entail | x, z) − P(contradict
+  | x, z)` for the primary explanation and for every whole-explanation variant (does the
+  polarity flip read as contradicted by the input?); **NLI_whole** (z vs z′, both directions
+  for the meaning-preserving kinds) validates every label.
+- Dormant (EXP001 record, round 2): per-claim S_x / S_h / S_o / I_h / I_o, NLI_claim, the
+  by-snippet tables. No lexical-change metric (round 3 on).
 
 ## Pipeline (`experiments/002_*.py --stage …`, artifacts `exp_002[_tag]/`)
 
@@ -214,10 +225,10 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 | `sanity` | AV, AR, target | 64 shipped activations: verbalize (adapters 300 / 600 × both chat modes), reconstruct, FVE; re-extract from the shipped texts (cosine) |
 | `extract` | target | contexts, h (raw), p top tokens |
 | `verbalize` | AV | Karvonen injection hook, T = 1, ≤ 256 tokens, resamples |
-| `edit` | — (target for the fallback editor) | hand-edit file (default); programmatic kinds |
+| `edit` | — (target for the fallback editor) | hand-edit file (default; polarity, vocab, paraphrase, translation, cat override); programmatic kinds (shuffle, unrelated, unrelated_token, cat) |
 | `reconstruct` | AR | R(z′), L_h, distances |
 | `output` | target | patched KL, references |
-| `nli` | judge (same GPU) | NLI_whole, NLI_claim, S_x |
+| `nli` | judge (same GPU) | NLI_whole (z vs z′), S_x(z′) for z and every whole-explanation variant |
 | `analyze` | — | tables, curves, plots, walkthrough |
 
 ## Knobs (defaults)
@@ -234,16 +245,17 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 - H1 The shipped sample activations land near the author's FVE (pipeline correctness);
   contexts sampled as above land near it too (in-distribution).
-- H2 At matched lexical change, polarity flips move R(z) less than vocabulary swaps
-  (the AR reads words, not polarity); if instead flips move it as much, the 27B AR reads
-  meaning where the 7B AR did not.
-- H3 The "cat" edit's ΔL_h and ΔL_o are wide and concentrated: large where the token
-  identity is load-bearing for the activation, near zero elsewhere.
-- H4 With lexical change matched, contradictions are no longer closer to z than
-  paraphrases (AUC > 0.5); if the EXP001 inversion (AUC 0.33) persists, it is a property
-  of the AR rather than of the edit design.
-- H5 S_h stays uncorrelated with S_x on the 27B: the AR supports confabulated claims as
-  much as text-entailed ones.
+- H2 (round 3) A phrase-level polarity flip, which denies every claim the explanation makes,
+  still moves R(z) less than a vocabulary swap of the same sentences, and both stay below
+  the resample floor: the AR reads content words, not polarity.
+- H3 The "cat" edit's ΔL_h and ΔL_o are large for nearly every activation: the final token's
+  identity carries most of the reconstruction.
+- H4 (round 3) Keeping only the final token in an otherwise unrelated explanation
+  (unrelated_token) recovers a large part of the unrelated distance and output loss: the
+  token dominates what the AR reads from the whole text.
+- H5 (round 3) The polarity flip is judged contradicted by the input (S_x(z_polarity) ≪
+  S_x(z)) while the AR treats it as equivalent: input-level and activation-level consistency
+  disagree at the whole-explanation level as they did per claim.
 
 ## Parked / out of scope
 

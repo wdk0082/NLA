@@ -10,12 +10,15 @@ import pytest
 from nla.editor import (
     FileEditor,
     _tag,
+    cat_edit,
     delete_span,
     derangement,
     locate_span,
     parse_claims,
     replace_span,
     shuffle_snippets,
+    swap_token,
+    write_hand_template,
 )
 from nla.nlacfg import extract_explanation
 
@@ -86,6 +89,31 @@ def test_shuffle_and_derangement():
     assert shuffle_snippets("One sentence only", 0) is None
     p = derangement(7, 3)
     assert sorted(p) == list(range(7)) and all(p[i] != i for i in range(7))
+
+
+def test_cat_edit_and_swap_token():
+    z = 'Final token "size" ends mid-sentence, expecting "size" again; sizes vary.'
+    c, n = cat_edit(z, " size")
+    assert n == 2 and c == 'Final token "cat" ends mid-sentence, expecting "cat" again; sizes vary.'
+    assert cat_edit(z, " 42") == (None, 0)
+    assert (
+        swap_token(c, " from")
+        == 'Final token "from" ends mid-sentence, expecting "from" again; sizes vary.'
+    )
+    assert swap_token("no placeholder here", " from") is None
+
+
+def test_write_hand_template(tmp_path):
+    f = tmp_path / "t.jsonl"
+    write_hand_template(
+        f,
+        [{"idx": 3, "final_token": " x", "x_tail": "…x", "explanation": "E.", "translation": "T."}],
+    )
+    row = json.loads(f.read_text().splitlines()[0])
+    assert row["idx"] == 3 and row["translation"] == "T." and row["polarity"] is None
+    assert "claims" not in row
+    write_hand_template(f, [{"idx": 3, "explanation": "E."}], with_claims=True)
+    assert json.loads(f.read_text().splitlines()[0])["claims"] == []
 
 
 def test_file_editor(tmp_path):

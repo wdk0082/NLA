@@ -176,11 +176,7 @@ def similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
-WHOLE_KINDS = (
-    "polarity",
-    "vocab",
-    "cat",
-)  # EXP002 whole-explanation edits (hand-made / mechanical)
+WHOLE_KINDS = ("polarity", "vocab", "cat")  # EXP002 hand-made / mechanical whole-explanation edits
 
 
 @dataclass
@@ -234,31 +230,40 @@ def cat_edit(z: str, final_token: str, replacement: str = "cat") -> tuple[str | 
     return (out, n) if n else (None, 0)
 
 
-def write_hand_template(path: str | Path, rows: list[dict[str, Any]]) -> None:
-    """One JSON line per explanation for hand authoring: the fields to fill are `claims`
-    (list of {claim, excerpt, contradiction}), `polarity`, `vocab`, `paraphrase`,
-    `translation`, and optionally `cat` (overrides the mechanical edit). Everything else is
-    context for the author and is ignored on load."""
+def write_hand_template(
+    path: str | Path, rows: list[dict[str, Any]], with_claims: bool = False
+) -> None:
+    """One JSON line per explanation for hand authoring: the fields to fill are `polarity`,
+    `vocab`, `paraphrase`, `translation`, optionally `cat` (overrides the mechanical edit) and,
+    with `with_claims`, `claims` (list of {claim, excerpt, contradiction}; EXP001-style, dormant
+    since EXP002 round 3). Values already present in `rows` (e.g. a translation reused from an
+    earlier round) are written as given. Everything else is context for the author and is
+    ignored on load."""
+    fields = ["polarity", "vocab", "paraphrase", "translation", "cat"]
     with open(path, "w") as f:
         for r in rows:
-            f.write(
-                json.dumps(
-                    {
-                        "idx": int(r["idx"]),
-                        "final_token": r.get("final_token"),
-                        "x_tail": r.get("x_tail"),
-                        "explanation": r["explanation"],
-                        "claims": [],
-                        "polarity": None,
-                        "vocab": None,
-                        "paraphrase": None,
-                        "translation": None,
-                        "cat": None,
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
+            item: dict[str, Any] = {
+                "idx": int(r["idx"]),
+                "final_token": r.get("final_token"),
+                "x_tail": r.get("x_tail"),
+                "explanation": r["explanation"],
+            }
+            if with_claims:
+                item["claims"] = r.get("claims") or []
+            for k in fields:
+                item[k] = r.get(k)
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+
+def swap_token(text: str, token: str, placeholder: str = "cat") -> str | None:
+    """`text` is a "cat" variant (every final-token mention replaced by `placeholder`); put
+    `token` there instead. Used for `unrelated_token`: a donor explanation with the donor's
+    final token replaced by this activation's. None if the placeholder does not occur."""
+    word = token.strip()
+    if not word:
+        return None
+    out, n = re.subn(rf"(?<![A-Za-z]){re.escape(placeholder)}(?![A-Za-z])", word, text)
+    return out if n else None
 
 
 # ------------------------------------------------------------------ backends
