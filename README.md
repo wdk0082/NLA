@@ -44,3 +44,6 @@ Results of EXP001 (n = 512, plus a 24-activation hand-edited gold cell) are in
 `experiments/results/exp_001{,_gold}/` — `summary.json`, `claim_metrics.csv`, `alignment.csv` and PNG plots.
 A self-contained explainer (setup, one activation's full lifecycle, all plots) is
 `experiments/results/exp_001_walkthrough.html`, built by `experiments/001_walkthrough.py`.
+Results of EXP002 (n = 256 on the 27B NLA, hand edits) are in `experiments/results/exp_002/`
+(plus `exp_002_sanity/`), the hand-authored edits in `configs/hand_edits_exp002.jsonl`, and the
+walkthrough is `experiments/results/exp_002_walkthrough.html` (`experiments/002_walkthrough.py`).
