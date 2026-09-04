@@ -1,12 +1,13 @@
 # %% [markdown]
 # # EXP002 — self-contained HTML walkthrough: setup · five activations' lifecycles · population
 #
-#     ./bin/run python experiments/002_walkthrough.py --idx 52,62,79,135,248 --run exp_002_r3 \
+#     ./bin/run python experiments/002_walkthrough.py --run exp_002_r3 \
 #         --out experiments/results/exp_002_r3_walkthrough.html
 #
 # Reads the artifacts of one run (hand edits) and embeds the plots as data URIs, so the output
 # opens offline as one file: three pages (tabs) — the setup, one page with the full lifecycle of
-# each chosen activation (sub-tabs), and the population results. `--bare` omits the
+# each shown activation (sub-tabs; five drawn uniformly at random with `--seed`, or `--idx`),
+# and the population results. `--bare` omits the
 # html/head/body skeleton (the Artifact viewer form). The vocabulary-swap variant is left out of
 # this page (it stays in the run's results and the notebook).
 from __future__ import annotations
@@ -81,7 +82,7 @@ PLOT_KINDS = [
     "unrelated_token",
     "unrelated",
 ]
-DEFAULT_IDX = "52,62,79,135,248"
+N_EXAMPLES = 5
 
 
 def esc(s):
@@ -700,11 +701,16 @@ def examples_page(R: dict, examples: list[dict]) -> str:
     )
     articles = "".join(example_article(R, D, i == 0) for i, D in enumerate(examples))
     idxs = ", ".join(str(D["idx"]) for D in examples)
+    how = (
+        f"drawn uniformly at random, seed {R['seed']}"
+        if R.get("seed") is not None
+        else "chosen by hand"
+    )
     return f"""
     <section id="examples" hidden>
-    <p class="eyebrow">{len(examples)} activations of {n} · idx {idxs}</p>
+    <p class="eyebrow">{len(examples)} activations of {n}, {how} · idx {idxs}</p>
     <h1>Five activations, start to finish</h1>
-    <p class="lede">Every operation the experiment performs, shown on {len(examples)} activations with the numbers each step produced. Pick an activation below; the population results for all {n} are on page 3.</p>
+    <p class="lede">Every operation the experiment performs, shown on {len(examples)} activations {how}, with the numbers each step produced. Pick an activation below; the population results for all {n} are on page 3.</p>
     <nav class="subtabs" role="tablist" aria-label="activation">{tabs}</nav>
     {articles}
     </section>
@@ -818,7 +824,10 @@ SKELETON = """<!doctype html>
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--idx", default=DEFAULT_IDX, help="comma-separated activation indices")
+    p.add_argument(
+        "--idx", default="", help="comma-separated activation indices (default: a random draw)"
+    )
+    p.add_argument("--seed", type=int, default=0, help="seed of the random draw")
     p.add_argument("--run", default="exp_002_r3")
     p.add_argument("--out", default="experiments/results/exp_002_r3_walkthrough.html")
     p.add_argument(
@@ -828,7 +837,17 @@ def main() -> None:
     )
     a = p.parse_args()
     R = load_run(a.run)
-    examples = [extract_example(R, int(i)) for i in a.idx.split(",") if i.strip()]
+    if a.idx.strip():
+        idxs = [int(i) for i in a.idx.split(",") if i.strip()]
+        R["seed"] = None
+    else:
+        pool = sorted(R["ctx"].idx.tolist())
+        idxs = sorted(
+            int(i) for i in np.random.default_rng(a.seed).choice(pool, N_EXAMPLES, replace=False)
+        )
+        R["seed"] = a.seed
+    examples = [extract_example(R, i) for i in idxs]
+    print("activations:", idxs)
     doc = build(R, examples)
     doc = "\n".join(ln[4:] if ln.startswith("    ") else ln for ln in doc.split("\n"))
     if not a.bare:
