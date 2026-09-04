@@ -75,8 +75,12 @@ src-layout package (hatchling; package name `nla`).
   `--copy-from` seeds a tagged dir with another run's extract/verbalize outputs). Results that
   matter are copied to `experiments/results/exp_NNN*/` (committed).
 - Hand edits (EXP002 default editor): the `edit` stage writes `hand_edits_template.jsonl` and
-  stops; the agent authors `hand_edits.jsonl` (helpers: `experiments/002_hand_edits.py
-  split|check|merge`), then the run resumes from `--stage edit`.
+  stops; the agent authors `hand_edits.jsonl` — rules in `experiments/guides/HAND_EDITS.md`,
+  the per-part subagent prompt in `experiments/guides/HAND_EDIT_BRIEF.md`, always with the
+  project subagent `hand-editor` (`.claude/agents/`, effort xhigh — never general-purpose agents
+  at the session's max effort; the user's credits), helpers `experiments/002_hand_edits.py
+  split|check|merge`; then the run resumes from `--stage edit`. Finished parts are copied into
+  `configs/hand_edits_exp002*/` as they arrive.
 
 ## Code Style
 
