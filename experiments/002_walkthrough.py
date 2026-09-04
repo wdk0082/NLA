@@ -1,16 +1,20 @@
 # %% [markdown]
-# # EXP002 — self-contained HTML walkthrough (setup, one activation's lifecycle, population plots)
+# # EXP002 — self-contained HTML walkthrough: setup · five activations' lifecycles · population
 #
-#     ./bin/run python experiments/002_walkthrough.py --idx 4 --run exp_002 \
-#         --out experiments/results/exp_002_walkthrough.html
+#     ./bin/run python experiments/002_walkthrough.py --idx 52,62,79,135,248 --run exp_002_r3 \
+#         --out experiments/results/exp_002_r3_walkthrough.html
 #
 # Reads the artifacts of one run (hand edits) and embeds the plots as data URIs, so the output
-# opens offline as one file. `--bare` omits the html/head/body skeleton (the Artifact viewer form).
+# opens offline as one file: three pages (tabs) — the setup, one page with the full lifecycle of
+# each chosen activation (sub-tabs), and the population results. `--bare` omits the
+# html/head/body skeleton (the Artifact viewer form). The vocabulary-swap variant is left out of
+# this page (it stays in the run's results and the notebook).
 from __future__ import annotations
 
 import argparse
 import base64
 import html
+import io as _io
 import json
 import re
 from pathlib import Path
@@ -29,7 +33,6 @@ KIND_ORDER = [
     "delete",
     "contradict",
     "polarity",
-    "vocab",
     "cat",
     "unrelated_token",
     "unrelated",
@@ -40,7 +43,6 @@ KIND_H = {
     "translate": "weak H = 1",
     "contradict": "H = 0",
     "polarity": "H = 0",
-    "vocab": "H = 0",
     "cat": "H = 0 (final token)",
     "unrelated_token": "H = 0 (final token kept)",
     "unrelated": "H = 0",
@@ -56,11 +58,30 @@ KIND_WHAT = {
     "contradict": "the excerpt of claim c replaced by a hand-written contradiction",
     "delete": "the excerpt of claim c removed (code)",
     "polarity": "every predicate-bearing phrase negated once with function words, vocabulary unchanged (hand-made)",
-    "vocab": "every content word outside quotes swapped for an antonym or unrelated word, structure and the final token kept (hand-made)",
     "cat": 'every mention of the context\'s final token replaced by "cat" (code)',
     "unrelated_token": "another activation's explanation with its final-token mentions replaced by this activation's token (code)",
     "unrelated": "another activation's explanation (derangement)",
 }
+KIND_COLOR = {
+    "paraphrase": "#1f77b4",
+    "shuffle": "#d9700a",
+    "translate": "#2ca02c",
+    "polarity": "#c2185b",
+    "cat": "#ef6c00",
+    "unrelated_token": "#7b5ea7",
+    "unrelated": "#8c564b",
+    "resample": "#6b7370",
+}
+PLOT_KINDS = [
+    "paraphrase",
+    "shuffle",
+    "translate",
+    "polarity",
+    "cat",
+    "unrelated_token",
+    "unrelated",
+]
+DEFAULT_IDX = "52,62,79,135,248"
 
 
 def esc(s):
@@ -74,11 +95,23 @@ def f3(x):
         return "—"
 
 
-def png(path):
-    return "data:image/png;base64," + base64.b64encode(Path(path).read_bytes()).decode()
+def fd(x):
+    """Signed delta."""
+    try:
+        return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{float(x):+.3f}"
+    except Exception:
+        return "—"
 
 
-def extract(idx: int, run: str) -> dict:
+def png(src) -> str:
+    data = src if isinstance(src, bytes) else Path(src).read_bytes()
+    return "data:image/png;base64," + base64.b64encode(data).decode()
+
+
+# ------------------------------------------------------------------ data
+
+
+def load_run(run: str) -> dict:
     root = io.artifact_root()
     d = root / run
     rp = io.read_parquet
@@ -94,22 +127,49 @@ def extract(idx: int, run: str) -> dict:
         rp(d / "output.parquet"),
     )
     has_claims = (d / "claim_metrics.csv").exists() and len(cl) > 0 and "claim_id" in cl
-    t = pd.read_csv(d / "claim_metrics.csv") if has_claims else pd.DataFrame()
-    nv = rp(d / "nli_variants.parquet")
-    rs = rp(d / "resamples.parquet") if (d / "resamples.parquet").exists() else pd.DataFrame()
-    nc = (
-        rp(d / "nli_claims.parquet")
+    return {
+        "run": run,
+        "dir": d,
+        "ctx": ctx,
+        "ex": ex,
+        "top": top,
+        "cl": cl,
+        "var": var,
+        "rec": rec,
+        "out": out,
+        "has_claims": has_claims,
+        "t": pd.read_csv(d / "claim_metrics.csv") if has_claims else pd.DataFrame(),
+        "nv": rp(d / "nli_variants.parquet"),
+        "rs": rp(d / "resamples.parquet") if (d / "resamples.parquet").exists() else pd.DataFrame(),
+        "nc": rp(d / "nli_claims.parquet")
         if has_claims and (d / "nli_claims.parquet").exists()
-        else pd.DataFrame()
+        else pd.DataFrame(),
+        "nx": rp(d / "nli_x_whole.parquet")
+        if (d / "nli_x_whole.parquet").exists()
+        else pd.DataFrame(),
+        "recon_refs": io.read_json(d / "recon_refs.json"),
+        "summary": io.read_json(d / "summary.json"),
+        "sanity": io.read_json(root / "exp_002_sanity" / "sanity_summary.json")
+        if (root / "exp_002_sanity" / "sanity_summary.json").exists()
+        else {},
+        "stats": {
+            "n": len(ctx),
+            "claims": len(cl) if has_claims else 0,
+            "anchored": int(cl.anchored.sum()) if has_claims else 0,
+            "domains": sorted(ctx.domain.unique().tolist()),
+        },
+        "plots": d / "plots",
+    }
+
+
+def extract_example(R: dict, idx: int) -> dict:
+    ctx, ex, top, cl, var, rec, out, nv, rs, nc, nx = (
+        R[k] for k in ("ctx", "ex", "top", "cl", "var", "rec", "out", "nv", "rs", "nc", "nx")
     )
-    nx = rp(d / "nli_x_whole.parquet") if (d / "nli_x_whole.parquet").exists() else pd.DataFrame()
     m = rec[rec.idx == idx].merge(
         out[out.idx == idx][["vid", "L_o", "top1_agree", "p_top1_under_q"]], on="vid", how="left"
     )
-    vcols = ["vid", "text"] + (
-        ["sim_to_orig"] if "sim_to_orig" in var else []
-    )  # no lexical column from round 3
-    m = m.merge(var[vcols], on="vid", how="left")
+    m = m.merge(var[["vid", "text"]], on="vid", how="left")
     m = m.merge(
         nv[nv.idx == idx][["vid", "p_entail_fwd", "p_contra_fwd", "p_entail_bwd"]],
         on="vid",
@@ -119,8 +179,6 @@ def extract(idx: int, run: str) -> dict:
         m = m.merge(nx[nx.idx == idx][["vid", "S_x"]], on="vid", how="left")
     else:
         m["S_x"] = np.nan
-    if "sim_to_orig" not in m:
-        m["sim_to_orig"] = np.nan
     cols = [
         "vid",
         "kind",
@@ -128,46 +186,39 @@ def extract(idx: int, run: str) -> dict:
         "text",
         "L_h",
         "dist_to_orig",
-        "cos",
         "L_o",
         "top1_agree",
-        "sim_to_orig",
         "p_entail_fwd",
         "p_contra_fwd",
         "p_entail_bwd",
         "S_x",
     ]
     c, tp = ctx.set_index("idx").loc[idx], top.set_index("idx").loc[idx]
-    if has_claims:
+    if R["has_claims"]:
+        t = R["t"]
         cm = cl[cl.idx == idx].merge(
             t[t.idx == idx][["claim_id", "snippet", "S_x", "S_h", "S_o", "I_h", "I_o"]],
             on="claim_id",
         )
         if len(nc):
-            cm = cm.merge(
-                nc[nc.idx == idx][
-                    [
-                        c_
-                        for c_ in nc.columns
-                        if c_
-                        in (
-                            "claim_id",
-                            "p_entail",
-                            "p_neutral",
-                            "p_contra",
-                            "p_contra_claim_fwd",
-                            "p_contra_claim_bwd",
-                        )
-                    ]
-                ],
-                on="claim_id",
-            )
+            keep = [
+                c_
+                for c_ in nc.columns
+                if c_
+                in (
+                    "claim_id",
+                    "p_entail",
+                    "p_neutral",
+                    "p_contra",
+                    "p_contra_claim_fwd",
+                    "p_contra_claim_bwd",
+                )
+            ]
+            cm = cm.merge(nc[nc.idx == idx][keep], on="claim_id")
     else:
         cm = pd.DataFrame()
-    kl_cols = [c_ for c_ in top.columns if c_.startswith("kl_local")]
     return {
         "idx": idx,
-        "run": run,
         "doc_id": c.doc_id,
         "domain": c.domain,
         "pos": int(c.pos),
@@ -175,7 +226,6 @@ def extract(idx: int, run: str) -> dict:
         "x_text": c.x_text,
         "final_token": c.final_token,
         "h_norm": float(tp.h_norm),
-        "kl_local": float(tp[kl_cols[0]]) if kl_cols else None,
         "top_next": [
             {"token": tok, "p": float(np.exp(lp))}
             for tok, lp in zip(tp.top_tokens[:8], tp.top_logp[:8], strict=False)
@@ -194,71 +244,120 @@ def extract(idx: int, run: str) -> dict:
                 ["kind", "L_o", "top1_agree"]
             ].to_json(orient="records")
         ),
-        "recon_refs": io.read_json(d / "recon_refs.json"),
-        "summary": io.read_json(d / "summary.json"),
-        "sampling": io.read_json(d / "sampling_stats.json")
-        if (d / "sampling_stats.json").exists()
-        else {},
-        "sanity": io.read_json(root / "exp_002_sanity" / "sanity_summary.json")
-        if (root / "exp_002_sanity" / "sanity_summary.json").exists()
-        else {},
         "unrelated_source_idx": int(
             var[(var.idx == idx) & (var.kind == "unrelated")].claim_id.iloc[0]
         ),
-        "stats": {
-            "n": len(ctx),
-            "claims": len(cl) if has_claims else 0,
-            "anchored": int(cl.anchored.sum()) if has_claims else 0,
-            "domains": sorted(ctx.domain.unique().tolist()),
-        },
-        "plots": d / "plots",
     }
 
 
-def build(D: dict) -> str:
-    z = D["explanation"]
-    claims = sorted(D["claims"], key=lambda c: c["claim_id"])
-    vs = D["variants"]
-    sm = D["summary"]
-    rk, ok, al, cs = (
-        sm["recon_by_kind"],
-        sm.get("output_by_kind", {}),
-        sm["alignment"],
-        sm.get("claims", {}).get("stats", {}),  # empty when the per-claim path is dormant
+def population(R: dict) -> dict:
+    """Per-kind table (FVE, FVE drop, output KL, top-1, NLI) and the bar plot, from the run's
+    tables; the FVE drop of a variant is L_h(z′) − L_h(z) of the same activation."""
+    rec, out, nv = R["rec"], R["out"], R["nv"]
+    o = rec[rec.kind == "orig"].set_index("idx").L_h
+    r = rec.assign(dL_h=rec.L_h - rec.idx.map(o)).merge(
+        out[["vid", "L_o", "top1_agree"]], on="vid", how="left"
     )
-    var_nrm = D["recon_refs"]["var_nrm"]
+    nli = nv.groupby("kind")[["p_entail_fwd", "p_contra_fwd"]].mean()
+    rows = []
+    for k in KIND_ORDER:
+        g = r[r.kind == k]
+        if not len(g):
+            continue
+        row = {
+            "kind": k,
+            "n": len(g),
+            "FVE": float(1 - g.L_h.mean()),
+            "fve_drop_med": float(g.dL_h.median()),
+            "kl_med": float(g.L_o.median()),
+            "top1": float(g.top1_agree.mean()),
+        }
+        if k in nli.index:
+            e, c = float(nli.loc[k, "p_entail_fwd"]), float(nli.loc[k, "p_contra_fwd"])
+            row["nli"] = (e, c, max(0.0, 1 - e - c))
+        rows.append(row)
+    kinds = [k for k in PLOT_KINDS if k in set(r.kind)]
+    res = r[r.kind == "resample"]
+    stats = {
+        k: {
+            "dL_h": (float(r[r.kind == k].dL_h.mean()), float(r[r.kind == k].dL_h.std())),
+            "L_o": (float(r[r.kind == k].L_o.mean()), float(r[r.kind == k].L_o.std())),
+        }
+        for k in kinds
+    }
+    ref = {"dL_h": float(res.dL_h.mean()), "L_o": float(res.L_o.mean())} if len(res) else None
+    return {"rows": rows, "bars": bar_plot(kinds, stats, ref), "ref": ref}
 
-    def V(kind, cid=None):
-        for v in vs:
-            if v["kind"] == kind and (cid is None or v["claim_id"] == cid):
-                return v
-        return None
 
-    def spans_html(text, spans):
-        spans = sorted(spans)
-        out, pos = [], 0
-        for s, e, cls, title in spans:
-            if s < pos:
-                continue
-            out.append(esc(text[pos:s]))
-            out.append(f'<mark class="{cls}" title="{esc(title)}">{esc(text[s:e])}</mark>')
-            pos = e
-        out.append(esc(text[pos:]))
-        return "".join(out)
+def bar_plot(kinds: list[str], stats: dict, ref: dict | None) -> bytes:
+    import matplotlib
 
-    def find_span(text, ex):
-        i = text.find(ex) if isinstance(ex, str) and ex else -1
-        return (i, i + len(ex)) if i >= 0 else None
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
 
-    def paragraphs(inner):
-        parts = re.split(r"\n\s*\n", inner)
-        return "".join(f"<p>{p.strip()}</p>" for p in parts if p.strip())
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.8))
+    x = np.arange(len(kinds))
+    for ax, key, title in zip(axes, ("dL_h", "L_o"), ("FVE drop", "output KL (nats)"), strict=True):
+        means = [stats[k][key][0] for k in kinds]
+        stds = [stats[k][key][1] for k in kinds]
+        ax.bar(
+            x,
+            means,
+            yerr=stds,
+            capsize=3,
+            color=[KIND_COLOR.get(k, "#888") for k in kinds],
+            error_kw={"lw": 0.9, "ecolor": "#333"},
+        )
+        if ref is not None:
+            ax.axhline(ref[key], ls="--", lw=0.9, color="k", label=f"resample {ref[key]:.3f}")
+            ax.legend(fontsize=8, loc="upper left")
+        ax.set_xticks(x)
+        ax.set_xticklabels(kinds, rotation=30, ha="right", fontsize=8.5)
+        ax.set_title(title)
+        ax.axhline(0, lw=0.5, color="#999")
+    fig.suptitle("Whole-explanation edits: mean per kind, whiskers ± one standard deviation")
+    fig.tight_layout()
+    buf = _io.BytesIO()
+    fig.savefig(buf, format="png", dpi=130)
+    plt.close(fig)
+    return buf.getvalue()
 
-    def kind_chip(k):
-        return f'<span class="chip k-{k}">{k}</span>'
 
-    # ---------- page 1 ----------
-    pipeline_svg = """
+# ------------------------------------------------------------------ html pieces
+
+
+def kind_chip(k):
+    return f'<span class="chip k-{k}">{k}</span>'
+
+
+def paragraphs(inner):
+    parts = re.split(r"\n\s*\n", inner)
+    return "".join(f"<p>{p.strip()}</p>" for p in parts if p.strip())
+
+
+def spans_html(text, spans):
+    spans = sorted(spans)
+    out, pos = [], 0
+    for s, e, cls, title in spans:
+        if s < pos:
+            continue
+        out.append(esc(text[pos:s]))
+        out.append(f'<mark class="{cls}" title="{esc(title)}">{esc(text[s:e])}</mark>')
+        pos = e
+    out.append(esc(text[pos:]))
+    return "".join(out)
+
+
+def find_span(text, ex):
+    i = text.find(ex) if isinstance(ex, str) and ex else -1
+    return (i, i + len(ex)) if i >= 0 else None
+
+
+def step(n, name, model, body):
+    return f'<div class="step"><div class="rail"><div class="n">{n}</div><div class="name">{esc(name)}</div><div class="model">{esc(model)}</div></div><div class="body">{body}</div></div>'
+
+
+PIPELINE_SVG = """
     <figure class="fig">
     <svg viewBox="0 0 1000 360" role="img" aria-label="Data flow: text x goes through target blocks 0 to 42 to activation h; the AV verbalizes h into z; hand edits make variants z prime; the AR maps each back to R of z prime, which is compared with h for L_h and patched into blocks 43 to 63 for the output loss L_o; the NLI compares x with each claim for S_x." style="max-width:100%;height:auto;font-family:'IBM Plex Sans',sans-serif;font-size:12px">
       <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
@@ -274,14 +373,14 @@ def build(D: dict) -> str:
         <text x="440" y="59">h</text><text x="440" y="75" font-size="10" opacity=".7">layer-42 residual</text>
         <text x="595" y="59">AV (verbalizer)</text><text x="595" y="75" font-size="10" opacity=".7">h added at block 1</text>
         <text x="750" y="59">z</text><text x="750" y="75" font-size="10" opacity=".7">explanation</text>
-        <text x="780" y="169">hand edits</text><text x="780" y="185" font-size="10" opacity=".7">claims, excerpts, edits</text>
-        <text x="595" y="169">z′ variants</text><text x="595" y="185" font-size="10" opacity=".7">z¬c, z−c, flips, swaps…</text>
+        <text x="780" y="169">hand edits</text><text x="780" y="185" font-size="10" opacity=".7">flips, paraphrases…</text>
+        <text x="595" y="169">z′ variants</text><text x="595" y="185" font-size="10" opacity=".7">flips, “cat”, unrelated…</text>
         <text x="440" y="169">AR</text><text x="440" y="185" font-size="10" opacity=".7">blocks 0–42 + head</text>
         <text x="265" y="249">target, blocks 43–63</text><text x="265" y="265" font-size="10" opacity=".7">+ final norm + lm_head</text>
         <text x="440" y="249">R(z′)</text><text x="440" y="265" font-size="10" opacity=".7">reconstruction</text>
         <text x="75" y="249">p̂ or p</text><text x="75" y="265" font-size="10" opacity=".7">next-token distribution</text>
         <text x="595" y="309">NLI</text><text x="595" y="325" font-size="10" opacity=".7">DeBERTa-v3</text>
-        <text x="780" y="309">claim c</text><text x="780" y="325" font-size="10" opacity=".7">from the hand edits</text>
+        <text x="780" y="309">z or z′</text><text x="780" y="325" font-size="10" opacity=".7">the whole text</text>
       </g>
       <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#arr)">
         <path d="M130,63 L188,63"/><path d="M340,63 L398,63"/><path d="M480,63 L538,63"/><path d="M650,63 L708,63"/>
@@ -296,26 +395,27 @@ def build(D: dict) -> str:
         <text x="448" y="120">direction MSE</text><text x="448" y="133">→ L_h = mse/var</text>
         <text x="352" y="247" fill="var(--accent)" font-weight="600">patch at t</text>
         <text x="80" y="160">unpatched: p</text><text x="80" y="173">patched: p̂</text><text x="136" y="247">KL(p ‖ p̂) = L_o</text>
-        <text x="905" y="250">premise x,</text><text x="905" y="263">hypothesis c</text><text x="486" y="307">→ S_x</text>
+        <text x="905" y="250">premise x,</text><text x="905" y="263">hypothesis z′</text><text x="486" y="307">→ S_x</text>
         <text x="440" y="103" text-anchor="middle" opacity=".7">h stays; also →</text>
       </g>
       <path d="M400,63 L400,20 L20,20 L20,38" stroke="currentColor" stroke-width="1" fill="none" stroke-dasharray="3 3"/>
       <text x="210" y="16" fill="currentColor" font-size="10" text-anchor="middle" opacity=".8">x is also the NLI premise (bottom row)</text>
     </svg>
-    <figcaption>Flow of one activation. Blocks 0–42 of the target produce h at the extraction token t. The AV turns h into an explanation z; the hand edits derive variants z′; the AR maps every variant back to a vector R(z′). Two losses per variant: the direction MSE against h, and the KL between the target's real next-token distribution p and the distribution p̂ obtained when R(z′) is patched into the residual stream at token t before blocks 43–63. The NLI model scores each claim against x.</figcaption>
+    <figcaption>Flow of one activation. Blocks 0–42 of the target produce h at the extraction token t. The AV turns h into an explanation z; the hand edits derive variants z′; the AR maps every variant back to a vector R(z′). Two losses per variant: the direction MSE against h (FVE = 1 − L_h, so an edit's FVE drop is L_h(z′) − L_h(z)), and the KL between the target's real next-token distribution p and the distribution p̂ obtained when R(z′) is patched into the residual stream at token t before blocks 43–63. The NLI model scores each whole text against x.</figcaption>
     </figure>
     """
 
-    def kinds_table():
-        tr = "".join(
-            f"<tr><td>{kind_chip(k)}</td><td>{esc(KIND_WHAT[k])}</td><td>{esc(KIND_H[k])}</td></tr>"
-            for k in KIND_ORDER
-            if k in KIND_WHAT
-        )
-        return f'<div class="tbl"><table><thead><tr><th>variant kind</th><th>how it is produced</th><th>label</th></tr></thead><tbody>{tr}</tbody></table></div>'
 
-    san = D["sanity"]
-    san_rows = ""
+def setup_page(R: dict) -> str:
+    var_nrm = R["recon_refs"]["var_nrm"]
+    n = R["stats"]["n"]
+    kinds_rows = "".join(
+        f"<tr><td>{kind_chip(k)}</td><td>{esc(KIND_WHAT[k])}</td><td>{esc(KIND_H[k])}</td></tr>"
+        for k in KIND_ORDER
+        if k in KIND_WHAT
+    )
+    san = R["sanity"]
+    san_html = ""
     if san:
         san_rows = "".join(
             f"<tr><td><code>{esc(c['adapter'])}</code></td><td>{esc(c['thinking'])}</td><td class=num>{f3(c['parsed'])}</td><td class=num>{c['tokens']:.0f}</td><td class=num>{f3(c['FVE'])}</td></tr>"
@@ -326,20 +426,17 @@ def build(D: dict) -> str:
     <p>Before any of our data was touched, the 64 layer-42 activations shipped with the checkpoint went through our AV → AR path (one sample each, T = 1) and were also re-extracted from their shipped source texts with our target path. The author reports 0.756 at adapter step 300 and about 0.77 at step 600.</p>
     <div class="tbl"><table><thead><tr><th>adapter</th><th>chat template</th><th>parsed</th><th>tokens</th><th>FVE</th></tr></thead><tbody>{san_rows}</tbody></table></div>
     <p>Re-extraction: cosine between our layer-42 vectors and the shipped ones, median {f3(re_.get("cos_median"))}, minimum {f3(re_.get("cos_min"))}.</p>"""
-    else:
-        san_html = ""
-
-    page1 = f"""
+    return f"""
     <section id="setup">
-    <p class="eyebrow">EXP002 · Qwen3.6-27B NLA, layer 42 · {D["stats"]["n"]} activations · hand edits</p>
+    <p class="eyebrow">EXP002 · Qwen3.6-27B NLA, layer 42 · {n} activations · hand edits</p>
     <h1>NLA Metrics Walkthrough II</h1>
-    <p class="lede">The same three questions as in EXP001 — alignment, claim support, claim importance — asked of a much larger natural-language autoencoder, on clean in-distribution contexts, with every edit written by hand and three whole-explanation edit kinds that separate a change of meaning from a change of wording.</p>
+    <p class="lede">The alignment question of EXP001 asked of a much larger natural-language autoencoder, on clean in-distribution contexts, with every edit written by hand at the level of the whole explanation: page 2 follows five activations through every operation, page 3 gives the population results over all {n}.</p>
 
     <h2>What changed since EXP001</h2>
     <div class="grid3">
      <div class="card"><h3>The model</h3><p>The community NLA for <code>Qwen/Qwen3.6-27B</code> (64 hybrid blocks, d = 5120), extraction after block 42. The verbalizer is the base with a merged warm-start LoRA plus one RL adapter; the activation is <em>added</em>, norm-matched, to the residual stream at block 1 rather than written over an embedding.</p></div>
-     <div class="card"><h3>The data</h3><p>FineFineWeb documents from {", ".join(D["stats"]["domains"])}. Every context starts at the first paragraph of running prose and ends at a whole word drawn uniformly at least 50 tokens later, at most 256 tokens in.</p></div>
-     <div class="card"><h3>The edits</h3><p>Every edit is a whole-explanation edit, hand-written: a phrase-level polarity flip (every claim denied, words kept), a vocabulary swap (every content word replaced, the final token kept), a full paraphrase and a translation; code does the “cat” edit, the shuffle, the unrelated swap and the unrelated swap that keeps the final token.</p></div>
+     <div class="card"><h3>The data</h3><p>FineFineWeb documents from {", ".join(R["stats"]["domains"])}. Every context starts at the first paragraph of running prose and ends at a whole word drawn uniformly at least 50 tokens later, at most 256 tokens in.</p></div>
+     <div class="card"><h3>The edits</h3><p>Every edit is a whole-explanation edit, hand-written: a phrase-level polarity flip (every claim denied, words kept), a full paraphrase and a translation; code does the “cat” edit, the shuffle, the unrelated swap and the unrelated swap that keeps the final token.</p></div>
     </div>
 
     <h2>The cast</h2>
@@ -347,30 +444,48 @@ def build(D: dict) -> str:
     <tr><td>target model</td><td><code>Qwen/Qwen3.6-27B</code>, text part of the multimodal checkpoint: 48 gated-DeltaNet blocks and 16 full-attention blocks, d = 5120. We read the residual stream after block 42 (HF <code>hidden_states[43]</code>) at one token t. F is blocks 43–63 plus the final norm and unembedding.</td><td class=num>54 GB</td></tr>
     <tr><td>AV, verbalizer</td><td><code>ceselder/qwen3.6-27b-nla-rl</code>: <code>av_base</code> (warm-start LoRA merged) plus the RL adapter <code>av_rl_adapters/iter_000300</code> (r64 rsLoRA on attention, MLP and DeltaNet projections). The raw activation is added at the marker token of a fixed prompt on the output of block 1: h′ = h + ‖h‖·v/‖v‖.</td><td class=num>56 GB</td></tr>
     <tr><td>AR, reconstructor</td><td><code>ar_reconstructor</code>: blocks 0–42, no final norm, plus a 5120×5120 value head read at the last token of <code>Summary of the following text: &lt;text&gt;z&lt;/text&gt; &lt;summary&gt;</code> after normalising that state to √d. It predicts a direction only.</td><td class=num>35 GB</td></tr>
-    <tr><td>hand editor</td><td>Hand-written (the agent, in parallel subagents at effort xhigh): polarity flips, vocabulary swaps, paraphrases, French translations. Code does snippet shuffles, unrelated swaps (with and without the final token) and the “cat” edit.</td><td class=num>—</td></tr>
+    <tr><td>hand editor</td><td>Hand-written (the agent, in parallel subagents at effort xhigh): polarity flips, paraphrases, French translations (a vocabulary swap was written too; it is left out of this page). Code does snippet shuffles, unrelated swaps (with and without the final token) and the “cat” edit.</td><td class=num>—</td></tr>
     <tr><td>NLI judge</td><td><code>MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli</code> for the input consistency S_x of every whole text and for checking that edits are what their label says.</td><td class=num>GPU</td></tr>
     </tbody></table></div>
     <p>One H200 (141 GB). One 27B-class model is resident per stage; a load takes about ten seconds from the page cache, so the pipeline is seven sequential, resumable stages.</p>
 
     <h2>How data flows</h2>
-    {pipeline_svg}
+    {PIPELINE_SVG}
 
     <h2>The formulas, as implemented</h2>
-    <p>Activations and reconstructions are compared as directions: both are scaled to L2 = √d before a per-element MSE, so mse = 2(1 − cos). The variance term is the per-element variance of the scaled activations over the {D["stats"]["n"]} evaluated ones (the AR's own training baseline uses the same definition).</p>
+    <p>Activations and reconstructions are compared as directions: both are scaled to L2 = √d before a per-element MSE, so mse = 2(1 − cos). The variance term is the per-element variance of the scaled activations over the {n} evaluated ones (the AR's own training baseline uses the same definition).</p>
     <div class="formula">L_h(z) = mse_nrm(h, R(z)) / var_nrm          var_nrm = {var_nrm:.3f}   FVE = 1 − L_h</div>
-    <div class="formula">L_o(z) = KL( p ‖ p̂(z) )      p̂(z) = F( R(z) · ‖h‖ / ‖R(z)‖ ) patched in at token t</div>
+    <div class="formula">L_o(z) = KL( p ‖ p̂(z) )      p̂(z) = F( R(z) · ‖h‖ / ‖R(z)‖ ) patched in at token t      “output KL”</div>
     <div class="formula">S_x(z′) = P(entail | x, z′) − P(contradict | x, z′)      for z and every whole-explanation variant</div>
-    <div class="formula">ΔL_h(k) = L_h(z_k) − L_h(z)      ΔL_o(k) = L_o(z_k) − L_o(z)      dist(z, z_k) = mse_nrm(R(z), R(z_k)) / var_nrm      for each whole-explanation kind k</div>
-    <div class="formula">N(z, z′) = 1[ dist ≤ τ ]      ε_steg(τ) = P(N=0 | H=1)      ε_alias(τ) = P(N=1 | H=0)</div>
+    <div class="formula">FVE drop(k) = L_h(z_k) − L_h(z)      dist(z, z_k) = mse_nrm(R(z), R(z_k)) / var_nrm      for each whole-explanation kind k</div>
+    <div class="formula">N(z, z′) = 1[ dist ≤ τ ]      P(N=0 | H=1): human-equivalent, NLA-different      P(N=1 | H=0): human-different, NLA-equivalent</div>
 
     <h2>Labels by construction</h2>
-    <p>No human labels were collected. Each variant kind carries its H label by the way it was made; the NLI judge checks the label afterwards, at the whole-explanation level and, for contradictions, at the excerpt level.</p>
-    {kinds_table()}
+    <p>No human labels were collected. Each variant kind carries its H label by the way it was made; the NLI judge checks the label afterwards at the whole-explanation level.</p>
+    <div class="tbl"><table><thead><tr><th>variant kind</th><th>how it is produced</th><th>label</th></tr></thead><tbody>{kinds_rows}</tbody></table></div>
     {san_html}
     </section>
     """
 
-    # ---------- page 2 ----------
+
+def example_article(R: dict, D: dict, first: bool) -> str:
+    z = D["explanation"]
+    claims = sorted(D["claims"], key=lambda c: c["claim_id"])
+    vs = D["variants"]
+    n = R["stats"]["n"]
+
+    def V(kind, cid=None):
+        for v in vs:
+            if v["kind"] == kind and (cid is None or v["claim_id"] == cid):
+                return v
+        return None
+
+    orig_v = V("orig") or {}
+    L_h0, L_o0 = orig_v.get("L_h"), orig_v.get("L_o")
+
+    def drop(v):
+        return (v["L_h"] - L_h0) if v and L_h0 is not None else None
+
     x = D["x_text"]
     last_tok = D["final_token"].strip()
     ctx_tail = x[-1100:]
@@ -404,17 +519,6 @@ def build(D: dict) -> str:
         )
         return f'<ol class="claims">{items}</ol>'
 
-    orig_v = V("orig") or {}
-
-    def fd(x):
-        """Signed delta."""
-        try:
-            return (
-                "—" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{float(x):+.3f}"
-            )
-        except Exception:
-            return "—"
-
     def contradiction_rows():
         rows = []
         for c in claims:
@@ -422,45 +526,42 @@ def build(D: dict) -> str:
             rows.append(f"""<div class="edit">
       <div class="edit-h"><span class="cl c{c["claim_id"] % 4}">claim {c["claim_id"] + 1}</span> <span class="muted">S_h {fd(c.get("S_h"))} · S_o {fd(c.get("S_o"))} nats</span></div>
       <div class="diff"><del>{esc(c.get("excerpt"))}</del><ins>{esc(c.get("replacement"))}</ins></div>
-      <div class="edit-n">z¬c: L_h {f3(v["L_h"]) if v else "—"} (z: {f3(orig_v.get("L_h"))}) · KL {f3(v["L_o"]) if v else "—"} (z: {f3(orig_v.get("L_o"))}) · dist to R(z) {f3(v["dist_to_orig"]) if v else "—"} · NLI excerpt→replacement contradiction {f3(c.get("p_contra_claim_fwd"))} · NLI(z → z¬c) contradiction {f3(v["p_contra_fwd"]) if v else "—"}</div>
+      <div class="edit-n">z¬c: FVE drop {fd(drop(v))} · output KL {f3(v["L_o"]) if v else "—"} (z: {f3(L_o0)}) · NLI excerpt→replacement contradiction {f3(c.get("p_contra_claim_fwd"))} · NLI(z → z¬c) contradiction {f3(v["p_contra_fwd"]) if v else "—"}</div>
     </div>""")
         return "".join(rows)
 
     del_rows = "".join(
-        f"<tr><td><span class='cl c{c['claim_id'] % 4}'>claim {c['claim_id'] + 1}</span></td><td class=num>{fd(c.get('I_h'))}</td><td class=num>{fd(c.get('I_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_h'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('dist_to_orig'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('p_entail_fwd'))}</td></tr>"
+        f"<tr><td><span class='cl c{c['claim_id'] % 4}'>claim {c['claim_id'] + 1}</span></td><td class=num>{fd(c.get('I_h'))}</td><td class=num>{fd(c.get('I_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('p_entail_fwd'))}</td></tr>"
         for c in claims
     )
 
     def variant_block(kind, title, what):
         v = V(kind)
         txt = paragraphs(esc(v["text"])) if v else "<p>— (not produced for this activation)</p>"
-        d_h = (v["L_h"] - orig_v["L_h"]) if v and orig_v.get("L_h") is not None else None
-        d_o = (v["L_o"] - orig_v["L_o"]) if v and orig_v.get("L_o") is not None else None
-        n = (
-            f"ΔL_h {fd(d_h)} · ΔL_o {fd(d_o)} nats · dist to R(z) {f3(v['dist_to_orig'])} · S_x {f3(v.get('S_x'))} · L_h {f3(v['L_h'])} · KL {f3(v['L_o'])}"
-            + (
-                f" · NLI z→z′ entail {f3(v['p_entail_fwd'])} / contra {f3(v['p_contra_fwd'])}"
-                if v and v.get("p_entail_fwd") is not None
-                else ""
-            )
-            if v
-            else ""
-        )
+        line = ""
+        if v:
+            line = f"FVE drop {fd(drop(v))} · output KL {f3(v['L_o'])} · S_x {f3(v.get('S_x'))}"
+            if v.get("p_entail_fwd") is not None:
+                line += (
+                    f" · NLI z→z′ entail {f3(v['p_entail_fwd'])} / contra {f3(v['p_contra_fwd'])}"
+                )
         return f"""<div class="variant">
       <div class="variant-h">{kind_chip(kind)} <b>{esc(title)}</b> <span class="muted">{esc(KIND_H[kind])}</span></div>
       <p class="what">{what}</p>
-      <details open><summary>text · {n}</summary><div class="specimen small">{txt}</div></details>
+      <details open><summary>text · {line}</summary><div class="specimen small">{txt}</div></details>
     </div>"""
 
-    resample_rows = "".join(
-        f"<tr><td class=num>{r['k']}</td><td class=num>{f3((V('resample', r['k']) or {}).get('dist_to_orig'))}</td><td class=num>{f3((V('resample', r['k']) or {}).get('L_h'))}</td><td class=num>{f3((V('resample', r['k']) or {}).get('L_o'))}</td></tr>"
-        for r in D["resamples"]
-    )
-    res1 = (
-        paragraphs(esc(D["resamples"][0]["text"]))
-        if D["resamples"]
-        else "<p>(no resamples for this activation)</p>"
-    )
+    if D["resamples"]:
+        resample_rows = "".join(
+            f"<tr><td class=num>{r['k']}</td><td class=num>{fd(drop(V('resample', r['k'])))}</td><td class=num>{f3((V('resample', r['k']) or {}).get('L_o'))}</td></tr>"
+            for r in D["resamples"]
+        )
+        resample_html = f"""<h3>Resamples set the noise floor</h3>
+    <details><summary>resample 1</summary><div class="specimen small">{paragraphs(esc(D["resamples"][0]["text"]))}</div></details>
+    <div class="tbl"><table><thead><tr><th class=num>sample</th><th class=num>FVE drop</th><th class=num>output KL</th></tr></thead><tbody>{resample_rows}</tbody></table></div>"""
+    else:
+        resample_html = """<h3>Resamples set the noise floor</h3>
+    <p>Resamples were drawn for the first 64 activations only, so this activation has none; the population's resample floor is on page 3.</p>"""
 
     def var_table():
         rows = []
@@ -475,17 +576,15 @@ def build(D: dict) -> str:
                         if k in ("contradict", "delete")
                         else f"sample {cid}"
                         if k == "resample"
-                        else f"{cid} replacements"
-                        if k == "cat"
                         else f"from idx {cid}"
-                        if k == "unrelated"
+                        if k in ("unrelated", "unrelated_token")
                         else ""
                     )
                 )
                 rows.append(
-                    f"<tr><td>{kind_chip(k)}</td><td>{esc(who)}</td><td class=num>{f3(v['L_h'])}</td><td class=num>{f3(1 - v['L_h'])}</td><td class=num>{f3(v['dist_to_orig'])}</td><td class=num>{f3(v['cos'])}</td><td class=num>{f3(v['L_o'])}</td><td>{'yes' if v['top1_agree'] else 'no'}</td></tr>"
+                    f"<tr><td>{kind_chip(k)}</td><td>{esc(who)}</td><td class=num>{f3(1 - v['L_h'])}</td><td class=num>{fd(drop(v))}</td><td class=num>{f3(v['L_o'])}</td></tr>"
                 )
-        return f'<div class="tbl"><table><thead><tr><th>variant</th><th></th><th>L_h</th><th>FVE</th><th>dist to R(z)</th><th>cos(h, R)</th><th>L_o = KL</th><th>top-1 = p?</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        return f'<div class="tbl"><table><thead><tr><th>variant</th><th></th><th class=num>FVE</th><th class=num>FVE drop</th><th class=num>output KL</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
 
     refs_rows = "".join(
         f"<tr><td>{esc(r['kind'].replace('ref_', 'reference: '))}</td><td class=num>{f3(r['L_o'])}</td></tr>"
@@ -496,95 +595,6 @@ def build(D: dict) -> str:
         for c in claims
     )
 
-    # population tables
-    def pop_kind_table():
-        rows = []
-        for k in KIND_ORDER:
-            m, o = rk.get(k, {}), ok.get(k, {})
-            if not m:
-                continue
-            rows.append(
-                f"<tr><td>{kind_chip(k)}</td><td class=num>{int(m.get('n', 0))}</td><td class=num>{f3(m.get('FVE'))}</td><td class=num>{f3(m.get('dist_med'))}</td><td class=num>{f3(o.get('L_o_median'))}</td><td class=num>{f3(o.get('top1'))}</td></tr>"
-            )
-        return f'<div class="tbl"><table><thead><tr><th>kind</th><th>n</th><th>FVE</th><th>dist median</th><th>KL median</th><th>top-1 agree</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
-
-    def pop_claim_table():
-        rows = "".join(
-            f"<tr><td><code>{m}</code></td><td class=num>{int(cs[m]['count'])}</td><td class=num>{f3(cs[m]['mean'])}</td><td class=num>{f3(cs[m]['50%'])}</td><td class=num>{f3(cs[m]['frac_pos'])}</td></tr>"
-            for m in ("S_x", "S_h", "S_o", "I_h", "I_o")
-            if m in cs
-        )
-        return f'<div class="tbl"><table><thead><tr><th>metric</th><th>claims</th><th>mean</th><th>median</th><th>share &gt; 0</th></tr></thead><tbody>{rows}</tbody></table></div>'
-
-    corr = {k: v["spearman"] for k, v in sm.get("claim_correlations", {}).items()}
-    corr_rows = "".join(
-        f"<tr><td><code>{esc(k)}</code></td><td class=num>{f3(v)}</td></tr>"
-        for k, v in corr.items()
-    )
-    snip = sm.get("by_snippet", {})
-    snip_rows = "".join(
-        f"<tr><td>{esc(s)}</td><td class=num>{int(snip[s]['n'])}</td><td class=num>{f3(snip[s].get('S_x'))}</td><td class=num>{f3(snip[s].get('S_h_mean'))}</td><td class=num>{f3(snip[s].get('I_h_mean'))}</td><td class=num>{f3(snip[s].get('I_o_mean'))}</td></tr>"
-        for s in ("first", "middle", "last", "unanchored")
-        if s in snip
-    )
-    at_m = al.get("at", {}).get("tau_resample_median", {})
-    we = sm.get("whole_effects", {})
-    sxw = sm.get("S_x_whole", {})
-    nliv = sm.get("nli_variants", {})
-    we_rows = "".join(
-        f"<tr><td>{kind_chip(k)}</td><td class=num>{int(v['n'])}</td><td class=num>{f3(v.get('dist_med'))}</td><td class=num>{f3(v.get('dL_h_med'))}</td><td class=num>{f3(v.get('dL_o_med'))}</td><td class=num>{f3(v.get('dL_o_mean'))}</td><td class=num>{f3(sxw.get(k, {}).get('mean'))}</td><td class=num>{f3(nliv.get(k, {}).get('p_contra_fwd'))}</td></tr>"
-        for k, v in we.items()
-    )
-    mt = sm.get("matched", {})
-    mt_rows = "".join(
-        f"<tr><td><code>{esc(k)}</code></td><td class=num>{int(v['n'])}</td><td class=num>{f3(v['median_diff'])}</td><td class=num>{f3(next(x for kk, x in v.items() if kk.startswith('frac_')))}</td><td class=num>{v['wilcoxon_p']:.2g}</td></tr>"
-        for k, v in mt.items()
-    )
-    claim_pop_html = ""
-    if cs and D["stats"]["claims"]:
-        claim_pop_html = f"""<h3>Claim profiles</h3>
-    {pop_claim_table()}
-    <div class="grid2">
-    <div><h3>Rank correlations between the profile columns</h3><div class="tbl"><table><thead><tr><th>pair</th><th class=num>Spearman</th></tr></thead><tbody>{corr_rows}</tbody></table></div></div>
-    <div><h3>By snippet of the explanation</h3><div class="tbl"><table><thead><tr><th>snippet</th><th class=num>claims</th><th class=num>S_x median</th><th class=num>S_h mean</th><th class=num>I_h mean</th><th class=num>I_o mean</th></tr></thead><tbody>{snip_rows}</tbody></table></div></div>
-    </div>"""
-    pop_intro = (
-        f"{D['stats']['claims']} hand-written claims ({D['stats']['anchored']} anchored). "
-        if D["stats"]["claims"]
-        else ""
-    ) + f"FVE of the primary explanations is {rk['orig']['FVE']:.3f}."
-    cat_w, pol_w, voc_w, par_w = (we.get(k, {}) for k in ("cat", "polarity", "vocab", "paraphrase"))
-    ut_w, un_w = we.get("unrelated_token", {}), we.get("unrelated", {})
-    callout = (
-        f"What the population says. Replacing the final token by “cat” costs most of the explained variance (ΔL_h median {cat_w.get('dL_h_med', float('nan')):.2f}, FVE {rk['orig']['FVE']:.3f} → {rk.get('cat', {}).get('FVE', float('nan')):.3f}) and moves the patched output by {cat_w.get('dL_o_med', float('nan')):.1f} nats at the median. "
-        f"Denying every claim (polarity flip) moves the reconstruction by {pol_w.get('dist_med', float('nan')):.3f} at the median, swapping the vocabulary while keeping the token by {voc_w.get('dist_med', float('nan')):.3f}, a full paraphrase by {par_w.get('dist_med', float('nan')):.3f}; the resample floor is {rk['resample']['dist_med']:.3f}. "
-        f"The NLI judge reads the flip and the swap as contradictions of z (p_contra {nliv.get('polarity', {}).get('p_contra_fwd', float('nan')):.2f} and {nliv.get('vocab', {}).get('p_contra_fwd', float('nan')):.2f}); the input-consistency score S_x of the flip is {sxw.get('polarity', {}).get('mean', float('nan')):.2f} against {sxw.get('orig', {}).get('mean', float('nan')):.2f} for z. "
-        f"An unrelated explanation that keeps only the final token comes back from {un_w.get('dist_med', float('nan')):.2f} to {ut_w.get('dist_med', float('nan')):.2f} in distance and from {un_w.get('dL_o_med', float('nan')):.1f} to {ut_w.get('dL_o_med', float('nan')):.1f} nats in output loss. "
-        f"AUC of the distance separating H = 0 from H = 1 pairs: {al.get('auc_dist_separates_H', float('nan')):.2f}; at the resample-median τ the polarity flip is judged equivalent for {at_m.get('err_polarity', float('nan')):.0%} of activations, the paraphrase judged different for {at_m.get('err_paraphrase', float('nan')):.0%}."
-    )
-    figs = [
-        (
-            "delta_by_kind.png",
-            "Whole-explanation edits: how much each kind moves the reconstruction (dist), the activation loss (ΔL_h) and the output loss (ΔL_o).",
-        ),
-        ("cat_hist.png", "Final token → “cat”: the effect distribution over explanations."),
-        (
-            "alignment_curves.png",
-            f"Alignment errors versus the threshold τ: P(N=0 | H=1) over the paraphrase, shuffle and translation pairs, P(N=1 | H=0) over the polarity-flip pairs. At the resample-median τ = {at_m.get('tau', float('nan')):.3f}: P(N=0 | H=1) = {at_m.get('eps_steg', float('nan')):.2f}, P(N=1 | H=0, polarity) = {at_m.get('err_polarity', float('nan')):.2f}; AUC of the distance separating H = 0 from H = 1 pairs {al.get('auc_dist_separates_H', float('nan')):.2f}.",
-        ),
-        ("claim_profiles.png", "Claim profiles, one point per claim."),
-        ("fve_hist.png", f"FVE of the primary explanations: mean {rk['orig']['FVE']:.3f}."),
-    ]
-    fig_html = "".join(
-        f'<figure class="plot"><img src="{png(D["plots"] / fn)}" alt="{esc(cap)}"><figcaption>{esc(cap)}</figcaption></figure>'
-        for fn, cap in figs
-        if (D["plots"] / fn).exists()
-    )
-
-    def step(n, name, model, body):
-        return f'<div class="step"><div class="rail"><div class="n">{n}</div><div class="name">{esc(name)}</div><div class="model">{esc(model)}</div></div><div class="body">{body}</div></div>'
-
-    orig_v = V("orig") or {}
     step_extract = step(
         1,
         "Extract",
@@ -603,11 +613,9 @@ def build(D: dict) -> str:
         "AV, sampled at T = 1",
         f"""
     <h3>The explanation z</h3>
-    <p>The raw activation is added, norm-matched, to the residual stream at the marker token of the AV's fixed prompt on the output of block 1; the AV then writes {D["n_tokens"]} tokens. Input consistency of the whole explanation, S_x(z) = P(entail | x, z) − P(contradict | x, z): {f3(orig_v.get("S_x"))}.</p>
+    <p>The raw activation is added, norm-matched, to the residual stream at the marker token of the AV's fixed prompt on the output of block 1; the AV then writes {D["n_tokens"]} tokens. FVE of this explanation: {f3(1 - L_h0) if L_h0 is not None else "—"}; output KL: {f3(L_o0)}. Input consistency of the whole explanation, S_x(z) = P(entail | x, z) − P(contradict | x, z): {f3(orig_v.get("S_x"))}.</p>
     <div class="specimen">{z_plain}</div>
-    <h3>Resamples set the noise floor</h3>
-    <details><summary>resample 1</summary><div class="specimen small">{res1}</div></details>
-    <div class="tbl"><table><thead><tr><th class=num>sample</th><th class=num>dist to R(z)</th><th class=num>L_h</th><th class=num>KL</th></tr></thead><tbody>{resample_rows}</tbody></table></div>""",
+    {resample_html}""",
     )
     claim_steps = []
     claim_edit_html = ""
@@ -626,19 +634,19 @@ def build(D: dict) -> str:
         )
         claim_edit_html = f"""
     <h3>Contradict: replace the excerpt, keep everything else</h3>
-    <p>Each claim shows its support scores first: S_h = L_h(z¬c) − L_h(z) and S_o = KL(z¬c) − KL(z), the change caused by the contradiction relative to the original explanation (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}). Positive means the original claim reconstructs better than its contradiction.</p>
+    <p>Each claim shows its support scores first: S_h = L_h(z¬c) − L_h(z) and S_o = KL(z¬c) − KL(z), the change caused by the contradiction relative to the original explanation. Positive means the original claim reconstructs better than its contradiction.</p>
     {contradiction_rows()}
     <h3>Delete: remove the excerpt</h3>
     <p>I_h = L_h(z−c) − L_h(z) and I_o = KL(z−c) − KL(z): what the reconstruction loses when the claim is removed.</p>
-    <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>dist to R(z)</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>"""
+    <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>output KL</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>"""
     n_edit = 4 if claims else 3
     step_edit = step(
         n_edit,
         "Edit",
-        "hand-written flips, swaps, paraphrase, translation; code for the rest",
+        "hand-written flip, paraphrase, translation; code for the rest",
         f"""{claim_edit_html}
     <h3>Whole-explanation variants</h3>
-    <p>For a whole-explanation edit k: ΔL_h = L_h(z_k) − L_h(z) and ΔL_o = KL(z_k) − KL(z), the change relative to the original (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}); the resamples above give the noise floor. S_x is the input consistency of the edited text itself.</p>
+    <p>For a whole-explanation edit k the FVE drop is L_h(z_k) − L_h(z), the explained variance the edit costs relative to the original (FVE of z: {f3(1 - L_h0) if L_h0 is not None else "—"}); the output KL is KL(p ‖ p̂(z_k)) of the edited text itself (z: {f3(L_o0)}). S_x is the input consistency of the edited text.</p>
     {variant_block("polarity", "Polarity flip", "Every predicate-bearing phrase negated once with function words only; the vocabulary is unchanged, so the text denies every claim in the same words.")}
     {variant_block("paraphrase", "Paraphrase", "A full rewording that keeps every claim and every quoted string.")}
     {variant_block("cat", "Final token → “cat”", "Every mention of the final token replaced by “cat” (code).")}
@@ -653,7 +661,7 @@ def build(D: dict) -> str:
         "AR, blocks 0–42 + value head",
         f"""
     <h3>Every variant back to a vector</h3>
-    <p>Each text is wrapped in the AR's summary prompt and reconstructed. L_h compares R(z′) with the real h; “dist” compares R(z′) with R(z), the quantity the equivalence threshold τ looks at.</p>
+    <p>Each text is wrapped in the AR's summary prompt and reconstructed. FVE compares R(z′) with the real h; the FVE drop is relative to the original explanation z; the output KL comes from the next step.</p>
     {var_table()}""",
     )
     step_out = step(
@@ -662,8 +670,8 @@ def build(D: dict) -> str:
         "target, blocks 43–63",
         f"""
     <h3>Put the reconstruction back into the model</h3>
-    <p>R(z′) is rescaled to ‖h‖ and written into the residual stream at token t; blocks 43–63 and the head give p̂; L_o is KL(p ‖ p̂). References for this activation:</p>
-    <div class="tbl"><table><thead><tr><th>patch</th><th class=num>KL</th></tr></thead><tbody>{refs_rows}<tr><td>the explanation z itself</td><td class=num>{f3(orig_v.get("L_o"))}</td></tr></tbody></table></div>""",
+    <p>R(z′) is rescaled to ‖h‖ and written into the residual stream at token t; blocks 43–63 and the head give p̂; the output KL is KL(p ‖ p̂). References for this activation:</p>
+    <div class="tbl"><table><thead><tr><th>patch</th><th class=num>output KL</th></tr></thead><tbody>{refs_rows}<tr><td>the explanation z itself</td><td class=num>{f3(L_o0)}</td></tr></tbody></table></div>""",
     )
     steps = [step_extract, step_verbalize, *claim_steps, step_edit, step_recon, step_out]
     if claims:
@@ -677,25 +685,99 @@ def build(D: dict) -> str:
     <div class="tbl"><table><thead><tr><th>claim</th><th>S_x</th><th>S_h</th><th>S_o</th><th>I_h</th><th>I_o</th></tr></thead><tbody>{profile_rows}</tbody></table></div>""",
             )
         )
-    page2 = f"""
-    <section id="lifecycle" hidden>
-    <p class="eyebrow">activation idx {D["idx"]} of {D["stats"]["n"]} · token “{esc(last_tok)}”</p>
-    <h1>One activation, start to finish</h1>
-    <p class="lede">Every operation the experiment performs, shown on one activation, with the numbers each step produced. The population results for all {D["stats"]["n"]} activations follow at the bottom.</p>
+    return f"""
+    <article class="example" id="ex-{D["idx"]}"{"" if first else " hidden"}>
+    <p class="eyebrow">activation idx {D["idx"]} of {n} · token “{esc(last_tok)}” · {esc(D["domain"])}</p>
     <div class="steps">{"".join(steps)}</div>
+    </article>"""
 
-    <h2 id="population">Population: all {D["stats"]["n"]} activations</h2>
-    <p>{pop_intro}</p>
-    {pop_kind_table()}
-    <div class="callout"><p>{callout}</p></div>
-    <h3>Whole-explanation edit kinds (medians per activation)</h3>
-    <div class="tbl"><table><thead><tr><th>kind</th><th class=num>n</th><th class=num>dist</th><th class=num>ΔL_h</th><th class=num>ΔL_o median</th><th class=num>ΔL_o mean</th><th class=num>S_x(z′) mean</th><th class=num>NLI z→z′ contra</th></tr></thead><tbody>{we_rows}</tbody></table></div>
-    <h3>Matched pairs (per activation)</h3>
-    <div class="tbl"><table><thead><tr><th>comparison : quantity</th><th class=num>n</th><th class=num>median difference</th><th class=num>share first &gt; second</th><th class=num>Wilcoxon p</th></tr></thead><tbody>{mt_rows}</tbody></table></div>
-    {claim_pop_html}
+
+def examples_page(R: dict, examples: list[dict]) -> str:
+    n = R["stats"]["n"]
+    tabs = "".join(
+        f'<button role="tab" data-example="{D["idx"]}" aria-selected="{"true" if i == 0 else "false"}">idx {D["idx"]} · “{esc(D["final_token"].strip())}” · {esc(D["domain"])}</button>'
+        for i, D in enumerate(examples)
+    )
+    articles = "".join(example_article(R, D, i == 0) for i, D in enumerate(examples))
+    idxs = ", ".join(str(D["idx"]) for D in examples)
+    return f"""
+    <section id="examples" hidden>
+    <p class="eyebrow">{len(examples)} activations of {n} · idx {idxs}</p>
+    <h1>Five activations, start to finish</h1>
+    <p class="lede">Every operation the experiment performs, shown on {len(examples)} activations with the numbers each step produced. Pick an activation below; the population results for all {n} are on page 3.</p>
+    <nav class="subtabs" role="tablist" aria-label="activation">{tabs}</nav>
+    {articles}
+    </section>
+    """
+
+
+def population_page(R: dict, P: dict) -> str:
+    n = R["stats"]["n"]
+    sm = R["summary"]
+    al = sm["alignment"]
+    at_m = al.get("at", {}).get("tau_resample_median", {})
+    fve = next(r["FVE"] for r in P["rows"] if r["kind"] == "orig")
+    rows = "".join(
+        f"<tr><td>{kind_chip(r['kind'])}</td><td class=num>{r['n']}</td><td class=num>{f3(r['FVE'])}</td><td class=num>{fd(r['fve_drop_med'])}</td><td class=num>{f3(r['kl_med'])}</td><td class=num>{f3(r['top1'])}</td><td class=num>{' / '.join(f3(x) for x in r['nli']) if 'nli' in r else '—'}</td></tr>"
+        for r in P["rows"]
+    )
+    table = f'<div class="tbl"><table><thead><tr><th>kind</th><th class=num>n</th><th class=num>FVE</th><th class=num>FVE drop median</th><th class=num>output KL median</th><th class=num>top-1 agree</th><th class=num>NLI z→z′ entail / contradict / neutral</th></tr></thead><tbody>{rows}</tbody></table></div>'
+    ref = P["ref"] or {}
+    figs = [
+        (
+            P["bars"],
+            f"Whole-explanation edits, all {n} activations: the FVE drop and the output KL of each kind (bar: mean; whiskers: ± one standard deviation; dashed line: the resamples, FVE drop {ref.get('dL_h', float('nan')):.3f}, output KL {ref.get('L_o', float('nan')):.3f}).",
+        ),
+        (
+            R["plots"] / "cat_hist.png",
+            "Final token → “cat”: the effect distribution over explanations.",
+        ),
+        (
+            R["plots"] / "alignment_curves.png",
+            f"Alignment errors versus the threshold τ on the reconstruction distance: P(N=0 | H=1) over the paraphrase, shuffle and translation pairs, P(N=1 | H=0) over the polarity-flip pairs. At the resample-median τ = {at_m.get('tau', float('nan')):.3f}: P(N=0 | H=1) = {at_m.get('eps_steg', float('nan')):.2f}, P(N=1 | H=0, polarity) = {at_m.get('err_polarity', float('nan')):.2f}; AUC of the distance separating H = 0 from H = 1 pairs {al.get('auc_dist_separates_H', float('nan')):.2f}.",
+        ),
+        (
+            R["plots"] / "fve_hist.png",
+            f"FVE of the primary explanations, one value per activation: mean {fve:.3f}.",
+        ),
+    ]
+    fig_html = "".join(
+        f'<figure class="plot"><img src="{png(src)}" alt="{esc(cap)}"><figcaption>{esc(cap)}</figcaption></figure>'
+        for src, cap in figs
+        if isinstance(src, bytes) or Path(src).exists()
+    )
+    return f"""
+    <section id="population" hidden>
+    <p class="eyebrow">all {n} activations</p>
+    <h1>Population results</h1>
+    <p class="lede">The numbers of page 2 over all {n} activations. FVE of the primary explanations is {fve:.3f}; every variant kind is summarised by its FVE drop, its output KL and the NLI judge's reading of z → z′.</p>
+    <h2>By variant kind</h2>
+    {table}
+    <h2>Plots</h2>
     <div class="plots">{fig_html}</div>
     </section>
     """
+
+
+JS = """
+    (function(){
+      var tabs=document.querySelectorAll('.tabs button'), sub=document.querySelectorAll('.subtabs button');
+      var pages={};['setup','examples','population'].forEach(function(k){pages[k]=document.getElementById(k)});
+      var exs={};sub.forEach(function(b){exs[b.dataset.example]=document.getElementById('ex-'+b.dataset.example)});
+      var cur='setup', curEx=sub.length?sub[0].dataset.example:null;
+      function sync(){try{history.replaceState(null,'','#'+(cur==='examples'&&curEx?'examples-'+curEx:cur))}catch(e){}}
+      function showPage(id){cur=id;for(var k in pages){pages[k].hidden=(k!==id)}tabs.forEach(function(b){b.setAttribute('aria-selected',b.dataset.page===id?'true':'false')});window.scrollTo({top:0});sync()}
+      function showEx(i){curEx=i;for(var k in exs){exs[k].hidden=(k!==i)}sub.forEach(function(b){b.setAttribute('aria-selected',b.dataset.example===i?'true':'false')});sync()}
+      tabs.forEach(function(b){b.addEventListener('click',function(){showPage(b.dataset.page)})});
+      sub.forEach(function(b){b.addEventListener('click',function(){showEx(b.dataset.example);var s=document.querySelector('.subtabs');if(s){s.scrollIntoView({block:'start'})}})});
+      var h=(location.hash||'').replace('#','');
+      if(h.indexOf('examples-')===0){showPage('examples');if(exs[h.slice(9)]){showEx(h.slice(9))}}else if(pages[h]){showPage(h)}
+    })();
+    """
+
+
+def build(R: dict, examples: list[dict]) -> str:
+    P = population(R)
     CSS = (
         Path(__file__)
         .with_name("001_walkthrough.py")
@@ -703,20 +785,22 @@ def build(D: dict) -> str:
         .split('    CSS = """')[1]
         .split('"""')[0]
     )
-    JS = (
-        Path(__file__)
-        .with_name("001_walkthrough.py")
-        .read_text()
-        .split('    JS = """')[1]
-        .split('"""')[0]
+    extra = (
+        ".k-polarity{color:#c2185b}.k-cat{color:#ef6c00}.k-unrelated_token{color:#7b5ea7}"
+        ".plots{grid-template-columns:1fr}"
+        ".subtabs{position:sticky;top:0;z-index:4;display:flex;flex-wrap:wrap;gap:6px;padding:10px 0;margin:6px 0 18px;background:var(--bg);border-bottom:1px solid var(--rule)}"
+        ".subtabs button{font:inherit;font-size:13.5px;font-weight:600;background:var(--panel);color:var(--muted);border:1px solid var(--rule);border-radius:999px;padding:5px 12px;cursor:pointer}"
+        '.subtabs button[aria-selected="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}'
+        ".subtabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+        ".example .eyebrow{margin:14px 0 10px}"
     )
     return f"""<title>NLA Metrics Walkthrough II</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-    <style>{CSS}.k-polarity{{color:#c2185b}}.k-vocab{{color:#00838f}}.k-cat{{color:#ef6c00}}.plots{{grid-template-columns:1fr}}</style>
-    <header class="top"><div class="brand">NLA Metrics Walkthrough II <small>EXP002 · {esc(D["run"])}</small></div>
-    <nav class="tabs" role="tablist"><button role="tab" data-page="setup" aria-selected="true">1 · Setup</button><button role="tab" data-page="lifecycle" aria-selected="false">2 · One activation's lifecycle + results</button></nav></header>
-    <main>{page1}{page2}</main>
+    <style>{CSS}{extra}</style>
+    <header class="top"><div class="brand">NLA Metrics Walkthrough II <small>EXP002 · {esc(R["run"])}</small></div>
+    <nav class="tabs" role="tablist"><button role="tab" data-page="setup" aria-selected="true">1 · Setup</button><button role="tab" data-page="examples" aria-selected="false">2 · Five activations</button><button role="tab" data-page="population" aria-selected="false">3 · Population</button></nav></header>
+    <main>{setup_page(R)}{examples_page(R, examples)}{population_page(R, P)}</main>
     <script>{JS}</script>
     """
 
@@ -734,16 +818,18 @@ SKELETON = """<!doctype html>
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--idx", type=int, default=0)
-    p.add_argument("--run", default="exp_002")
-    p.add_argument("--out", default="experiments/results/exp_002_walkthrough.html")
+    p.add_argument("--idx", default=DEFAULT_IDX, help="comma-separated activation indices")
+    p.add_argument("--run", default="exp_002_r3")
+    p.add_argument("--out", default="experiments/results/exp_002_r3_walkthrough.html")
     p.add_argument(
         "--bare",
         action="store_true",
         help="omit the html/head/body skeleton (Artifact viewer form)",
     )
     a = p.parse_args()
-    doc = build(extract(a.idx, a.run))
+    R = load_run(a.run)
+    examples = [extract_example(R, int(i)) for i in a.idx.split(",") if i.strip()]
+    doc = build(R, examples)
     doc = "\n".join(ln[4:] if ln.startswith("    ") else ln for ln in doc.split("\n"))
     if not a.bare:
         head_end = doc.index("</style>") + len("</style>")
