@@ -220,4 +220,31 @@ Sanity cell (64 shipped activations; var_nrm over them 0.462; author: 0.756 at a
   paraphrase.
 
 ### Conclusion
-_(pending)_
+Cell `exp_002` (n = 256 activations; 1022 hand-written claims, 4 per explanation, all anchored; var_nrm 0.441; a 72-activation preview with the first three finished parts gave the same picture):
+
+| kind | n | FVE | dist to R(z) median | KL median / mean | top-1 | NLI z→z′ entail / contra | lexical change median |
+|---|---|---|---|---|---|---|---|
+| orig | 256 | 0.776 | 0 | 0.018 / 0.039 | 0.90 | — | 0 |
+| resample | 512 | 0.775 | 0.057 | 0.019 / 0.048 | 0.89 | — | 0.67 |
+| paraphrase (matched) | 256 | 0.776 | 0.001 | 0.017 / 0.039 | 0.90 | 0.91 / 0.07 (bwd 0.91 / 0.07) | 0.024 |
+| polarity flip | 256 | 0.773 | 0.002 | 0.018 / 0.039 | 0.90 | 0.00 / 1.00 | 0.018 |
+| vocabulary swap | 256 | 0.772 | 0.003 | 0.017 / 0.039 | 0.90 | 0.00 / 1.00 | 0.022 |
+| shuffle | 256 | 0.754 | 0.020 | 0.020 / 0.039 | 0.89 | — | 0.23 |
+| translate (fr) | 256 | 0.762 | 0.013 | 0.020 / 0.040 | 0.90 | 1.00 / 0.00 (bwd 1.00 / 0.00) | 0.37 |
+| contradict | 1022 | 0.729 | 0.012 | 0.023 / 0.388 | 0.84 | 0.03 / 0.92 | 0.035 |
+| delete | 1022 | 0.760 | 0.006 | 0.020 / 0.108 | 0.89 | 0.89 / 0.08 | 0.053 |
+| final token → "cat" | 256 | 0.080 | 0.754 | 4.11 / 4.31 | 0.14 | 0.11 / 0.88 | 0.010 |
+| unrelated | 256 | −0.887 | 1.727 | 6.05 / 6.12 | 0.08 | — | 0.77 |
+| ref identity F(h) | 256 | — | — | 0.000 | 1.00 | — | — |
+| ref mean activation | 256 | 0 | — | 1.94 / 2.77 | 0.34 | — | — |
+
+Claim profiles: S_x mean 0.41 (83 % > 0); S_h mean 0.047, median 0.010 (79 % > 0); S_o mean 0.35, median 0.001 (60 % > 0); I_h mean 0.016, median 0.005 (72 % > 0); I_o mean 0.069, median 0.000 (57 % > 0). Spearman: S_x~S_h −0.01, S_x~S_o 0.08, S_h~S_o 0.46, I_h~I_o 0.35, S_h~I_h 0.65. NLI_claim (excerpt vs replacement): contradiction 0.94 fwd / 0.90 bwd. By snippet: final-token claims (n = 389) S_o mean 0.85 (17 % > 0.1 nats), S_h > 0.05 for 33 %, I_o mean 0.18; genre claims (289) S_o 0.00, S_h > 0.05 for 18 %; mid-text claims (344) S_o 0.08, S_h > 0.05 for 5 %. S_x < 0 (claim contradicted by the input) for 31 % of genre claims, 15 % of mid-text claims, 8 % of final-token claims.
+
+Whole-explanation kinds (per activation): dist medians paraphrase 0.001 < polarity 0.002 < vocab 0.003, all ≈ 20× below the resample floor (0.057); paired Wilcoxon: polarity < vocab (p < 10⁻⁴; polarity larger in 32 % of activations), vocab > paraphrase in 99.6 %, polarity > paraphrase in 96 %; ΔL_o medians 0.000 for all three, no paired difference (p ≥ 0.24). "cat": ΔL_h median 0.71 (p10 0.37, p90 1.03; > 0.1 in 98 %), ΔL_o median 3.96 nats (p10 0.85, p90 7.7; > 1 nat in 89 %), dist 0.754; L_o(cat) exceeds the mean-activation patch of the same activation in 75 % of cases; Spearman with the token-dominance probe KL(p_full ‖ p_last8): −0.14 (ΔL_h), +0.17 (ΔL_o). Alignment: AUC of dist separating H = 0 from H = 1 is 0.65; equal-error rate 0.44 at τ = 0.014; at the resample-median τ = 0.057 ε_steg 0.06, ε_alias 0.66 (judged equivalent: polarity 100 %, vocab 100 %, contradict 82 %, delete 94 %; cat and unrelated 0 %). Spearman(lexical change, dist) over edited variants 0.39 (n = 3836).
+
+- Timing: edit 35 s, reconstruct 4604 texts 87 s, output 5116 patches 166 s, NLI 3324 + 1022 × 3 pairs 15 s, analyze 4 s (~5 min of GPU). Hand edits: 11 subagents of 16–24 items, 15–30 min each (two batches were lost to session limits and relaunched; every part passed the checker with 0 issues, lexical change medians polarity 0.018 / vocab 0.022 / paraphrase 0.024).
+- H2: at matched lexical change the polarity flip moves R(z) less than the vocabulary swap (0.002 vs 0.003, paired p < 10⁻⁴), the direction predicted by "the AR reads words, not polarity", but both sit far inside the sampling noise and neither changes the patched output at all: a fully negated explanation reconstructs to the same vector as z (NLI: contradiction 1.00).
+- H3: the "cat" effect is wide but not concentrated: 98 % of explanations lose > 0.1 of L_h and the median loss (0.71) is most of the explained variance (FVE 0.776 → 0.080); the output effect (4 nats) is larger than knowing nothing about the activation (mean patch 1.9 nats) in 75 % of cases. The token-dominance probe does not predict it (|ρ| ≤ 0.17).
+- H4: with edit size matched, contradictions (0.012) are farther from z than paraphrases (0.001), so EXP001's inversion (AUC 0.33) was an artefact of edit size (AUC now 0.65); but every meaning-changing edit except "cat" and "unrelated" stays inside the resample floor, so ε_alias at that τ is still 0.66.
+- H5 holds: S_h is uncorrelated with S_x (−0.01); S_h/S_o/I_o concentrate on the final-token claims (S_o mean 0.85 there vs ≤ 0.08 elsewhere), and the genre claim is the most often confabulated (31 % contradicted by the input) while being the one the AR cares least about.
+- Results copied to `experiments/results/exp_002/` (summary.json, per-claim / per-variant CSVs, whole_effects.csv, alignment.csv, PNG plots, configs); hand edits in `configs/hand_edits_exp002.jsonl` (+ parts); walkthrough `experiments/results/exp_002_walkthrough.html` (idx 79).
