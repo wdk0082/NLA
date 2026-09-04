@@ -668,7 +668,7 @@ def make_plots(
     plt.axvline(
         float((1 - orig.L_h).mean()), color="r", label=f"mean FVE {(1 - orig.L_h).mean():.3f}"
     )
-    plt.xlabel("per-activation FVE of the primary explanation")
+    plt.xlabel("FVE of the primary explanation, one value per activation (1 − L_h)")
     plt.legend()
     plt.tight_layout()
     plt.savefig(pd_ / "fve_hist.png", dpi=130)

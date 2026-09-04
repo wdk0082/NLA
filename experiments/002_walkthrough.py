@@ -713,7 +713,7 @@ def build(D: dict) -> str:
     return f"""<title>NLA Metrics Walkthrough II</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-    <style>{CSS}.k-polarity{{color:#c2185b}}.k-vocab{{color:#00838f}}.k-cat{{color:#ef6c00}}</style>
+    <style>{CSS}.k-polarity{{color:#c2185b}}.k-vocab{{color:#00838f}}.k-cat{{color:#ef6c00}}.plots{{grid-template-columns:1fr}}</style>
     <header class="top"><div class="brand">NLA Metrics Walkthrough II <small>EXP002 · {esc(D["run"])}</small></div>
     <nav class="tabs" role="tablist"><button role="tab" data-page="setup" aria-selected="true">1 · Setup</button><button role="tab" data-page="lifecycle" aria-selected="false">2 · One activation's lifecycle + results</button></nav></header>
     <main>{page1}{page2}</main>
