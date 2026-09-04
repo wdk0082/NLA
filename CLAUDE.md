@@ -49,6 +49,16 @@ template `.env.example`) sets `DEVICE=cuda`, the caches (`HF_HOME`, `UV_CACHE_DI
 exported in the shell win over `.env` (Lightning presets `HF_HOME`; both point at the same
 directory).
 
+**Keep the studio disk small** (a large home directory makes the Studio slow to open). Model
+weights (~145 GB for EXP002) are NOT kept there between working sessions: the Hub download is
+~1 GB/s (a 27B model in about a minute), so `snapshot_download` fetches them on demand and
+`rm -rf ~/.cache/huggingface/hub/models--*` (and `~/.cache/uv`) is the way to shrink the disk
+when done. Backups of the irreplaceable community NLA checkpoint and of the raw run artifacts
+live on the **Teamspace drive** (`lightning cp -r <src> lit:///uploads/nla-metrics/...`,
+read-only mount `/teamspace/uploads/nla-metrics/`, ~40 MB/s, so a backup rather than a runtime
+source); `NLA_MODEL_STORE` in `.env` points `nla.hub.snapshot()` at it as a fallback when the
+Hub fails.
+
 **Dependency management** (`uv add`/`uv remove`/`uv sync`/`uv lock`): run here, commit
 `uv.lock`. Python 3.11 is pinned (`.python-version`; uv fetches it). torch is the CUDA build
 from PyPI; `flash-linear-attention` provides the gated-DeltaNet kernels of the Qwen3.6 blocks
