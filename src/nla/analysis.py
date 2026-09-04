@@ -499,6 +499,18 @@ def make_plots(
     plt.figure(figsize=(7, 4))
     for y, name in lines:
         plt.plot(curves.tau, y, label=name)
+    shown = pairs[pairs.kind.isin([*h1, "polarity"])].dist_to_orig
+    if len(shown):  # the far tail belongs to the unrelated kinds, which are not drawn
+        plt.xlim(0, float(shown.quantile(0.995)) * 1.05)
+    res = pairs[pairs.kind == "resample"].dist_to_orig
+    if len(res):
+        plt.axvline(
+            float(res.median()),
+            color="k",
+            ls=":",
+            lw=0.8,
+            label=f"resample median τ = {res.median():.3f}",
+        )
     plt.xlabel("τ (normalised distance ‖R(z)−R(z′)‖²/V_h)")
     plt.ylabel("error rate")
     plt.legend()
