@@ -533,11 +533,6 @@ def build(D: dict) -> str:
     def step(n, name, model, body):
         return f'<div class="step"><div class="rail"><div class="n">{n}</div><div class="name">{esc(name)}</div><div class="model">{esc(model)}</div></div><div class="body">{body}</div></div>'
 
-    kl_local = (
-        f" The token-dominance probe, KL between p from the full context and p from the last 8 tokens only, is {D['kl_local']:.2f} nats."
-        if D.get("kl_local") is not None
-        else ""
-    )
     steps = [
         step(
             1,
@@ -545,7 +540,7 @@ def build(D: dict) -> str:
             "target, blocks 0–42",
             f"""
     <h3>The text x and its extraction token</h3>
-    <p>A {esc(D["domain"])} document of FineFineWeb ({esc(D["doc_id"])}). The context starts at its first paragraph of running prose and is cut at a whole word drawn at random at least 50 tokens in; the activation is read at that last token, highlighted. The residual vector h has 5120 dimensions and norm {D["h_norm"]:.1f}.{kl_local}</p>
+    <p>A {esc(D["domain"])} document of FineFineWeb ({esc(D["doc_id"])}). The context starts at its first paragraph of running prose and is cut at a whole word drawn at random at least 50 tokens in; the activation is read at that last token, highlighted. The residual vector h has 5120 dimensions and norm {D["h_norm"]:.1f}.</p>
     <div class="specimen">{ctx_tail_html}</div>
     <details><summary>full context, {D["n_ctx"]} tokens</summary><div class="specimen small">{ctx_full_html}</div></details>
     <h3>The target's own next-token distribution p</h3>

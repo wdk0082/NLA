@@ -202,9 +202,10 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   distributions (histograms) for the "cat" edit, and polarity flip vs vocabulary swap vs
   matched paraphrase side by side; the lexical-change-vs-distance scatter and the
   by-snippet table as in EXP001.
-- Optional diagnostic (not a headline metric): a local-window probe of token dominance,
-  `KL(p_full ‖ p_last-8)` between p at t from the full context and from the last 8 tokens
-  only (extract stage, `logits_top.parquet`), correlated with the "cat" edit's ΔL.
+- Parked diagnostic: a local-window probe `KL(p_full ‖ p_last-8)` between p at t from the
+  full context and from the last 8 tokens only (extract stage, `logits_top.parquet`). It
+  measures how much the preceding context matters, not the final token's importance, so it
+  is recorded but not used in the analysis or the walkthrough.
 
 ## Pipeline (`experiments/002_*.py --stage …`, artifacts `exp_002[_tag]/`)
 
