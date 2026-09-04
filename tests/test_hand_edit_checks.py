@@ -135,3 +135,9 @@ def test_stray_quote_readings():
     assert he.quotes_kept(z, z.replace("could file", "could not file")) == [
         "the DOL said the worker could file a civil"
     ]
+    # a paragraph break just before the closing quote does not break the excerpt
+    z = 'Token "a" ends a clause.\n"\nThis is coherent with the results, since the peak has a\n\n"'
+    assert he._quoted_regions(z)[-1] == (
+        "\nThis is coherent with the results, since the peak has a\n\n",
+        True,
+    )

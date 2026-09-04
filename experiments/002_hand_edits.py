@@ -224,7 +224,7 @@ def _region_penalty(text: str, a: int, b: int) -> int:
         + after.isalnum()
         + (t[0] == " " and not before.isspace())  # a space-led region opened mid-phrase
         + (t[-1] == " " and not after.isspace())
-        + ("\n\n" in u)
+        + ("\n\n" in u.rstrip("\n"))  # a break inside, not the AV's `\n\n"` closer
         + (u[:1] == '"')
         + (not closed and (t.startswith("\n\n") or before in ".,;:!?)]"))
     )
