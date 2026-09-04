@@ -255,6 +255,25 @@ def write_hand_template(
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
+_TOKEN_PHRASE = re.compile(
+    r"(?<![A-Za-z])([\"`]{1,2})((?:[A-Za-z][A-Za-z'’-]*,? ){1,3})cat([,.]?)([\"`]{1,2})"
+)
+
+
+def collapse_token_phrase(text: str, placeholder: str = "cat") -> tuple[str, int]:
+    """In a "cat" variant, a short quoted phrase that ends in the placeholder (the AV names the
+    final token by the context's last few words: `Final token "What does"`, `Final phrase "The
+    band was"`) becomes the placeholder alone, so the variant presents one token as the final
+    token instead of a two- or three-word phrase; long quoted excerpts keep the word swap.
+    Returns (text, number of phrases collapsed)."""
+    pat = (
+        _TOKEN_PHRASE
+        if placeholder == "cat"
+        else re.compile(_TOKEN_PHRASE.pattern.replace("cat", re.escape(placeholder)))
+    )
+    return pat.subn(rf"\g<1>{placeholder}\g<3>\g<4>", text)
+
+
 def swap_token(text: str, token: str, placeholder: str = "cat") -> str | None:
     """`text` is a "cat" variant (every final-token mention replaced by `placeholder`); put
     `token` there instead. Used for `unrelated_token`: a donor explanation with the donor's

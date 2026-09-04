@@ -250,3 +250,19 @@ def test_analyze_on_synthetic(tmp_path):
         tmp_path / "plots" / "alignment_curves.png"
     ).exists()
     assert 0 <= s["alignment"]["equal_error_rate"] <= 1
+
+
+def test_collapse_token_phrase():
+    from nla.editor import collapse_token_phrase, swap_token
+
+    z = (
+        'Final token `"What cat` opens a quotation; "The band cat" is short; '
+        '"a PhD in Plant Genetics cat," is a long excerpt and stays; bare cat stays.'
+    )
+    out, n = collapse_token_phrase(z)
+    assert n == 2
+    assert out == (
+        'Final token `"cat` opens a quotation; "cat" is short; '
+        '"a PhD in Plant Genetics cat," is a long excerpt and stays; bare cat stays.'
+    )
+    assert swap_token(out, " from").startswith('Final token `"from` opens')

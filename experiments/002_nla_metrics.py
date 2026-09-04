@@ -475,6 +475,7 @@ def stage_edit(cfg: Config, d: Path) -> None:
     from nla.editor import (
         FileEditor,
         cat_edit,
+        collapse_token_phrase,
         derangement,
         shuffle_snippets,
         swap_token,
@@ -531,11 +532,15 @@ def stage_edit(cfg: Config, d: Path) -> None:
     idxs = [e.idx for e in edits]
     perm = derangement(len(idxs), cfg.seed) if len(idxs) > 1 else [0]
     cat_text: dict[int, str | None] = {}
+    n_collapsed = 0
     for e in edits:  # the "cat" text of every explanation first (unrelated_token needs donors')
         text = e.whole.get("cat")
         if not text:
             text, n_rep = cat_edit(expl[e.idx], str(ctx.final_token.loc[e.idx]))
             cat_counts.append(n_rep)
+        if text:  # `Final token "What cat"` -> `Final token "cat"` (round 3)
+            text, n_c = collapse_token_phrase(text)
+            n_collapsed += n_c > 0
         cat_text[e.idx] = text if text and text != expl[e.idx] else None
     for pos_i, e in enumerate(edits):
         z = expl[e.idx]
@@ -608,6 +613,7 @@ def stage_edit(cfg: Config, d: Path) -> None:
     log(
         f"cat replacements per explanation (mechanical items): mean {np.mean(cat_counts) if cat_counts else float('nan'):.2f}, "
         f"none in {sum(1 for c in cat_counts if c == 0)}; overrides {sum(1 for e in edits if e.whole.get('cat'))}; "
+        f"token-phrase labels collapsed in {n_collapsed}; "
         f"unrelated_token built for {variants.kind.eq('unrelated_token').sum()} of {len(edits)}"
     )
     finish(d, "edit", cfg)
