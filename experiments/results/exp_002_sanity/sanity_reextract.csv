@@ -1,0 +1,67 @@
+doc_id,n_raw_tokens,n_tokens_here,cos,top1
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:4600,1886,1886,0.999843180179596, say
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:10530,722,722,0.9998860359191895, to
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:75222,198,198,0.9997413754463196, a
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:90595,93,93,0.999958872795105, scientific
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:71467,123,123,0.9999683499336243, H
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:69023,214,214,0.9998592138290405, 
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:85863,172,172,0.9998121857643127,gl
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:73452,181,181,0.9998756051063538, and
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:28500,135,135,0.9998382329940796, are
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:20389,105,105,0.9999319911003113,0
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:95845,131,131,0.9956524968147278,oy
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:52505,447,447,0.9997643232345581, St
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:54528,2149,2149,0.9999127388000488,ately
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:60397,81,81,0.9999471306800842, blog
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:34553,361,361,0.9779615998268127, cancer
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:14447,387,387,0.9985319375991821,spark
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:89483,113,113,0.9999065399169922,'s
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:49240,161,161,0.9997642040252686, began
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:46963,317,317,0.9998923540115356, rip
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:49709,167,167,0.999320924282074,1
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:73731,100,100,0.9999462366104126, power
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:59314,94,94,0.9998705387115479, rooms
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:20351,535,535,0.9998124837875366, landmarks
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:93126,143,143,0.9976826906204224, desired
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:45006,396,396,0.9998596906661987,iva
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:52950,200,200,0.999750018119812,.
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:29832,287,287,0.9996709227561951, Consumer
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:60998,457,457,0.9988000392913818,’s
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:79287,341,341,0.9999469518661499, on
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:50225,1010,1010,0.9968741536140442,nt
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:35384,105,105,0.9999300837516785, at
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:43675,142,142,0.9994691610336304,fold
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:72755,290,290,0.9996780157089233, Pr
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:13379,228,228,0.9999292492866516, our
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:88658,322,322,0.9998638033866882,oma
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:77894,135,135,0.9999265670776367,","
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:64380,246,246,0.9998610019683838, K
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:3263,185,185,0.9998502135276794, movies
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:67191,367,367,0.9999419450759888,","
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:43675,112,112,0.9998042583465576, the
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:21548,71,71,0.9999586939811707,.
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:91143,260,260,0.9994780421257019, a
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:22140,86,86,0.9999696612358093, of
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:23718,334,334,0.9997541308403015,ily
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:47636,2043,2043,0.9999428391456604, is
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:66060,156,156,0.9999207258224487,||
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:37756,236,236,0.9995086789131165,V
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:30615,62,62,0.9998637437820435, successful
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:44696,148,148,0.9997967481613159,a
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:90336,149,149,0.9998437762260437, in
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:79334,230,230,0.9989005327224731, responsible
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:98135,304,304,0.999872088432312,The
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:74616,150,150,0.9999099373817444, at
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:53495,67,67,0.9999518394470215, saving
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:11734,115,115,0.9999462962150574,"
+"
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:58,93,93,0.9999659061431885, a
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:85333,593,593,0.9997581243515015, to
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:82949,364,364,0.9998090863227844, younger
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:53520,829,829,0.9996698498725891,.
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:28225,598,598,0.9999030232429504, blend
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:33019,56,56,0.9999269843101501, in
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:36779,172,172,0.9998683929443359,","
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:2568,181,181,0.9996897578239441,"
+"
+/workspace-vast/celeste/nla-data/finefineweb_100k.parquet:train:30676,97,97,0.9999279975891113,.

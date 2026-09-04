@@ -1,0 +1,30 @@
+{
+  "history": {
+    "seen": 74,
+    "no_prose": 10,
+    "short": 0,
+    "no_word_end": 0,
+    "kept": 64
+  },
+  "astronomy": {
+    "seen": 81,
+    "no_prose": 17,
+    "short": 0,
+    "no_word_end": 0,
+    "kept": 64
+  },
+  "biology": {
+    "seen": 71,
+    "no_prose": 7,
+    "short": 0,
+    "no_word_end": 0,
+    "kept": 64
+  },
+  "economics": {
+    "seen": 68,
+    "no_prose": 4,
+    "short": 0,
+    "no_word_end": 0,
+    "kept": 64
+  }
+}

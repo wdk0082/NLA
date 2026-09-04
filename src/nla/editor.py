@@ -176,15 +176,24 @@ def similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
+WHOLE_KINDS = (
+    "polarity",
+    "vocab",
+    "cat",
+)  # EXP002 whole-explanation edits (hand-made / mechanical)
+
+
 @dataclass
 class Edits:
     idx: int
     claims: list[str] = field(default_factory=list)
     spans: list[str | None] = field(default_factory=list)  # excerpt text per claim
+    replacements: list[str | None] = field(default_factory=list)  # contradicting excerpt per claim
     contradicted: list[str | None] = field(default_factory=list)  # per claim (full text)
     deleted: list[str | None] = field(default_factory=list)
     paraphrase: str | None = None
     translation: str | None = None
+    whole: dict[str, str | None] = field(default_factory=dict)  # kind -> full text (WHOLE_KINDS)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -213,6 +222,43 @@ def derangement(n: int, seed: int) -> list[int]:
         rng.shuffle(perm)
         if all(perm[i] != i for i in range(n)):
             return perm
+
+
+def cat_edit(z: str, final_token: str, replacement: str = "cat") -> tuple[str | None, int]:
+    """Replace every whole-word mention of the context's final token in `z` (quoted or bare,
+    case-sensitive) by `replacement`. Returns (edited text or None, number of replacements)."""
+    word = final_token.strip()
+    if not word or not word.isalpha():
+        return None, 0
+    out, n = re.subn(rf"(?<![A-Za-z]){re.escape(word)}(?![A-Za-z])", replacement, z)
+    return (out, n) if n else (None, 0)
+
+
+def write_hand_template(path: str | Path, rows: list[dict[str, Any]]) -> None:
+    """One JSON line per explanation for hand authoring: the fields to fill are `claims`
+    (list of {claim, excerpt, contradiction}), `polarity`, `vocab`, `paraphrase`,
+    `translation`, and optionally `cat` (overrides the mechanical edit). Everything else is
+    context for the author and is ignored on load."""
+    with open(path, "w") as f:
+        for r in rows:
+            f.write(
+                json.dumps(
+                    {
+                        "idx": int(r["idx"]),
+                        "final_token": r.get("final_token"),
+                        "x_tail": r.get("x_tail"),
+                        "explanation": r["explanation"],
+                        "claims": [],
+                        "polarity": None,
+                        "vocab": None,
+                        "paraphrase": None,
+                        "translation": None,
+                        "cat": None,
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
 
 
 # ------------------------------------------------------------------ backends
@@ -285,6 +331,7 @@ class LocalEditor:
             spans[i] = [s for _, s in parsed]
             e.spans = [explanations[i][s[0] : s[1]] if s else None for s in spans[i]]
             e.contradicted = [None] * len(parsed)
+            e.replacements = [None] * len(parsed)
             e.deleted = [delete_span(explanations[i], s) if s else None for s in spans[i]]
             edits[i] = e
         # 2) contradiction of the anchored excerpt only
@@ -304,6 +351,7 @@ class LocalEditor:
             edits[i].contradicted[j] = (
                 replace_span(explanations[i], spans[i][j], rep) if rep else None
             )
+            edits[i].replacements[j] = rep if edits[i].contradicted[j] else None
             edits[i].raw.setdefault("contradict", {})[j] = t
         # 3) paraphrase, 4) translation
         par = self.complete(
@@ -320,10 +368,12 @@ class LocalEditor:
 
 
 class FileEditor:
-    """Edits pre-authored in a JSONL file (manual / gold path). One object per explanation:
-    {"idx", "claims": [{"claim", "excerpt", "contradiction"}...], "paraphrase", "translation"}
-    where `excerpt` is a verbatim span of the explanation and `contradiction` is the
-    replacement for that span (deletion is derived programmatically)."""
+    """Edits pre-authored in a JSONL file (hand / gold path). One object per explanation:
+    {"idx", "claims": [{"claim", "excerpt", "contradiction"}...], "paraphrase", "translation",
+    and optionally the EXP002 whole-explanation kinds "polarity", "vocab", "cat"} where
+    `excerpt` is a verbatim span of the explanation and `contradiction` is the replacement for
+    that span (deletion is derived programmatically). Whole-explanation texts equal to the
+    original are dropped."""
 
     def __init__(self, path: str | Path):
         self.rows = {
@@ -341,6 +391,7 @@ class FileEditor:
                 idx=i,
                 paraphrase=r.get("paraphrase"),
                 translation=r.get("translation"),
+                whole={k: (r.get(k) or None) for k in WHOLE_KINDS if (r.get(k) or None) != z},
                 raw={"source": "file"},
             )
             for c in list(r.get("claims", []))[:max_claims]:
@@ -348,10 +399,12 @@ class FileEditor:
                 e.claims.append(c["claim"])
                 e.spans.append(z[span[0] : span[1]] if span else None)
                 e.deleted.append(delete_span(z, span) if span else None)
-                e.contradicted.append(
+                con = (
                     replace_span(z, span, c["contradiction"])
                     if span and c.get("contradiction")
                     else None
                 )
+                e.contradicted.append(con)
+                e.replacements.append(c["contradiction"].strip() if con else None)
             out.append(e)
         return out

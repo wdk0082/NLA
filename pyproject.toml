@@ -1,14 +1,18 @@
 [project]
 name = "nla"
 version = "0.1.0"
-description = "Metrics for NLA language alignment, claim support and claim importance (Qwen2.5-7B NLA, inference-only on Cloud TPU)"
+description = "Metrics for NLA language alignment, claim support and claim importance (NLA pairs for Qwen models, inference-only)"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "torch==2.9.0",            # pairs with torch_xla 2.9.0 (installed on the VM by gcp/bootstrap.sh)
-    "transformers>=4.57,<6",
+    "torch==2.13.0",           # CUDA build from PyPI (H200); EXP001's torch_xla path is retired
+    "transformers>=5.16,<6",   # qwen3_5 (Qwen3.6) support
+    "peft>=0.20",              # NLA AV = base + LoRA adapter
+    "accelerate>=1.14",
+    "flash-linear-attention==0.5.2",  # gated-DeltaNet kernels for the Qwen3.6 linear-attention blocks
+    "hf-xet>=1.0",             # fast hub downloads
     "safetensors>=0.5",
-    "huggingface-hub>=0.30",
+    "huggingface-hub>=1.5",
     "datasets>=3.0",
     "pyarrow>=17",
     "numpy>=1.26",
@@ -35,15 +39,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/nla"]
 
-# Linux (the TPU VM) gets the CPU-only torch wheel — torch_xla brings the TPU
-# runtime; macOS falls back to the default PyPI wheel.
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
-[tool.uv.sources]
-torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 
 [tool.ruff]
 line-length = 100

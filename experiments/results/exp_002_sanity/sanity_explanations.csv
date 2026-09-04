@@ -1,0 +1,1264 @@
+adapter,thinking,idx,explanation,n_tokens,truncated,mse_nrm,L_h,cos
+iter_000300,off,0,"Web-scraped industrial product listing montage, covering crushing/milling equipment across multiple global companies and regions, with heavy keyword repetition (crusher, stone, grinder, sand).
+
+The text has progressed into specific Indian manufacturer details for Bansal crushers, listing model names (cw6, cw12) and product names (roller crusher, jaw crusher series), establishing a pattern of equipment specs and price references.
+
+Final token: ""for"" ends an incomplete phrase ""price list for"" — immediately requires a product/category noun, likely a crusher model, machine component, or exporting/delivery-related phrase, continuing the scraps/almost-searched-items section. ""almost searched item' Bansal stone crusher ... through export company!! ... Experience. Bansal crushers price. price list for""
+
+Final token demands specific product name or crusher type.",178,False,0.08174087,0.17706844,0.95913
+iter_000300,off,1,"Biographical obituary notice following military regimental history, now detailing Major General Howard's career chronologically with dated appointments and ranks.
+
+The structured military career timeline with promotions, transfers, and postings (Captain 1885, Ireland, South Africa, ordering-officer roles) establishes strong continuation momentum, expecting further rank/service milestones.
+
+""Promoted"" is the opening word of an incomplete sentence mid-career progression (""Having joined the regiment in 1879 and Commissioned in the King's Own Scottish Borders, Howard served in Ireland and South Africa where he was awarded the D.S.O. Promoted""), immediately requiring a rank and/or year, followed by further postings or appointments, likely ""to Major"" or ""to Lieutenant Colonel.""
+""British Army. Promoted"" continues the pattern.",175,False,0.06479385,0.14035751,0.96760356
+iter_000300,off,2,"Biographical profile structure for an animal/environmental activist — UK charity staff bio format with accomplishments listed in themed paragraphs covering diving, expeditions, education, and skills.
+
+The text has systematically covered diving certifications, volunteer work, charity roles, education projects, karate, and future accommodation goals, establishing a complete profile. ""Harriet has"" now signals another paragraph covering additional activities, impact, or public-facing roles such as advocacy, writing, or media appearances.
+
+""Harriet has"" is an opening clause of a final section, continuing the repeated sentence pattern seen throughout (""Harriet has enjoyed,"" ""Harriet is passionate about""); next tokens must complete this predicate, likely referencing communication, work experience, or travel presentation — fitting as a culminating summary of her adventurous credentials.
+""Harriet has""",173,False,0.056732107,0.122894034,0.9716341
+iter_000300,off,3,"Bibliographic/citation list pattern: academic titles listed sequentially, each on a new line, suggesting continuation of this format.
+
+Research publication titles in ecology/environmental science domain: previous entries cover lake temperature scaling and forest management, establishing scientific subject matter continuity.
+
+Final token ""of"" is a preposition mid-title (""Latitudinal and longitudinal effects on citation rates of""), requiring a noun phrase completing the object — almost certainly ""journal articles,"" ""local/regional research, or scientific literature from a specific geographic region.
+""Geographic bias in civic ecology,"" or similar socio-scientific topic.
+""Geographic bias in authorship and citation patterns"" follows. ""Geographic origin effects on citation rates of"" demands a specific noun, likely an ecologically-related publication genre or species/taxonomy literature from developing nations.",178,False,0.06651667,0.14408952,0.96674186
+iter_000300,off,4,"Journalistic/community event coverage tone established; factual, celebratory descriptions of a local festival building toward organizational context.
+
+The passage is building a narrative about the Indian Students Association, their small scale (""started out just five years ago with a handful of people""), and their cultural event — momentum toward describing their mission and efforts for this annual Holi Festival benefit.
+
+""The annual"" opens a noun phrase requiring completion, almost certainly referencing the ""Holi Festival"" or an annual event series, or a statistical/milestone claim continuing the sentence about the organization's accomplishments.
+""Despite its politically tense atmosphere in their native regions, the movement's main goal is to spread peace and unity. The annual""
+—""The annual"" begins a compound sentence, most likely introducing this specific Washington Holi Festival or a planned recurring event, connecting it to the yearly nonprofit mission.",182,False,0.095622815,0.20713973,0.9521889
+iter_000300,off,5,"Technical environmental report documenting stormwater improvement outcomes in Australia, using precise data and formal engineering/epidemiology register.
+
+The narrative arc moves from problem (intermittent high grab samples, pre-screen median 479 cells/L) to solution (Posted screen device), culminating in quantitative before/after comparison — a specific reduction figure is promised.
+
+Final fragment ""reduced from a pre-screen implementation median concentration of 392 MPN per litre, to"" is an incomplete comparative construction demanding an immediate lower post-screen median number, likely formatted similarly (e.g., ""X MPN per litre"").
+""Field trials at Parafield... have shown significant reductions, with Total Coliform concentrations reduced from a pre-screen median concentration of 392 MPN per litre, to""",172,False,0.07142973,0.15473227,0.9642852
+iter_000300,off,6,"Scientific abstract structure: paper presents GRB afterglow modeling findings, requiring technical conclusions about shock physics and jet emission contributions.
+
+Parallel numerical comparison momentum: two light curve models introduced, now contrasting relative contributions of reverse (inner) vs forward (outer) shock to afterglow emission, supporting ""bumpy"" jet/clump composition argument.
+
+Final fragment ""the contribution of the X-ray emitting clumps to the optical after"" is mid-word, demanding immediate completion of ""afterglow"" then specifying a magnitude, observational feature, or time regime (e.g., ""afterglow light curve"" or ""optical afterglow from a typical GRB"").
+""
+""Moreover, we find that even in moderately-beam squared jets, the contribution of the clumps to the optical after[glow] can be significant"" — domain/genre specific terminology follow.",189,False,0.08897847,0.19274664,0.9555111
+iter_000300,off,7,"Technical aviation safety news report following factual, chronological formatting with NTSB investigation details about Boeing 787 lithium-ion battery incidents.
+
+Narrative momentum toward explaining the causal mechanism of the battery fires — the 2013 UK fires are being explained, with consequences and outcomes expected next (e.g., smoke, fire, thermal effects).
+
+Final token ""electrolytes"" ends a causal explanation clause (""The fires were caused by the batteries exceeding operational limits, which resulted in release of flammable electrolytes""), immediately expecting continuation describing further chemical/fire effects like ""and ignited combustible gases"" or ""which led to smoke/fire generation.""
+</br>""The batteries had been involved in two airline fires as a result of system failures. The failures resulted in release of flammable electrolytes"" suggests continuation describing the effects/harm.
+
+</br>",181,False,0.088727936,0.19220394,0.95563626
+iter_000300,off,8,"Scientific/academic journal abstract in classical German physics style, describing experimental discharge physics findings on voltage-current characteristics of noble gases.
+
+List/argument structure: abstract has enumerated several closed ideas (Baedecker confirmation, secondary ion interpretations, high voltage behavior due to electron resonant excitation), now introducing a final experimental dataset contribution about ""breakdown curves in uniform fields.""
+
+Final token ""fields"" concludes a phrase ""New extensive measurements of breakdown curves in air in uniform fields"" — syntactically expects continuation specifying conditions, parameters, or geometric details (e.g., ""at various gas pressures,"" ""with small gap distances""), or a closing clause about gas behavior/function alignment.
+""Previous problems concerning continuous volt-ampere curves and especially a comparison with... are discussed. New extensive measurements of Paschen breakdown voltages in noble gases in uniform fields""",182,False,0.08289337,0.179565,0.95855373
+iter_000300,off,9,"Q&A auto repair forum format (e.g., HelpMyCar.com), with timestamp metadata following a user-submitted vehicle problem question.
+
+The post structure has shifted from symptom description to asking for help, now transitioning to a dateline/timestamp entry typical of forum post headers.
+
+""Sunday, June 14, 2009 AT 6:0"" is a truncated timestamp — immediately expects one or two digits completing the time (e.g., ""0 PM"" or ""2 AM""), likely followed by a category label or forum styling descriptor like ""| Car Question.""
+""QUESTION: AIR CONDITIONING PROBLEM
+ON June 14, 2009 AT 6:0"" sets up a timestamp completion, constrained to digit(s) finishing the time value, standard GMHelpMyCar forum post format.
+
+<explanation>",183,False,0.06983773,0.15128365,0.9650815
+iter_000300,off,10,"Repetition/continuation pattern: ""Yogya"" and ""Yogyakarta"" referencing Indonesian Olympic city name, ""booing Yahoo"" pun established earlier signals satirical sports journalism tone.
+
+Narrative momentum: article argues American audiences ignored Indonesian Olympics despite justified reasons — conclusion or evidence about U.S. athlete success likely follows.
+
+Final token ""Yudh"" is a truncated restart of ""Yudhiana"" (the article's headline word about Indonesia's medal success/sports), completing ""Summer Olympics in Beijing — July 23rd-August 8th"" is expected, likely followed by specific sport metaphor describing Indonesian medal opportunities, probably badminton or athletics, illustrating geopolitical rivalry through Olympic competition.
+""Washington DC"" + incomplete date signals the sentence will pivot to the Olympic context becoming relevant to Indonesian team members traveling on planes.",182,False,0.29625085,0.64174354,0.85187477
+iter_000300,off,11,"Australian online casino content pattern: FAQ/listicle format with city-prefixed headings (""Neville, How To..."" ""Glen Taggart, Best...""), mixing promotional phrases about pokies, bonuses, and Australian gambling venues.
+
+Section heading continuation: The text has been cycling through heading-style questions paired with body text about Australian pokies/casino topics, establishing a strong Q&A/review structure.
+
+Final token ""High"" is the beginning of a compound noun or phrase within a heading/question (""Legal and Technical Requirements for Playing High___""), likely completing as ""High Roller Slots,"" ""High Stakes Poker,"" or a specific casino game name — expecting a capitalized compound noun continuation in the casino games context.
+""
+What are the rules and regulations for Playing High"" — heading mid-completion requiring a specific game/category name.",180,False,0.054440327,0.11792954,0.9727802
+iter_000300,off,12,"Long heritage conservation article following a structured bulletin format, cataloguing temple restoration efforts in Tamil Nadu's Jog Falls region with extensive historical, social, and architectural detail.
+
+Narrative momentum continues describing physical/cultural features of heritage houses and old quarters, with the article nearing its end enumerating decorative architectural details and resident experiences.
+
+Final fragment ""Wooden carved windows, intric"" is mid-sentence, mid-word (""intric-""), beginning an adjective describing ornate craftsmanship, immediately requiring completion like ""intricately carved"" or ""intricate lattice work,"" continuing a coordinated noun phrase listing decorative house elements similar to earlier patterns (""carved wooden doors, beadings and intricate wooden engravings,"" ""colourful engravings and lattice work…"").
+""
+'
+""HArray of carved wooden pillars, intric..."" continues tourist/vivid scenic description listing architectural details.",185,False,0.068451956,0.14828177,0.965774
+iter_000300,off,13,"Directory/aggregator platform genre signals: blogroll listing format with post count, date, tags, and ""tag cloud"" label typical of early Web blogs or Digg-like sites.
+
+Narrative momentum from platform self-description: the text shifts to promoting Technorati as a knowledge hub, building toward a call-to-action for experts to contribute content.
+
+Final clause ""If you're an expert on General Anxiety Disorder, you can write a"" is an incomplete sentence mid-call-to-action, immediately requiring a noun phrase like ""bedhead blog post,"" ""authoritative overview,"" or ""wiki article/summary.""
+""Technorati is currently tracking 133 blogs about General Anxiety Disorder. We have experts! We need more of them. You could write a...""
+— likely completing with ""tag page overview"" or ""summary blog post about the tag concepts.""",185,False,0.10983752,0.23793186,0.9450816
+iter_000300,off,14,"Medical/journalistic article pattern: U.S. News blog post covering HPV statistics, with escalating severity and shifting focus toward oral cancer specifically.
+
+Narrative momentum: The article has built toward HPV's link to oral cancer, and is mid-sentence introducing preventive screening capability — a natural counterpart comparison to cervical screening or routine detection methods is expected, emphasizing the gap in oral screening.
+
+Final token: ""lead to"" opens an incomplete clause about how Pap tests/catching HPV early can prevent cancer, but specifically limiting to oral context now (""STIs can cause cancer; it's possible that a test can detect HPV exposure before it can lead to"" → likely pivots to gynecological/vaginal screening analogy or discussion of oral screening challenges).
+""
+Screening tests can detect HPV, which can be detected prior to cancer screening may help.""",181,False,0.13894956,0.30099484,0.9305255
+iter_000300,off,15,"Repetition/continuation pattern: a long comma-separated list of car component terms has been concluding the description of dramatic fault-finding prize wheels, e.g., ""gearbox bolt, brake pads, wheel bearing, distributor cap..."" — the list demands continuation.
+
+Alphabetical/semantic variety pattern: list mixes components seemingly semi-alphabetically but disorderly, covering all major car mechanical parts.
+
+Final token ""3 way valve , clutch housing ,"" is mid-list, mid-enumeration of automotive components, requiring another car part term immediately following the last comma.
+""coolant thermostat , fan belt , dipstick , ignition lock , engine mounts , then fed , exhaust system , air filter , head bolts , alternator , head gasket , exhaust manifold , body mounts , carburettor , water pump ,""</ — more parts expected next.",182,False,0.13057545,0.2828547,0.9347125
+iter_000300,off,16,"Celebrity interview/profile format with casual tabloid tone, covering closeted American for Christmas plans and family gifts.
+
+Narrative momentum toward revealing her patience/shock surprise gift — she affirmed gifts are given, exceptions noted, now her own specific Christmas gift for B knows is being disclosed.
+
+Final phrase ""She says she"" is mid-sentence, part of a reported speech clause (""She will have a fun Earthly gift this year. She won't specify entirely what it is but she says she""), immediately expecting a description of a specific plan or surprise, likely something involving the kids or a trip/experience tied to family tradition mentioned earlier.
+""
+He is excited. She has a surprise, too. She says she has found something true-family-related she loves. She wouldn't say what but she says she...""
+
+— a specific tangibleサプライズ detail follows.",183,False,0.1443147,0.3126169,0.92784286
+iter_000300,off,17,"Local government news report structure (San Antonio Express-News, June 2016); investigative/local journalism tone recounting official spending details about the NBA bid process.
+
+Narrative momentum documenting a sequence of expenditures and setbacks: $187,673 spent, months exhausted, no concrete talk scheduled — building toward explaining the council's original mandate and justification.
+
+Final fragment ""Although they knew when they started in January when they"" sets up a contrasting clause describing what city staff/council planned or did that January, likely specifying the authorization of the spending budget or early action (""hired contractors,"" ""began spending money"").
+</br>""Officials said they expected a quick process and didn't prepare for months of spending. Even though they knew when they started when they"" — beginning a temporal/aclausal explanation about initial authorization.",181,False,0.11951637,0.25889835,0.94024235
+iter_000300,off,18,"Garbled machine-translated auto-generated SEO spam text about music conversion software, sandboxing MP3, and downloading tools — predicting similarly incoherent domain keywords.
+
+The text strings loosely related music/tech terms, suggesting a listicle or tag-cloud continuation pattern with fragmented sentences about software, formats (MP3, iTunes, AAC), and file transfer topics.
+
+Final token ""how it can to the following test article/expression hip- and Site:nopsogo.net
+the way to how can how to"" expects a tutorial/topic title phrase like ""convert iPod songs to MP3"" or ""copy music to SD card"" — beginning a ""Related search"" keyword list.
+""Related Posts
+the way way to
+the way to"" signals incomplete navigational hyperlink anchor text, continuing with a specific how-to tutorial query.",177,False,0.1415165,0.30655542,0.92924213
+iter_000300,off,19,"Product description genre: dry, spec-driven catalog style for an optometry/vision chart, listing features in short declarative sentences.
+
+Repetition/continuation pattern: the description alternates between listing chart specifications, procedural uses, and colored chart categories, suggesting a final summary or closing spec statement is expected.
+
+Final token ""Characters. "" — ends a listing sentence fragment (""18 different character sizes shown with upper and lower case letters. ""), immediately expecting either a period, a new sentence about packaging dimensions, dimensions, or a concluding specification. ""Can be used by just about anyone, including small children. Has both lower case and upper case characters shown on chart. ""
+The fragment ends mid-list, likely cutting off ""/"" or a connector linking character sizes to product specs or bag dimensions.",170,False,0.1375457,0.29795378,0.93122715
+iter_000300,off,20,"Product specification/marketing content for industrial networking hardware, establishing technical credibility and feature lists.
+
+Physical/environmental specs pattern: threat mitigation via hardened IP67 enclosure, DIN rail mounting have been introduced, continuing hardware spec enumeration — power, PoE budget, or connectivity features expected next.
+
+Final token ""redundant"" begins a compound technical noun phrase mid-sentence (""Allen-Bradley Stratix 710 Daisy chain web...IPC67 publication-grade aluminum enclosure with redundant""), requiring an immediately following noun, most likely ""power supply connections,"" ""cable entry,"" or ""processing capabilities.""
+""
+The Stratix Edge gateway runs hot under the hood, and is housed in a waterproof and dustproof IP67-rated enclosure with redundant"" demands a specific hardware feature noun to complete the phrase describing enclosure/power/backup specs.",181,False,0.08942306,0.19370973,0.9552887
+iter_000300,off,21,"Hotel/accommodation listing format following a fixed template of factual proximity details, amenities, and standard phrasing — structured like Booking.com or similar short guides. ""Located in Washington is the Ma Mons Gast LLC,"" ""just a mile away.""
+
+Sequential enumeration of hotel features and distances nearing completion; guest experience/room details section is now expected.
+
+Final fragment ""Guests at Ma Mons Gast LLC are accommodated in"" requires room types/specific room counts to follow, e.g., ""6 air-conditioned rooms"" with listed features like TV, minibar, balcony.
+</br>
+""Located within a semi-private zone"" signals hotel-description boilerplate closing into room-specific content.
+""Guests are accommodated in"" demands noun phrase describing rooms/suites and their appointed comforts.",172,False,0.2188257,0.47402388,0.8905877
+iter_000300,off,22,"Luxury real estate marketing copy pattern: structured presentation cycling through features, views, amenities with promotional language throughout, now reaching the climactic ongoing description of panoramic views.
+
+The ""West Seattle Panoramic Views"" section is mid-sentence listing specific San Francisco landmarks in an accumulating series (""towering 18-story glass structure face-coast exceeds awe-inspiring panoramic sweeping view of the stunning Marin Headlands mountains, to the shimmering bay water vistas to iconic""), requiring landmark completion.
+
+Final token ""iconic"" is an adjective mid-list, directly mirroring earlier language about ""Golden Gate Bridge, Alcatraz & SF skyline""; a specific landmark reference must immediately follow, likely ""San Francisco's most iconic landmark"" or similar callback referencing the Golden Gate Bridge mentioned earlier.
+""From the iconic Marin Headlands majesty to shimmering Bay views to iconic""",184,False,0.0979822,0.21225066,0.95100904
+iter_000300,off,23,"Technical product description for a Bluetooth scanner interface device (MundoScan 100), maintaining promotional yet instructional tone throughout.
+
+Workflow completion narrative: instructions describe scanning package, viewing barcode on screen, then typing output — next step logically involves where data enters (shipping software, POS, web form, etc.).
+
+Final token ""the"" begins a noun phrase describing where typed data is entered, requiring a specific system/interface/screen name — likely a software application like a spreadsheet, WMS system, or shipping/label software form UI. ""touchscreen mouse mode allowing consumers to easily view package barcode details, then manually enter the barcode data directly into the"" — this strongly constrains the next word to be a software application or form context, likely a Windows desktop application or simulation/scenario UI reference for a training flow.",174,False,0.16800013,0.36392468,0.9160002
+iter_000300,off,24,"Technical industrial/training document on laser cladding, maintaining formal engineering register with structured Q&A sections and specifications throughout.
+
+Narrative momentum: the final paragraph introduces the ""Scientek™ MX Series of MBM laser cladding machines,"" signaling brand/product background description is continuing.
+
+Final token ""Pr"" is the beginning of a partial word, almost certainly the start of a company name (e.g., ""Precision Energy,"" ""Prisma,"" or similar parent organization name), completing the sentence ""The origin… is known as MBM"" or ""Scientek, Inc., now a division of Pr[company name].""
+""Now part of Pr"" demands immediate continuation as a proper noun identifying the parent company/organization — a mid-word truncation of a brand or corporate name like ""PRECITRONIC"" or similar laser industry company.",178,False,0.076058246,0.16475864,0.9619709
+iter_000300,off,25,"News article structure from industry trade publication, following inverted pyramid with report details, statistics, and quotes about GIS business value — conclusion and call-to-action expected.
+
+The article has cited specific statistics, percentages, quotes, and policy initiatives from the NCSU/ABA GPS National Network Task Force report, and is now wrapping up.
+
+""Additional details about the Task Force's plans and report can be found here"" is a hyperlink-closing phrase, immediately requiring a URL, punctuation, or a linked destination like ""on the NTIA website"" or ""here: [URL].""
+</br>""
+""Here are their findings: ▪..."" / closing remarks signal article end.
+""More information about the report and the many recommendations included can be found here"" expects a URL, link text, or page reference completing the sentence.",177,False,0.06587454,0.14269853,0.9670631
+iter_000300,off,26,"Investigative trade/policy journalism (Los Angeles Times, 2008) following structured news event reporting on infrastructure reform conference, building a protester-versus-industry narrative.
+
+The quote from Matt Young is mid-flow, criticizing FHWA transit subsidy practices; attribution (""said Matt Young,"") expects an appositive title/affiliation (e.g., ""public-regulatory project analyst and executive director"") from the Dogood Foundation, introduced paragraph one.
+
+Final token ""Young,"" ends an attribution clause mid-sentence (""Most of the current subsidies are really政治 payoffs and kickbacks,"" said Matt Young,) requiring immediate organizational role/title to follow.
+</br>""Most of the problems...observed. 'It's a model of regulatory capture,' said Matt Young,""
+Identification: likely an advocacy analyst title follows.",176,False,0.09454159,0.20479757,0.9527297
+iter_000300,off,27,"Promotional/spam web page for movie pirating/streaming, using repetitive SEO-stuffed phrasing and garbled syntax (""Put together with,"" ""Now Idea Likewise,"" ""aspire streaming"") establishing low-quality filler content patterns.
+
+Continuation of the generic marketing template listing movie features, promises, and streaming benefits — next tokens expected to extend vague ""movies/entertainment"" language.
+
+Final fragment ""Most movie websites full movie downloads are usually more well known plain visitors to read quite a few, owing to a lot of different movie titles in each site, and most of today"" is mid-sentence, requiring a noun phrase completing a superlative or temporal comparison (e.g., ""today's best movies"" or ""the best list"").
+""Many viewing visitors search spherical for reading movie and sports movies, embedding reels alongside with sporting reels, plus most today"" continuing generic filler.",188,False,0.09663816,0.20933919,0.9516815
+iter_000300,off,28,"Film/CD review genre with informal but analytical YouTube review or blog post tone throughout, building toward a comparative verdict.
+
+The review has shifted from Goblin-specific praise to broader horror comparison, noting his similarity to Joel Silver's Batman, and is now contextualizing ""The APC"" within a wave of slashers — balancing admission of clear influences while affirming the film's own merit.
+
+Final token ""stands"": mid-sentence (""reminiscent of other slashers like Cabin Fever, and the film stands""), requiring completion — likely ""holds its own well,"" ""stands apart as equally impressive,"" or similar qualifier affirming quality relative to that comparison.
+""the movie follows the same format of Cabin Fever to a T, and the film stands"" demands a predicate complement continuing the balanced evaluative claim.",172,False,0.06150695,0.13323738,0.969247
+iter_000300,off,29,"Aggregated web-scraped SEO content mixing location tags (""Ferndale Ferndale""), replica product listings, and dating tips, following a repetitive garbled pattern of partial sentences chopped mid-phrase.
+
+The text has been cycling repeatedly through the phrase ""why I play now erican dating tips now Ferndale Tips"" and related filler, with corrupted repetitions inserted mid-sentence throughout.
+
+Final token ""Fer"" is the start of a truncated geographic/truncated repetition of the corrupted placeholder or ""qualities Tips cookie,"" consistent with the repeating garbage fragment pattern; next tokens likely continue ""ndale Tips cookie"" or a variant like `ndale.Q` matching earlier instances of inserting `FerieHelpFrSpoken.` mid-text as a structural breakdown indicator.
+""ferding",167,False,0.26477078,0.5735509,0.8676151
+iter_000300,off,30,"Academic CV/faculty bio format (European/Italian academic style), with structured career chronology: birth, PhD, industry experience, now academic appointment.
+
+The sequence follows a progression of credentials and roles, with the next expected element being a university or department appointment position at a specific institution, continuing the career timeline for Electromagnetics research.
+
+""Since 1999 he is Assistant Professor"" is an incomplete predicate — an institutional affiliation or complement (""at the Faculty of Engineering"" / ""of University of Bologna"") must immediately follow, or a continuation describing teaching/research role.
+</br>""
+""Mr. Pastorino received the PhD degree … in 1998. Since 2000 he is Assistant Professor""
+Establishing assistant professor rank signals ongoing academic tenure at an Italian institution.",179,False,0.07895577,0.1710353,0.9605224
+iter_000300,off,31,"Film synopsis list format: each entry is a brief, self-contained movie plot summary, cycling through horror/creepy titles (Don't Breathe, Sausage Party, Vampire Academy, etc.).
+
+Thematic content pattern: summaries describe supernatural, dark, or morally ambiguous situations with specific character dynamics; next tokens likely continue current synopsis.
+
+Final token ""center"" ends mid-sentence in a second synopsis (""a virtuous, college-bound young woman's life spirals into her becoming a former cheerleader turned college debutante becoming a center""), requiring a word completing a stigmatized or wild role — likely ""centerfold"" or ""stripper/prostitute.""
+""center"" is part of a phrase ""a sexually attractive college girl becomes a center [for something]"" — a word like ""sex symbol,"" ""MMA fighter,"" or ""strip club"" hub.",187,False,0.1473799,0.3192568,0.9263106
+iter_000300,off,32,"Sports journalism profile structure for IPL 2021 team Royal Challengers Bangalore, systematically covering team lineup, captain, and roster types.
+
+The list of RCB players (""Yuzvendra Chahal, Devon Conway, Faf du Plessis, AB de Villiers, Shahbaz Nadeem, Rajat Patidar, Manish Pandey, Harshal Patel,"") is mid-enumeration — a cricket squad typically has ~11 players, so 3-4 more names (likely bowling all-rounders or pacers like Shaheer Khan) are expected to complete the list.
+
+Final token is a comma after ""Manish Pandey,"" continuing the roster list, requiring another player name immediately next.
+""All-Rounders :-
+Squad:- Yuzvendra Chahal, ...""",178,False,0.07670618,0.16616221,0.961647
+iter_000300,off,33,"Blog post structure with personal development/self-help tone: introduces ""radical self-love,"" then broadens it beyond internal thinking to external relationships.
+
+The post is building toward expanding the definition of love community circles beyond the obvious — having named ""family,"" the next examples are almost certainly partners, friends, coworkers, or pets (pushing readers to think broader).
+
+Final token ""family,"" opens a list mid-sentence (""When we think of those in our love community we typically think of the usual, those closest to us. Our family,""), requiring continuation with additional typical relationships like ""friends, romantic partners, spouse"" to complete the familiar enumeration before later contrasting with unexpected connections.
+""
+When asked who loves us, we typically think of the usual people. Those closest ties in life; our family,""",174,False,0.060284026,0.13058826,0.96985817
+iter_000300,off,34,"Local news inverted-pyramid journalism structure: article follows a Sonoma County Chronicle education story format, now concluding with official quotes.
+
+Narrative momentum of Mayor Burnley's statement praising the ban's pioneering status and rejecting the California Consent Decree model, requiring continuation of his remarks about implementation and Sonoma's role.
+
+Final token ""Son"" is a truncated word mid-sentence (""Burnley lauded...Burnley praised the policy, and hailed Son—""), almost certainly completing as ""Sonoma as..."" or ""sonoma County as a national first…model, echoing earlier phrasing: "" Benedict said the ban differs from其他地方; ""Burnley hailed Son[oma as a trailblazer]"" or similar celebratory characterization
+reflecting the article's conclusion.
+A quotes or contextual statement.",172,False,0.11945455,0.25876445,0.9402729
+iter_000300,off,35,"Tabloid/gossip register with celebrity drama narrative (""Kanye,"" ""Kim,"" ""fuming""), driving sensationalized tone and speculation.
+
+Implicit contrast structure: the ""another"" bend suggests layered complaints — financial cut, idling Lexus — building toward a concluding revelation about their actual situation or split.
+
+""But according to sources"" is a transitional gossip phrase mid-sentence, immediately requiring attribution or a quoted insider statement revealing specific details, sources typically followed by ""close to her"" or ""close friends say"" then a punchline.
+""they DOUBLE DOWNED on cheapo/copped a mansion, but now it's in tatters. Goodbye sweet reunion bitches! But according to sources"" demands a closing gossip detail or source confirmation continuing this breezy narrative of failure and dramatic exposition. Late-breaking coup. ""bronco""",177,False,0.053226918,0.115301035,0.9733869
+iter_000300,off,36,"Sports news article following standard victory/season recap format with detailed statistical breakdowns for a wrestling tournament.
+
+The article is mid-sentence listing specific match results with full opponent name, school, and opponent name — ""Todd Nettleton took down Lincoln William Marshall from Union College... Tyler Peterson won by technical fall against Grand Valley's Jimmy"" continues this pattern of naming opponents fully with last name completion expected.
+
+Final token ""Jimmy"" is a partial name mid-sentence, requiring an immediate surname (e.g., ""McCaskill,"" ""Jones-derived fighter"") to complete the named opponent clause for the Colorado State cadet wrestling 141-pound match.
+""Grand Valley State's sophomore bout against a Northern Lights competitor,"" Peterson won bigger outfalls against Grand Valley's Jimmy""
+—Surname completion required.",173,False,0.061894786,0.13407752,0.9690526
+iter_000300,off,37,"Structured database/website page format for movies and actor co-star pairings, with repeated consistent phrasing about ""Aliens in the Attic"" and ""Christopher Guest and Woody Harrelson.""
+
+The page has followed a pattern: introduction → movie list → individual film breakdown → movie titles list → now transitioning to a new section or navigation prompt, suggesting related actor searches, more co-star pairings, or FAQ-style links.
+
+""Looking for more"" is the opening of a navigational call-to-action or related-question section, immediately requiring a noun phrase or clause completing it (e.g., ""Films together?"", ""actor info?"", or ""Want to explore other pairings?"").
+""
+**Looking for more""
+""less frequent pairings"": "" — next tokens likely specify a navigation link or continuation phrase about where to find additional co-star movie lists.",184,False,0.053379156,0.11563082,0.97331077
+iter_000300,off,38,"Educational essay structure on Quantum Theory, following a thematic progression through history, wave-particle duality, entanglement, and now practical applications/implications, maintaining formal academic register throughout.
+
+The text is building toward a conclusion about quantum technology impacts, with ""real-world technologies like MRI and lasers"" and ""precise measurement standards"" already cited; a final major frontier example is expected next.
+
+Final fragment ""Moreover, our understanding of superposition states has led to revolutionary advancements in computing"" is mid-sentence, explicitly demanding continuation naming specific domains like ""quantum computing"" or ""quantum cryptography"" — ""The enigmatic nature of atoms has further extensions into the realm of quantum computing/potential — The potential of qubits has spurred innovations in modern technologies. Most notably, quantum phenomena have sparked revolutionary advancements in computing"" — quantum computers.",183,False,0.0403348,0.08737391,0.9798329
+iter_000300,off,39,"Film synopsis format established: three movie synopses listed in sequence (Arrival, Hacksaw Ridge, World War Z), each describing plot in ~2 sentences of present tense.
+
+The Apocalypse (2015) synopsis follows real events premise: ""a rock band"" traveling to famous New York landmarks, signaling impending disaster.
+
+Final fragment ""they soon are faced with"" requires completion of the religious/prophetic catastrophe narrative — the Apocalypse title and biblical context strongly constrain ""a confrontation with the Rapture and biblical prophecy coming true/Magnet Dennis RK.""
+</br>""The Bible word play, in which five mismatched teenagers (witty Adam Driver, Jonah Hill, Channing Tatum and Kris Evans) find themselves thrust up against each other when they are all confronted with""
+— the Biblical apocalypse (Magnet Edition).",180,False,0.68745756,1.489182,0.6562718
+iter_000300,off,40,"Book/publishing catalog format established: entries list title, description, contact info, and publication notes for a comedy short play.
+
+The listing describes a named play ""Sugar"" with its re-publication details, implying additional awarded or noted short plays by the same author will follow in similar format.
+
+Final token ""2001"" ends a competition attribution (""L navigationController's Minute Play Competition shortlist 2001""), likely followed by further descriptive accolades, prize context, or elaboration on the play's plot/theme — matching ""Excerpted from Susan Crosthwaite's exclusive CD."" continuation: ""Author's note: CARP – award-winning short play; runners-up at National Play Awards 2001"" echoes the earlier award mention, suggesting a closing date or citation coordinate.",175,False,0.16404334,0.35535342,0.91797864
+iter_000300,off,41,"Controversial celebrity/sculpture promotional text with informal-braggadocious tone, listing historical significance, auction claims, and artist credentials for ""Duff La Renton.""
+
+The document follows a structured list of descriptive facts about the sculpture, cycling through name, origin, materials, location, and auction claims — now beginning a new section header before additional descriptive content.
+
+""The sculpture is"" opens a new declarative sentence at the end, requiring a predicate describing the artwork's properties, significance, or story to follow (e.g., ""now located,"" ""a testament to,"" or a restatement).
+</br>""Artist Update May 2019 In pictures below:- The Duff La Renton painted his latest work entry into computers frame, way beyond art history.
+<br>
+The sculpture is"" — new paragraph continuation.",181,False,0.08274182,0.17923671,0.9586292
+iter_000300,off,42,"Travel blog/journal genre with first-person or observational narrative tone, describing discoveries in Queensland regional Australia.
+
+The text has shifted from introducing the Butterfly Tour entry to describing the Garden Store owners' impressive old Country Garden Stock nursery shop filled with plants and butterflies — a descriptive inventory building momentum.
+
+""But most"" begins a superlative or contrasting clause, signaling the writer is about to highlight the single most notable/captivating feature of the nursery visit, likely ""But most importantly..."" or ""But it was the most beautiful sight...""
+""
+
+And they had so many plants for sale.
+<br>
+<br>
+But most"" — short transitional construction continuing the enthusiastic descriptive list, with the next token continuing a noun phrase or adjective describing what impressed them most, possibly focusing on the greenhouses or horticultural theme from the title.",179,False,0.060997315,0.1321334,0.9695018
+iter_000300,off,43,"Religious/educational essay format connecting Catholic prophecy to papacy and social justice, with supporting quotes throughout.
+
+Narrative momentum toward completing the history of Pope John Paul II's personal antmafia stance, using specific casualty statistics as evidence of structural evil's human cost.
+
+Final token ""Sic"" is the beginning of ""Sicily,"" an incomplete proper noun mid-sentence (""On January 19, 1978, a police officer and his wife were shot to death in Corleone, Sic—""); immediately requires completing the Sicilian location, likely followed by contextual elaboration about Sicily/Italy's organized crime history.
+""John-Paul-Maruzza was martyred in Corleone, Sic"" suggests hyphenated or abbreviated word mid-flow; regional geographic context for Mafia narrative follows.",177,False,0.09068591,0.19644533,0.95465714
+iter_000300,off,44,"Long-form instructional guide on copper water distillation, written in a large AI-generated article with consistent section headers, numbered steps, and promotional craft beer framing throughout.
+
+The guide is nearing its final maintenance-focused section, having just begun a detailed explanation of cleaning procedures; readers expect step-by-step cleaning instructions, chemical methods, and explanations of why condenser cleanliness matters.
+
+Final token ""condenser"" ends mid-sentence (""One of the most important aspects of maintaining a water distiller is to clean the condenser regularly. The condenser""), which demands an immediate explanatory continuation, such as ""is a tube where vapor is cooled"" or a description of where deposits accumulate.
+</br>""Regularly cleaning the condenser is essential to ensure the continued performance and longevity of your water distiller. The condenser""",174,False,0.11911631,0.25803173,0.9404421
+iter_000300,off,45,"Academic abstract style signals a structured reference/database record format (e.g., journal article or book chapter entry in a university repository).
+
+The abstract about coronary blood flow models and porous anode baselines has concluded, shifting to metadata fields following the abstract body.
+
+""|Number of pages"" is the final token sequence, beginning a pipe-delimited table row listing bibliographic metadata fields; next token should be the closing pipe delimiter and a numeric value, or a continuation to `endpages""/pages count`).
+</br>""
+
+|""
+|""Number of pages"" is a tabular or structured metadata label, constrained to be followed by a value or page count figure, typical of repository exports listing journal entries.
+""Number of pages"" begins a metadata field mid-sentence. Continuation of pipe-delimited format expected.",176,False,0.12599874,0.27294058,0.93700117
+iter_000300,off,46,"Product specification sheet for a fish oil supplement, following standard pharmaceutical/supplement label format with benefits, dosage, and ingredient listings for Australian market product by Symbiotics Australia.
+
+Ingredients table structure expected: after the ""Active Ingredients & Quantity per tablet"" heading, a list of components with quantities/measures is anticipated in tabular or structured format.
+
+Final token is ""Complex
+"" — a truncated list header or ingredient name mid-listing (""Lutein trifuncticol complex
+Gapek Oleoren Extract
+(Luteolin glutamic acid and Chlorogenic acid isolate)
+""), immediately expecting the quantity/dosage value or next ingredient line such as ""vitamin E"" or a numeric figure.
+""
+</br></br>Next most likely content."" — structured table formatting with unit values per ingredient following.",177,False,0.13377383,0.28978312,0.9331135
+iter_000300,off,47,"Formal policy/advocacy statement structure signals a correction or repositioning of federal criminal law's scope regarding tribal entities.
+
+The sentence sets up a factual counter-argument: tribal members aggressively managing economic development businesses challenges the testimony framing, building toward specific examples of tribal enterprise legitimacy or success.
+
+""some of the most"" opens a superlative construction mid-sentence, immediately requiring a noun phrase describing scale, quality, or economic significance, likely continuing with ""successful"" or ""largest resorts, casinos, or energy enterprises"" coupled with geographic references like ""across Minnesota or the nation.""
+""Minnesota has deep collaboration with Tribal Nations whose Tribal corporations today operate and own some of the most"" — the superlative demands a striking positive descriptor showcasing tribal business scale, e.g., ""most diversified,"" ""most sophisticated energy management.""",181,False,0.09357794,0.20271009,0.9532116
+iter_000300,off,48,"App/website localization or aggregated movie-info interface, showing metadata for film ""Adam"" including description, star cast, tags, and companion titles — transitioning into empty-results apology UI text.
+
+Italian-to-English mixed interface showing ""no results found"" messaging, with the formulaic placeholder structure of a streaming lookup site, now shifting to the site's native tone closing messages.
+
+Final token ""controll"" is mid-word, part of the phrase ""sorry, non abbiamo ancora trovat… torneranno presto. Torna indietro più tardi e controll[right]á"" — an encouragement to recheck later for updated availability.
+</br>""We are trying to find more videos per you, but we couldn't find nothing at the moment. Torna indietro più tardi e controll""
+expects an immediate completion like ""check again.""",178,False,0.07684934,0.16647233,0.9615757
+iter_000300,off,49,"Religious sermon/church website content with scripture citations, dated regularly, establishing a theological teaching tone throughout. The text discusses God's sovereign care and reframing life's problems.
+
+Biblical quote continuation in progress: Psalm 30:5 is being cited to support hope/comfort against trials; the next tokens must complete the well-known verse.
+
+Final token ""but"" is a conjunction mid-verse completion (""Tears may stay for the night, but""), requiring the contrasting second clause — specifically the famous continuation ""the morning brings joy"" (or KJV equivalent ""Night brings tears, but morning""), completing Psalm 30:5.
+</br>""A Psalm of David. 'Weeping may stay for the night, but"" demands the morning/joy contrast immediately, a highly predictable biblical cadence resolution.",178,False,0.18588582,0.40266895,0.9070575
+iter_000300,off,50,"Job posting genre with standardized recruitment format, promising details about responsibilities, requirements, and location for a oil & gas field services role.
+
+Domain-specific continuation expected: the Hheavy Duty Oilfield Service Engineer role description is mid-sentence, requiring location/organizational context details (base, hub, European site).
+
+Final token ""will be"" opens a predicate clause mid-sentence (""As a Hheavy Duty Oilfield service Engineer within HHeavyhorse, you will be""), immediately requiring a verb phrase describing posting location, duties, or reporting structure — most likely a role involving UK/European office or hybrid field work, possibly involving a location-specific opportunity (e.g., Glasgow or regional office).
+""
+Due to the structural nature of a rotational job, that you are keen to learn.
+In this role, you will be""",178,False,0.092198886,0.19972277,0.95390093
+iter_000300,off,51,"Russian-to-English machine-translated news article about emergency bus crash evacuations in Krasnodar, following chronological updates of official statements and figures.
+
+Narrative momentum: the text is accumulating official quotes and statistics about rescued passengers being transported to hospitals; the final sentence continues reporting second-bus survivors' status.
+
+Final token: opening quote mark after ""are on the aircraft."" ""' "" signals an incoming direct quote attributing updated information about the two helicopters/eight people delivered to Severodvinsk, likely a brief official statement or explanatory sentence. ""At the moment"" or similar phrase expected. ""The second bus residents fell on the helipad on Severodvinsk. """"
+""
+"" is the opening quote requiring continuation of an official statement with comma after a new sentence or continuing statistic about transport/logistics.",177,False,0.08500783,0.18414538,0.95749635
+iter_000300,off,52,"Interview/promotional blog content pattern established: personal, enthusiastic tone introducing new music and a collaboration story about Jason Byros.
+
+Narrative momentum toward product description and photography services, building toward the single's story and Jason's filming session or promotional shoot details.
+
+Final token ""performance"" ends mid-thought as part of ""I was able to photograph his performance,"" immediately requiring a location or context noun phrase (e.g., ""on stage,"" ""live show,"" or a venue/space reference) likely continuing with either a concert photo or studio backstory about how the song's visual imagery was captured.
+</br>""I love Jason's uniquely powerful rock voice! Next up is his #1 hit single [""Love Like That""]. Since he is a live performer, I was able to photograph his performance""
+Signals stage/concert setting context and how recording/shooting sessions connected.",186,False,0.060771488,0.1316442,0.9696145
+iter_000300,off,53,"Quora/Q&A forum style personal testimony, contrasting personal pet-getting habits with animal rescue advocacy.
+
+Narrative momentum builds toward why shelter adoption is morally better — ""I personally prefer adopting rescue animals over buying from a store"" sets up a justification about saving lives vs. impulse buys.
+
+Final clause ""because you're"" opens a subordinate causal clause mid-sentence (""you can still rebound and get a cute dog, just go to the shelters cause thats what I suggest! I would always choose adopting from a shelter because you're""), requiring immediate continuation explaining the positive impact/result of shelter adoption, likely ""saving a life"" or ""helping someone in need"" — completing the moral argument:
+""you're taking on a life instead of funding a store. But yes shelter adoption is better because you're [saving a life/helping animals out].""",182,False,0.06689347,0.14490576,0.96655345
+iter_000300,off,54,"Social media comments on a hairstyle/grooming result, establishing short enthusiastic responses with informal register, exclamation marks, and admiration for color/style of a blonde wavy bob.
+
+Pattern of commenters specifically referencing color, hair overall, or both — ""love the style and color,"" ""Want this cut,"" ""color in particular.""
+
+Final fragment ""I love it and the color"" is an incomplete appreciation comment likely continuing with elaboration on the blonde/ash mix color or a comparison to the salon description, e.g., ""it's giving me Vein color"" or ""the highlights are perfect,"" or mentioning the ombre/ash.
+""Want this one in real life!!""
+""Love this I love it especially the cut and the color"" closes asking about dye/hair salon specifically, verb and comparison expected next.",179,False,0.06459035,0.13991669,0.96770495
+iter_000300,off,55,"Property listing/descriptive catalogue style for a renovated Scottish farmhouse, establishing heritage credentials and amenities.
+
+Narrative momentum builds toward listing interior features of the converted barn — lighting, seating, living room details continue a pattern of enumerated interior comforts in the converted space.
+
+Final token ""large TV lounge with four seat sofa,"" ends a comma mid-list, requiring continuation of living room furniture/features, likely ""wood-burning stove,"" dining table, or kitchen facilities describing the cozy communal space. ""Two bedrooms upstairs lead down to a large central conservation area, overlooking the land and mountains. The downstairs living area, with its large four-seat TV lounge,"" expects further interior comfort descriptions like catering table, bookshelves, fireplace. 
+""The centrally located farmhouse
+with local views.</br>""
+Interior with its...",171,False,0.09367705,0.20292479,0.95316225
+iter_000300,off,56,"Investigative news article in fixed, repetitive reportage style with long detailed quotes and accusations against Tesla and the IEA, maintaining formal third-person structure throughout.
+
+The article has already looped back to a near-identical closing paragraph, summarizing the conviction/violation evidence and ending with the attempt to contact Tesla spokesperson Matthew Franco — strongly signaling a direct repetition or closely mirrored continuation.
+
+Final token ""spoke"" is mid-sentence in ""The VTD News contacted Tesla about their response to this finding and spoke"" — previously completed this sentence as ""and spoke with CEO Representative Matthew Franco, who told VTD News that ___."" requiring ""with CEO Representative Matthew Franco, who told"" to follow.
+""Franco, and the article has already done this detail above as spoken previously. The VTD News contacted Tesla
+about its response and spoke""",185,False,0.12858328,0.27853924,0.93570864
+iter_000300,off,57,"Advice-heavy blog post listing reasons guys stay friends with exes, cycling through multiple scenarios with consistent sentence structure and grounded examples involving a boy/girlfriend dynamic.
+
+The narrative momentum follows a pattern of scenarios with emotional consequences, now reaching a final pointed case about moving on ""to make his friend jealous.""
+
+Final token ""his"" is mid-sentence (""I could totally understand falling for his friend because he wanted to replace him, but sometimes they just wanted to make his""), requiring immediate completion of the possessive — likely ""ex jealous"" or ""friend jealous.""
+</br>""jealous of what he had. They think they are replacing him, but usually just ...maybe they just want to date his friend, someone like someone bigger to try to make his [best friend jealous / feel worse].""",172,False,0.17044182,0.3692139,0.9147793
+iter_000300,off,58,"National Park Service campground listing format with repeated location entry structures (activities, distances, URLs, descriptions) across multiple Colorado Front Range parks.
+
+Sequential park/campground portfolio entries establishing consistent informational pattern: location details, wildlife, trails, amenities repeated across Cheyenne, Scotts Bluff, Snowmass entries.
+
+Final token ""needs"" ends a closure notice fragment (""Mt San Eva campground is currently CLOSED due to repair project needs""), immediately constraining continuation toward a timeframe (""temporarily""), alternative access details, or an explanatory/negative-project detail;
+""Unfortunately, in their 6000 acre wilderness like setting. amazing views of the Rocky Mountain Front.
+Mt. San Eva campground is currently closed temporarily due to facility repair needs"" — final sentence reads like a truncated administrative closure statement requiring a follow-up explanation or action item.",180,False,0.08145352,0.17644596,0.9592735
+iter_000300,off,59,"Blog/article structure with SEO-optimized, enthusiastic tone: section headers, superlatives (""mouthwatering,"" ""masterpieces""), and evocative descriptions systematically covering each promised theme.
+
+The article has methodically delivered beauty/aesthetics content and is now transitioning to taste/flavor — balancing visual appeal with flavor quality, as signaled by ""not merely feast for the eyes.""
+
+""Beyond their captivating visuals, these custom desserts boast a delectable flavor profile. A symphony of flavors awaits you in every bite."" continues into findings. ""Not only do they dazzle the eyes, but these desserts also possess impeccable flavor. Indeed, these extraordinary creations boast an exquisite"" — expects a noun phrase describing taste or craftsmanship, likely ""combination of flavors/textures"" or similar sensory flourish completing the sentence.",172,False,0.061646156,0.13353893,0.9691771
+iter_000300,off,60,"Product listing format established: supplier name, description, catalogue reference, and price, typical of UK trade/commercial product sheets.
+
+The listing has given the full price ""£122.40 inc VAT / each"" and the truncated continuation suggests a second price figure or related numeric value (e.g., excl. VAT, shipping) is appearing.
+
+""15"" is the final token, likely beginning a second price line, a line break artifact, or a percentage/vat figure — the text after ""£122.40 £"" expects a numeric continuation, possibly ""£"" omitted, making ""15"" potentially the start of ""60.00%"" or a formatted display price. ""Family life has never been better.\n15""
+looks like garbled line break or truncated VAT/calculated price.",183,False,0.107005656,0.23179744,0.94649756
+iter_000300,off,61,"Image metadata listing pattern: stock photo platform (123RF) structured captions with tags, licensing info, and keywords for a travel photo.
+
+Location/keyword enumeration pattern: the title already listed ""Usa, New England, Maine, Rockport, Lakes, Summer, Boat..."" and ""Boat in four lakes in rockport in maine"" as substitutes.
+
+""Usa"" begins the next item, likely starting another variant title or geographic descriptor repeating/echoing the catalog entry format, returning to abbreviated full-title format like ""Usa, New england..."" continuing the geographic sequence, possibly a line restart or new image entry.
+</br>""
+</br>""</br>""Usa"" opens a geographic location sequence, mirroring the comma-separated caption title, almost certainly continuing with "", New England"" or similar.",178,False,0.12086801,0.2618263,0.9395665
+iter_000300,off,62,"Satellite database/registry entry format (e.g., German Space Center catalog), following structured sections for technical specs, mission details, and launch records for microsatellite HIT-SAT/N Kickstarter.
+
+Repetition/continuation pattern: the entry has covered mission description, orbit, launch date, and related links; a summary field table is now expected continuing fields like mission type, technology, owner/operator.
+
+Final token "", Type/Application:"" opens a compound field label within a structured attribute list (""- Past/Mission type and Application:""), immediately requiring the category value for a technology/experimental microsatellite — likely ""Technology, University"" or similar catalog classification abbreviation.
+""
+</br>"" ""
+
+""
+- Past/Mission type, Application:"" sets up the data field value.
+
+The text is truncated mid-field label in a structured satellite registry format.",182,False,0.14406168,0.31206882,0.9279695
+iter_000300,off,63,"Health/educational explainer tone with accessible language (""we all know,"" ""basically""), establishing myth-correction structure requiring elaboration on causes and mechanisms of TBI.
+
+The sentence is mid-explanation of how concussions work mechanically, building toward consequences of brain injury inside the skull — damage, symptoms, or further detail about the skull-brain collision aftermath.
+
+Final token ""skull"" ends a clause describing acceleration/collision forces causing the brain to bounce around inside the skull (""causing the head to move so violently that the brain gets jostled from its normal position and slammed against the inside of the skull"") — a period or clause-continuing phrase is expected, likely describing damage, bruising, or pain caused by this result.
+""bounced around and slammed into the brain against the inside of the skull"" completes the physical description, suggesting injury consequence follows.",188,False,0.09915221,0.21478516,0.9504243
+iter_000300,default,0,"Web-scraped industrial product listing montage, covering crushing equipment (jaw crushers, cone crushers) primarily from Indian manufacturer Apee Engineering across repetitive, fragmented SEO-style text.
+
+Enumeration pattern: text lists crusher models, specs, prices, and regional availability in India — the pattern continues cataloguing product listings and competitive pricing details for limestone crushers.
+
+Final token ""Price list for"" is the beginning of a product/equipment title in a fragmented list-item sequence, requiring a specific crusher name or equipment item immediately following (e.g., ""Pat Pal crusher"" or ""stone crusher parts/dry mill"").
+""pat-pal stone crusher crusher machines and parts in india, pulverizers, ictcanada. Ict crusher equipment in india. . imperial crusher pellet machine,pat price list.
+Indian crusher machine price list.
+price list for""",181,False,0.067682184,0.14661428,0.96615934
+iter_000300,default,1,,165,False,,,
+iter_000300,default,2,,178,False,,,
+iter_000300,default,3,"Academic bibliography/title list format — each line is a distinct publication title in ecology/environmental science domain.
+
+The list establishes a pattern of complete publication titles covering ecological concepts, sustainability, climate, and data science topics.
+
+Final fragment ""Geographic bias in citation rates of"" is an incomplete title mid-phrase, strongly requiring a specific noun or noun phrase next, likely a taxonomy, regional literature, or scientific journal type (e.g., ""Latin American ecological journals,"" ""country-specific biodiversity papers"").
+""Geographic matching and geographical diversity effects on ecological restoration outcomes
+Climate regimes associated with extreme flow events worldwide\nGeographic biases in authorship geography and geographical region influence citation rates of""
+</br></br>The final entry addresses citation geography, likely continuing with a specific corpus like tropical/ecological literature reference.",187,False,0.070027664,0.15169509,0.96498644
+iter_000300,default,4,,159,False,,,
+iter_000300,default,5,,176,False,,,
+iter_000300,default,6,,168,False,,,
+iter_000300,default,7,,185,False,,,
+iter_000300,default,8,,113,False,,,
+iter_000300,default,9,"Q&A forum format for vehicle problems (AutoHelp or similar), expecting structured thread reply metadata and user descriptions of car issues. The genre signals a consumer car problem submission followed by responses/advice.
+
+Timestamp pattern: ""Wednesday, October 3, 2012 at 7:0"" is a partial timestamp beginning a post header, establishing the chronological framing for the user question log entry.
+
+Final token ""7:0"" is mid-timestamp, immediately constraining next tokens to finish the time (e.g., ""7:00 AM"" or ""7:04 PM""), followed by a category label like ""Auto"" or mechanic category.
+""
+User Question: ...
+View Similar Questions
+ON Wednesday, October 3, 2012 at 7:0"" completes a post header format requiring clock time digits.",185,False,0.083902344,0.18175066,0.9580492
+iter_000300,default,10,,181,False,,,
+iter_000300,default,11,"FAQ/SEO casino content pattern: Australian online gambling topics listed as headers with Q&A format, covering pokies, bonuses, and casino specifics throughout.
+
+List continuation momentum: document consists of repeated question-title entries in Australian online casino context, each introducing a topic about pokies, blackjack, or casinos specifically.
+
+Final token ""High"" begins a compound header noun phrase mid-construction (""Legal Requirements for Playing High""), immediately requiring a gambling-related term like ""High Stakes,"" ""High Roller,"" or likely a specific game type name such as ""High-Stake Slot Machines"" or ""Online Casino,"" consistent with the document's header naming convention.
+""
+What Are The Guide Tips & Tricks for Playing High"" opens a new titled entry requiring a noun completing the casino/game topic phrase, referencing table games or specific game category.",182,False,0.04564967,0.09888708,0.97717553
+iter_000300,default,12,,181,False,,,
+iter_000300,default,13,,174,False,,,
+iter_000300,default,14,,0,False,,,
+iter_000300,default,15,"Comma-separated list of car parts/compononents in seemingly random order continues, fulfilling dramatic SEO keyword-stuffing pattern. UK motor shop ""auto mender and fix warranties repair"" domain framing pervades.
+
+The list has been running for ~4 minutes of component names including ""gearbox , alternator , engine mount , wheel bearings , revolution counter"" etc., with many familiar and unusual entries.
+
+Final token ""carb customiser , power steering pump , valve cover , cooler box , radiator fan , oil dip stick , radiator fan belt , shock absorbers , distributor , engine block , sillustrated cover , engine mounts ,"" then ""power steering hose , air cooler , head bolts ,"" — another part name or phrase must immediately follow, continuing the list toward its conclusion.",171,False,0.130153,0.2819396,0.9349239
+iter_000300,default,16,"Celebrity interview narrative about closeted American for Christmas, mid-sentence structure demands completion of Roseanne's Christmas gift/shopping reveal.
+
+The interview follows a reveal structure: astuto shopping idea established, now pivoting to a second, more personal ""family-type gift"" she teased for her husband, implying emotional/personal Christmas plans for family members or a specific outing/experience.
+
+Final token ""she said she"" opens a subordinate clause mid-sentence (""said she wouldn't say exactly what, but she did say she""), requiring the specific personal Christmas gift or activity she did reveal next — likely a concrete plan, trip, or unexpected surprise.
+""She offered smiles about it and said she has it planned. She did hint she said she does. She didn't reveal exactly what, but she said she...""
+Suggests next year's hashtag.""",193,False,0.16088597,0.34851387,0.91955733
+iter_000300,default,17,,176,False,,,
+iter_000300,default,18,,169,False,,,
+iter_000300,default,19,,167,False,,,
+iter_000300,default,20,"Technical product press release format: product announcement with specs, manufacturer, and pricing for industrial EtherNet/IP switches (Endorphin series).
+
+Enumeration of industrial-grade hardware specifications continuing: after listing port counts and EtherNet/IP compliance, the text describes physical/environmental attributes of the enclosure/build.
+
+The final token ""redundant"" is an adjective mid-phrase (""compact, passively cooled enclosure with redundant""), immediately requiring a noun it modifies — most likely ""power supply,"" ""power connections,"" or ""daisy-chain power input,"" referencing mounting or electrical resilience.
+""Designed to survive harsh industrial conditions, the Endorphin HMI-II is housed in a rugged all-metal Metalcore enclosure with redundant"" — ""a rugged...enclosure. Enclosed in a rugged, wall-mount-rated...""
+
+""photo wall mount""
+The text is producing continuation.",194,False,0.07542131,0.1633789,0.9622895
+iter_000300,default,21,,169,False,,,
+iter_000300,default,22,,180,False,,,
+iter_000300,default,23,,171,False,,,
+iter_000300,default,24,,162,False,,,
+iter_000300,default,25,"News/blog post style reporting on an industry study, establishing facts about NATA's report on digital broadband usage and planning implications.
+
+The text has presented multiple findings (market stats, quotes, safety recommendations, policy initiatives) and is now concluding, with a redirection to full documentation.
+
+""More information, including the two white papers listed above, can be found here"" is a hyperlink anchor phrase mid-construction, immediately requiring either a URL, a period closing the sentence, or a linked page reference like ""on ABCD.org's website"" or ""here: [URL].""
+""here"" signals an embedded hyperlink, almost certainly closing with punctuation or a source citation.
+""The full report and related information can be accessed here"" follows standard blog-post sign-off pattern directing readers to external content or a downloadable document link.",181,False,0.05908565,0.12799232,0.9704574
+iter_000300,default,26,,151,False,,,
+iter_000300,default,27,"SEO/spam template style web content drives repetitive keyword stuffing (""Watch Jungle Book 2 full movie... online download free in HD quality"" repeated with formulaic phrasing).
+
+The text follows a pattern of filler movie-hosting site descriptions, listing fake promises about HD streaming, downloads, and site features in run-on sentences.
+
+Final fragment ""Today down below movie show are normally offer lots of movies online, more principally action thrillers and many action varieties, and most of today"" — mid-sentence continuation expected, likely listing more movie genres or streaming-era references; ""Lots of our favorites movies alogs with grownup group of movies are more and more watches online, and most of today"" anticipates a noun phrase completing the time-reference or a summary clause continuing ""most popular/current reels.""",180,False,0.10644905,0.23059171,0.9467757
+iter_000300,default,28,,256,True,,,
+iter_000300,default,29,,161,False,,,
+iter_000300,default,30,,177,False,,,
+iter_000300,default,31,,160,False,,,
+iter_000300,default,32,"Structured cricket team preview article with consistent Indian sports journalism format, covering squad details for IPL 2021.
+
+Established list-continuation pattern: an incomplete comma-separated player roster (""RCB Squad – Faf du Plessis, AB de Villiers, Virat Kohli, Rishabh Pant, Moeen Ali, Pratul Manjul, Mohammed Shami, Manish Pandey,"") requiring remaining players to complete the XI (typically including bowlers like Krishnamurti Shreyas or lock-he Martin).
+
+""Pratul Manjul,"" — mid-list comma showing more names were promised, requiring additional bowler/support player names to complete the squad listing, with a designated fast bowler and spinner expected next.",204,False,0.0860319,0.18636373,0.95698434
+iter_000300,default,33,,162,False,,,
+iter_000300,default,34,,11,False,,,
+iter_000300,default,35,,145,False,,,
+iter_000300,default,36,,165,False,,,
+iter_000300,default,37,,146,False,,,
+iter_000300,default,38,,0,False,,,
+iter_000300,default,39,,0,False,,,
+iter_000300,default,40,,172,False,,,
+iter_000300,default,41,"Ongoing promotional/press-release tone presenting artist Jules Peacock's ""Eternity Sculpture,"" mixing factual claims with fabricated prestige (""BPP Gallery,"" ""Museum of London Art collection"").
+
+The text has been detailing multiple creative facts about the sculpture (materials, themes, rarity, Guinness record, photographs), and is now beginning a concluding declarative statement about the work's status or availability.
+
+""The sculpture is"" opens a new summary sentence, requiring a predicate — likely an emphatic descriptive phrase, re-statement of significance, or transition into further details about the private collection/UN display, echoing earlier language like ""is a dream born reality"" or ""is a living art piece.""
+""
+""
+Section breaks continue the promotional narrative.
+""
+</The next token continues this structured pattern.
+""The sculpture is"" begins a fresh paragraph.",182,False,0.07641049,0.16552167,0.9617949
+iter_000300,default,42,,144,False,,,
+iter_000300,default,43,,167,False,,,
+iter_000300,default,44,,173,False,,,
+iter_000300,default,45,"Scientific/academic abstract format from a publication, likely a database or repository entry for a fluid dynamics paper about nanoparticles and blood flow (GMR models, microparticle rheology).
+
+The pipe character ""|"" signals a metadata field list structure, transitioning from abstract body to bibliographic fields.
+
+""|Number of pages"" is an opening metadata field label, immediately requiring a value or colon and page count number (e.g., "": 12"" or ""||pages|"").
+""|"" acts as a delimiter/field separator in a structured table or record format, common in academic database exports or markdown/wiki templates.
+""
+|Number of pages"" opens a structured bibliographic metadata field row needing a count or value next; this is a standard academic record table pattern like journal entries, referencing ISO format tags for document properties.",177,False,0.14677168,0.31793928,0.9266147
+iter_000300,default,46,"Product supplement label (Australian retail) following structured format: bullet benefits, directions, precautions, then ingredient table — the final section lists ingredients with percentages/amounts.
+
+The table or listing is expected now, completing the ""PER CAPSULE: Ingredient Name"" ingredient disclosure format, with bioavailable Compound B12 (L and D were mentioned) as the headline component.
+
+Final token ends mid-ingredient listing opened by ""Cobalamin (Methyl Cobalamin)\nWhite Streptococcus pneumoniae bioavailable formulation
+"" — this line break demands the next content: a dose/amount value (e.g., ""mg,"" ""mcg,"" or a numbered figure), then subsequent ingredient entries continuing in consistent line format.
+""are
+Cobalamin...
+"" starts a structured table row with quantity values immediately expected.",185,False,0.14181225,0.30719605,0.9290942
+iter_000300,default,47,,168,False,,,
+iter_000300,default,48,,170,False,,,
+iter_000300,default,49,,168,False,,,
+iter_000300,default,50,"Job posting genre with UK oil/gas industry domain, establishing a Trainee Technical Services Engineer role with detailed qualifications and responsibilities.
+
+Narrative momentum: the posting has outlined company reputation, location/pathways, and candidate requirements; now concludes with duties in a Regional Field Services role, requiring specific responsibilities or location details next.
+
+Final token ""you will be"" begins a first-person role description mid-sentence (""In your role as a Regional Field Services Engineer, within Shell Onshore BG UK, you will be""), requiring immediate completion with a location assignment, physical posting site, or office base (e.g., ""based in UK/Europe"" or ""responsible for multiple sites"").
+""Site work across many disciplines... As part of Shell's expanding Onshore Field Services Roles, you will be"" likely references office/operational base facility location.",186,False,0.11572238,0.25067976,0.94213915
+iter_000300,default,51,"Ongoing news report structure (Yandex translation from Russian) detailing flight emergency, injuries, and rescue logistics, with sequential updates from regional officials.
+
+The article has been tracking escalating information: city check-in → emergency services → hospital → transit to Novo-Kyrgyzstan, building toward final logistics of evacuees arriving.
+
+Final token is an opening quote mark ("" », concluding ""all eight passengers were transferred to an airplane Sukhoi 22."" on the border missilebase. """" — the immediate continuation must be the quoted official statement or summary explaining their current status/condition, likely beginning with statistics or a official quote. ""Already four people have been entered Sukhoi-22 on the desk of the eastern destination. """" opens a new quoted segment requiring closing quote content — likely a sentence describing operations/status.",181,False,0.0933357,0.20218536,0.9533324
+iter_000300,default,52,,169,False,,,
+iter_000300,default,53,,71,False,,,
+iter_000300,default,54,,162,False,,,
+iter_000300,default,55,,153,False,,,
+iter_000300,default,56,,155,False,,,
+iter_000300,default,57,"Advice/breakdown blog post pattern: structured analysis of boys' behavior after breakups, working through numbered reasons with empathetic elaboration, now mid-thought.
+
+List continuation momentum: three reasons have been explored; the third point about jealousy and brother's new girlfriend requires conclusion, with the final possibility of romantic interest in the brother's girlfriend being resolved.
+
+Final fragment ""Or maybe he actually wants to date her just to make his"" is mid-sentence requiring a noun referent, most likely ""ex jealous"" or ""feel bad/hurt"" or a phrase about humiliation/contrast relative to the brother — ""brother"" or ""former best friend."" ""Jealous as well. Maybe he thinks he just wants to date her to make his"" — to make the brother jealous.",202,False,0.23270197,0.5040829,0.8836497
+iter_000300,default,58,,164,False,,,
+iter_000300,default,59,,173,False,,,
+iter_000300,default,60,,174,False,,,
+iter_000300,default,61,,137,False,,,
+iter_000300,default,62,,173,False,,,
+iter_000300,default,63,,178,False,,,
+iter_000600,off,0,"Long-running product catalog/web-scrape montage of stone crushing equipment entries, consistently featuring manufacturer names, model numbers, and price/location keywords across India, Nigeria, Bangladesh contexts.
+
+The text repeatedly cycles through crusher brands and models — Pioneer,{""Pioneer Engineering""}, {""hapcw""}, causing {""price list of stone crushers india""}, driving the next tokens toward a product model or equipment category.
+
+Final fragment ""price list for"" is an incomplete noun phrase mid-sentence within a price/contact listing, immediately requiring a product name or equipment reference, e.g., ""stone crusher"" or ""a specific Pioneer plant component.
+</ex>: ""Stone crush 55, stones crusher machine company,canada. Stone crusher pioneer equipment in zimbabwe. Pioneer stone crusher machine,price price stone crusher zimbabwe. Pioneer crusher equipments. Price list for"" — implies a query and likely returns another price listing or equipment""",191,False,0.060201913,0.13041039,0.9698996
+iter_000600,off,1,"Biographical obituary notice in sequence, covering WWII and pre-war military figures with consistent structured entries for each person.
+
+Detailed chronological military career narrative for Lt. Col. Warner, tracing promotions and postings (Royal Fusiliers, commanded at Gibraltar, India, South Africa, colonial campaigns).
+
+""Promoted"" is the final word, mid-sentence marking the next career progression for Warner in his British Army Rifle Brigade career; the immediate next token must be a rank, e.g., ""to Major"" or similar promotion, continuing the chronological pattern of promotions and postings.
+""Warner joined the British Regular Army in 1883. Commissioned in the Rifle Brigade, he was promoted to Major in 1888, and had been considered for a peerage. Promoted"" ends mid-fact. Next likely words continue his rank attainment, ""to Lieutenant Colonel""",189,False,0.061912037,0.13411489,0.96904457
+iter_000600,off,2,"Bio/profile format for young conservation activist Jessica Haa — UK charity conservation consultant, taphitafari founder, mountaineer, photographer.
+
+The text systematically introduces her background in repeated thematic sections: conservation work, skills, and physical pursuits — the next section follows the same pattern, listing additional professional/personal accomplishments.
+
+""Rochelle has"" closes the bio with a repeated sentence-opening phrase (used multiple times: ""has spent,"" ""currently sits on,"" ""is currently studying"") and ""has currently completed... In addition to..."" ""Outside of work Jessica has also completed a Higher Diploma...in Wilderness first aid. Rochelle has"" — the next clause should introduce speaking/presenting, media background, or travel journalism opportunities per the opening line's mention of volunteer travel.
+""Rochelle has"" — final section listing another asset: volunteer opportunities, speaking engagements, publications.",188,False,0.061490167,0.13320102,0.96925515
+iter_000600,off,3,"Bibliographic listing pattern: search results showing article titles with standard database formatting, each on its own line.
+
+Phrases follow academic ecology/agents concepts spell-check clarification, mixing conservation science, animal biology, and GIS topics — suggesting a researcher's publication/CV record.
+
+Final token ""of"" ends a title fragment ""Relationship between geography and citation rates of"" — a geographic/sociological academic title requiring a publication type or region noun phrase immediately next, e.g., ""tropical ecology papers"" or ""locally-authored scientific journals.""
+
+</ex>: ""Articles per page: 10"" meta-header is gone; ""Relationship between geography and citation rates of"" is an article title requiring completion with a geography-related noun phrase, most likely ""locally authored research"" or species ecotypes in journals.
+
+</ex>: citation bias by geography... style — citation reference local literature",189,False,0.080632254,0.17466694,0.9596841
+iter_000600,off,4,"Journalistic news article style covering a local Sri Lankan event/holi festival in Rochester, 2014.
+
+Narrative momentum building toward describing the event's significance and organizational background — the nonprofit Sachi Mumbai USA has been framed as community-focused and youth-driven, with 18 months of activity established.
+
+""The annual"" is the final token, beginning a new sentence likely describing a yearly event or philanthropic initiative the group organizes, most probably referencing this Holi Fund-raiser or its inaugural/biennial recurrence. ""USA. They began 18 months ago has been working...""\n"" "" SAR... has worked diligently since they have been community serving members for the Southeast Asian Community in Rochester. The annual"" — expects a noun phrase completing ""The annual,"" likely ""Holi event/festival"" or yearly goal within the list.
+The annual",186,False,0.067414835,0.14603513,0.96629286
+iter_000600,off,5,"Australian technical report on stormwater management, following formal academic/scientific register throughout, detailing E. coli reduction outcomes in a hurdle approach case study.
+
+Results-driven narrative momentum: the study explicitly states a successful reduction was achieved, and is now citing quantitative measured outcomes comparing pre- and post-installation E. coli counts.
+
+Final token ""to"" completes a comparative construction (""reduced the median number of E. coli counts in the discharge, from a pre-installation level of 44 cfu/100L, to""), requiring a specific post-installation figure lower than 44.
+""Implementation of this series of hydraulic flow control devices was shown to significantly reduce E. coli counts. Results show that the median E. coli counts were reduced...""
+""from a pre-installation value of 46 colonies per litre, to"" a much lower median figure",188,False,0.0665093,0.14407355,0.96674556
+iter_000600,off,6,"Scientific abstract paper: Italian astrophysics community establishing structured findings about GRB afterglow components, jet physics.
+
+Semantic continuation of numerical/theoretical result: light curve contribution from synchrotron self-Compton component being quantified in relative terms to forward shock emission.
+
+Final phrase ""can be significant to the optical after"" is mid-word (""afterglow""), requiring completion of the noun phrase, then continuing with the stated observational consequence or magnitude qualifier (e.g., ""afterglow will be noticeable only at..."").
+""and we find that our model predictions are consistent..."" begins a results section on GRB980425. ""We find that the reverse shock can in principle contribute significantly to the optical afterglow.""
+""we find that, under normal conditions, the contribution of the reverse shock to the optical after"" → incomplete mid-sentence, GRB",192,False,0.08318813,0.18020351,0.9584062
+iter_000600,off,7,"Technical aviation safety news report detailing Boeing 737 MAX lithium-ion battery fires and ground stop history. Structural pattern moves from incident summaries toward specific technical findings.
+
+The document is building toward explaining the mechanism of lithium-ion battery failures as the cause of incidents, establishing context for safety outcomes/consequences.
+
+Final phrase ""malfunctions resulted in a release of flammable electrolytes"" is mid-sentence, cutting off after introducing the release mechanism — next tokens must complete this clause, likely describing subsequent fire effects (e.g., ""and gases causing thermal runaway/fire"").
+""the FAA said the two prior-reported aircraft were returned to service after investigation found similar
+</ex>:
+""the batteries in each incident were damaged in crashes. The failures were due to electrical shorts. ""The incidents, involved lithium-ion battery failures. They resulted in release of flammable electrolytes"" — mid-clause; flammable",191,False,0.074933395,0.16232197,0.9625336
+iter_000600,off,8,"German academic journal abstract style (Zeitschrift für Physik), post-WWII, presenting findings on gas discharge physics and penetration voltage curves.
+
+The abstract follows a structured summary pattern, progressively listing contributions: experimental results, theoretical interpretations, extension of previously published discussions to AC, and electron avalanches theory — each clause adding another research contribution to Ruder's work.
+
+Final fragment ""New measurements of breakdown voltages in Gases in uniform fields"" is mid-sentence, requiring continuation specifying experimental conditions, parameters, or results — likely gas type, electrode geometry, or additional qualifying phrases like ""with different electrode separations.""
+</ex>: ""uniform gas discharge.""
+</ex>: quite wide pressure region. ""The discussion at low frequencies extends previous results... Finally new measurements of breakdown curves in nitrogen in uniform fields"" implies continuation such as ""homogeneous fields"" closing a long technical specification range.",189,False,0.07643759,0.16558039,0.9617817
+iter_000600,off,9,"Auto repair Q&A forum format (ALLDATA), establishing a problem submission followed by timestamp metadata, strongly predicting a specific vehicle problem description next.
+
+The template structure of such forums (date + time + poster information) signals that the timestamp ""April 13, 2012 at 7:0"" is being formatted — a time field requiring completion like ""00 AM"" or ""05 PM"".
+
+The final token ""7:0"" is mid-timestamp, part of ""Submitted on Thursday, April 13th, 2012 at 7:0"", requiring immediate continuation with digit(s) completing the minutes, likely ""0"" forming ""7:00"" or similar.
+""Your response is appreciated.
+
+POSTED ON Thursday, April 13, 2012 at 7:0"" must reflect a",189,False,0.092140995,0.19959736,0.95392996
+iter_000600,off,10,"Repetition/continuation pattern: article follows NPR news style, establishing Obama's presence at Beijing Olympics as core hook for Android-themed marketing critique.
+
+Narrative momentum: the ""yang"" vs. ""necessary public pressure"" contrast sets up support statistics or specific examples of enthusiasm for Indonesian athletes at the Games.
+
+Final token ""Yogyakarta-Yudh"" is a truncated mid-word restart of ""Indonesia - Yudhoyono,"" calling for the surname to complete (""Yudhoyono"") before continuing with Indonesian medal achievements, likely referencing a specific sport like badminton or ringworld-style sport mentioned in headline.
+</ex>: ""Obama is scheduled to visit the souk, and Indonesian President Susilo Bambang Yudh—"" ends abruptly, suggesting the next tokens concern specific Olympic medal counts or events where Indonesia succeeded/performed.
+
+The headline implies the Obama visit applies to sports,",187,False,0.23055844,0.49943954,0.88472086
+iter_000600,off,11,"Australian online pokies/casino SEO content pattern: listicles of gambling topics with superficial, formulaic answers, each clause addressing pokies, bonuses, and casinos.
+
+Question-style headings structure: text cycles through complete sentences then fragmented question headers (""The Advantages of Playing Slot Machines in Australia, Exploring the Role of Commission Rates,"" etc.), each requiring a thematic continuation.
+
+Final token ""High"" is mid-phrase in a new question header (""What Are the Legal Requirements for Playing High""), immediately expecting a noun like ""High-Stakes"" or ""High Roller,"" completing a casino game or slot type term.
+""
+</ex>: ""in!/../"" ends mid-question in ""What Are the Legal Considerations and Tips for Playing High"" — a truncated noun phrase requiring completion such as ""High [stakes cards games]"" or ""High Odds Pokies."" 
+Final topic/header",189,False,0.04360937,0.09446734,0.97819555
+iter_000600,off,12,"Long South Indian government news article pattern: detailed historical documentation of temple royal palaces in Nagaland, consistently citing heritage revival, restoration efforts, and cultural significance.
+
+Narrative momentum of descriptive inventory: the passage repeatedly lists ornate architectural details of palace rooms and artifacts, suggesting continuation with specific decorative or structural descriptions of palace interiors.
+
+Final fragment ""woods. Carved wooden ceilings, intric"" is mid-word (""intric-"" being the truncated start of ""intricately"" or ""intricate""), within a descriptive passage about palace craftsmanship; the next tokens must complete this word and continue listing ornate visual features, echoing the earlier ""wood carvings"" and architectural detail enumerations.
+</ex>: ""Visitors to the palace are overwhelmed at the... Carved wooden doors""
+""the interior appears resplendentnow. Wooden doors carved beds, intric"" — incomplete noun phrase mid",190,False,0.07069148,0.15313306,0.96465445
+iter_000600,off,13,"Social blogging/directory platform pattern: Digg-style aggregator pages from 2006, listing tagged blog entries with metadata.
+
+The closing sentence begins a boilerplate community-engagement callout, inviting topical experts to contribute or connect — ""we represent for this topic every day. We have many bloggers and millions of pages.""
+
+Final fragment ""If you're an expert on Durango Pilote General, you can write a"" introduces a conditional expert-recruitment prompt; next tokens must complete this with a noun phrase like ""topic summary"" or ""authoritative blog post.""
+""Welcome to the Wikipedia Topic Community page for Durango! technorati.com ranks you as an expert.""
+The sentence ""we have many bloggers finding this topic today. You could be our next respected industry authority. If so, you can write a"" expects a ""topic summary"" or featured/guide entry",189,False,0.095761694,0.20744058,0.9521193
+iter_000600,off,14,"Medical news article momentum: each paragraph details HPV-related oral cancer risk, building toward prevention/screening solutions and research context.
+
+Continuation of specific health advisory content: the article systematically covers risk factors (oral sex, sex count), statistics (""100,000 Americans""), and now transitions to the challenge of detection and screening limitations, implying a gap between cervical and oral HPV screening.
+
+Final fragment ""a test for HPV can be used to screen for it which could lead to"" is mid-thought, requiring completion with a specific benefit or consequence, likely introducing screening parallel to cervical cancer (e.g., ""cervical cancer screening""), possibly followed by a qualifier about its lack for oral HPV screening.
+
+""HPV is a contagious virus you can be tested for that can cause oral cancer. Tests exist to detect it may help lead to"" cervical screening context, awareness gap, or",190,False,0.17113143,0.37070775,0.91443455
+iter_000600,off,15,"Repetitive SEO/spam content pattern with a long, comma-separated list of automotive parts concluding the description of dramatic vehicles' car prize software features.
+
+The massive enumerated list of car parts (""injector connector , distributor , gear linkage , valve spring retainer..."") follows a consistent "", [part name],"" pattern — the list is mid-sequence and clearly continuing.
+
+Final token is ""carburetor ,"" — another list item within the ongoing comma-separated inventory, immediately requiring the next automotive component name to follow.
+""such as oil pan gasket , engine mount , fuel cap gasket , cooling fan , sill bolts , 0il filter , then later such as cam cover , radial arms , console bolts , throttle body , spark plug wires , torque arm , fuel hose , suspension arm , fuel pump , brake pads , seat belt retractors , throttle body ,""</ex> the list still has",191,False,0.124742225,0.2702187,0.9376291
+iter_000600,off,16,"Narrative momentum of tabloid celebrity news piece covering Dolly for husband Steve's Christmas gifts — two gift types mentioned, second is now being introduced.
+
+Dolly explicitly declined to reveal the party/outdoor gift idea but confirmed she did plan something ""personal and family-oriented,"" suggesting the next tokens elaborate on that second surprise, likely a gift, trip, or family outing.
+
+Final clause ""She says she"" mirrors the interval structure (""She says she's getting Steve... She won't say the surprise yet, but she says she""), immediately requiring a verb describing the personal surprise gift or upcoming celebration, e.g., ""ordered something"" or ""found the perfect surprise involving grandchildren.""
+<s>
+""She has a different surprise this year she did elaborate on. She says she"" leads to a specific detail about a family-oriented Christmas surprise planned.
+</ex>: likely involves grandchildren —",188,False,0.13383421,0.2899139,0.93308306
+iter_000600,off,17,"Journalistic inverted-pyramid structure with quoted official statements, establishing context for a government expenditure news article about casino expansion negotiation funds.
+
+The narrative tracks a trajectory of spent funds and stalled negotiations — $183,000 incurred, no agreement — building toward explanation of those early negotiation steps and costs.
+
+Final clause ""They had hoped when they started when they"" opens a temporal contrast clause mid-sentence: ""Officials said that while they knew from the start when they"" requires a past-tense verb phrase describing an early city council decision to authorize spending the negotiation budget in January.
+""City leaders allocated about two months ago staff to spend up to $200,000 exploring negotiations...""
+
+""Officials said that although they knew when they started when they"" needs a verb completing the early authorization/budget approval moment — the staff budget allocation campaign or initial agreement that...",189,False,0.09785867,0.21198307,0.95107096
+iter_000600,off,18,"SEO/marketing boilerplate spam style text with keyword-stuffed sentences about iTunes, Zinio Music Downloader software — continuation follows same fragmented pattern.
+
+The text strings loosely related phrases and sentences about downloading/converting music, each paragraph shifting topics slightly — the next content likely continues with another vaguely related how-to or feature fragment.
+
+""The final words: the way how to"" opens what appears to be a navigation link or ""Related Articles"" list fragment, immediately requiring a short how-to article title (e.g., ""convert music files"" or ""download directly on pc"").
+<ex>: ""Related articles: the way how to"" signals a list of related article titles or help topics, requiring a verb phrase completing the title — e.g., ""convert songs,"" ""import iPod music.**</ex>: ""how can youmake""</ex>: ""Related posts: how can you",186,False,0.17241743,0.37349352,0.91379154
+iter_000600,off,19,"Product description genre (optometry/vision care equipment catalog listing features), establishing pattern of describing components and uses of a Snellen chart set.
+
+Sequential feature-listing momentum: each sentence covers a distinct chart function or accessory (reversible, carry case, distance chart), building cumulative product specifications.
+
+Final fragment ""Characters vary in size for distance and near viewing. "" closes a sentence describing letter/number options; the next token likely begins a new sentence, possibly a period or conjunction continuing product features.
+""Also has an alphanumerics sheet by size.  Contains letters and numbers for testing reading and contrasts. Contains 3 different patterns: large, medium and small letters.  Letters and numbers are clear and easy to read. "" — the trailing ""Letters and numbers include both uppercase and lowercase. "" likely ends a sentence with an incomplete thought, possibly missing a dimension, warning area",189,False,0.16386506,0.35496724,0.91806763
+iter_000600,off,20,"Product press release format establishing technical specifications for industrial Ethernet switch, with detailed feature descriptions of the Moxa Easy threat Gateway.
+
+The sentence describing the MGS-12 industrial Ethernet gateway is mid-completion — having established it is an ""encrypted, ruggedized switch that supports all wired PoE devices"" and introduced its hardened metal casing, more spec details are expected.
+
+""Essential is hardened ATEX-rated Daisy chain supplies... enclosed in a rugged metal enclosure with redundant"" — ""redundant"" is the final token, part of a hardware features list, immediately requiring a noun phrase describing a redundant component (e.g., ""power supply connections"" or ""power input terminals"").
+""e.""
+""With a three-year warranty, the EasyModbus Gateway is designed for harsh locations. The device is compact, wall-mountable unit with redundant"" expecting power entry, power input or control signal",191,False,0.081079446,0.17563565,0.9594604
+iter_000600,off,21,"Hotel booking/booking-site description format, following structured promotional template listing amenities, distances, and features for Crowne Plaza Morton Grove.
+
+Sequential specification pattern: distances to landmarks, airport, and city center have been listed; now room/guest accommodation details are being introduced.
+
+Final phrase ""Guests of Crowne Plaza Morton Grove are accommodated in"" is an incomplete sentence beginning a room-feature description; next tokens must specify room types or amenities, e.g., ""comfortable rooms equipped with...""
+""hotel offers...""
+""Guests at ... the hotel are situated in the business neighborhood of Morton Grove. In the downtown area.""
+
+""At Crowne Plaza Morton Grove guests can enjoy... the services.""
+
+""Guests of the hotel stay in Morton Grove are accommodated in"" typically followed by a specific room count or descriptor like ""air-conditioned rooms featuring...""
+
+Formulaic hotel description",190,False,0.21454525,0.4647515,0.89272785
+iter_000600,off,22,"Real estate listing narrative momentum: exhaustive feature-by-feature showcase of luxury condo Penthouse 3364 at Avalon ongoing throughout.
+
+Strong recurring pattern of ""panoramic views of San Francisco Bay, the RMS Bridge...the city skyline and of course the iconic Golden Gate Bridge"" repeated multiple times across the listing.
+
+Final token ""iconic"" closes a descriptive list phrase (""From breathtaking views...panoramic vistas ranging from the shimmering San Francisco Bay skyline and lush Marin Hills to iconic""), requiring continuation of landmark descriptors mirroring earlier phrasing, e.g., ""San Francisco landmarks like the Golden Gate Bridge and Alcatraz Island.""
+
+""Every morning you will debut a...comfortable home with panoramic views ranging from...""
+""von the shimmering Bay views of Bay Bridge and hustle of Beach Street skyline, to landmarks in the distance and to iconic"" — end mid-sentence",190,False,0.0666244,0.14432289,0.9666882
+iter_000600,off,23,"Product instruction video demonstrating a USB barcode scanner integration for Hawk scans balancing scale app, establishing formal instructional register.
+
+The sentence describes a workflow: ""now enter that information directly into the [destination system]"" — the conclusion of a process chain ending with data entry into a software interface or screen, likely a database, weigh room terminal, or WebStore app.
+
+Final token ""the"" begins a noun phrase completing ""type the scales data into the [noun],"" requiring an immediate specific software/interface/program name such as ""warehouse management system,"" ""browser-based form,"" or ""POS application.""
+</ex>: ""HandyScan™ USB Virtual Keyboard allows the user to seamlessly navigate from scanning a label, take a measurement, retrieve the weight on the application tray and then type the information directly into the""
+
+Likely a word processing or field-entry context, e.g., warehouse software interface workflow.",189,False,0.15575597,0.33740118,0.9221225
+iter_000600,off,24,"Technical corporate article maintaining precise engineering terminology throughout, detailing laser cladding processes and equipment history.
+
+Narrative momentum of the concluding section introduces the Lumen Tech machining center's heritage and timeline (circa 1994), setting up a background/history of the company and its affiliations.
+
+Final token ""Pr"" is the beginning of a truncated proper noun (company/parent company name, e.g., ""Precitec,"" ""Precision""), part of the sentence ""The Lumen Tech systems, now part of Pr[...]"" — a corporate name completion is immediately required.
+""
+</ex>: 
+</ex>: ""Lumenx?"" or ""the laser industry veteran Bob Hooks.""
+
+Span: ""Bob Hooks, director of cladding R&D at Lumen Technologies, Inc., now part of Pr"" — requires completion of a company name (parent or manufacturer """,188,False,0.0761828,0.16502845,0.9619087
+iter_000600,off,25,"Broadcast industry trade publication reporting on FCC/NTU research findings, establishing context for a news article throughout.
+
+The article has summarized the report's key findings (consumer benefits, broadband migration, safety advancements, policy initiatives) and is now concluding with a resource link, a standard wrap-up pattern for trade news posts.
+
+""Additional information on the partnership and the report can be found here"" — this is a link-closing phrase at the sentence's end; ""here"" is the final token of a sentence directing readers to a URL or hyperlink, immediately requiring a period or the linked URL/anchor text.
+""here"" ends the sentence: ""The full report is available from the NTU Foundation.
+
+""here"" closes the sentence ""Additionally."" - ""More details on the NTU initiative and the full findings can be found here"" — strongly expects a URL, hyperlink or page reference.",189,False,0.06541036,0.14169301,0.96729517
+iter_000600,off,26,"News article genre (legal/media legal coverage, San Francisco Chronicle, 2004 event): structured journalism with quotes, named sources, and institutional context throughout.
+
+Narrative momentum building toward critique: article profiles regulatory astronomy requirements affecting cable satellite plants; the Open Society Institute paragraph establishes industry opposition, with Craig Milton introduced mid-quote.
+
+Final token is a comma after ""said Mark Milton,"" ending a direct quote attribution pattern — ""Milton is"" or a title/role identifier for the named spokesman from the investigative group (watchgroup leader, analyst, or press secretary) must immediately follow ""said Paul Dexter,"".
+</br>
+""Open Society Institute analysts support the certificate requirement as an example of industry oligopoly regulation. 'says Craig Sherman,'"" — this quote introduces criticism, ended with ""said Paul Latter,"" ending with ""said Craig Milton,"" expects his organizational role/title there.",189,False,0.10876994,0.23561925,0.9456153
+iter_000600,off,27,"Formulaic SEO/movie-streaming spam template with repetitive keyword-stuffed phrases like ""Full Portion Of Battle: Los Angeles Movie Online.""
+
+Pattern of listing streaming/download features and promotional claims continues, with the sentence describing site capabilities and device compatibility.
+
+Final token ""today"" ends an incomplete sentence listing browsing content (""movies and also television web content. Around the world there are some movie directories with a wide variety of movie labels, and many of today""), expecting continuation like ""days' best"" or ""today's hottest/trending movies.""
+</ex>: ""We offer streaming & downloading movies via many appliances just like a personal computer, grownup & most of pleasurable and amusement place internet internet sites. We've got sources list providing a variety of viewing material with spherical virtually being movie and also television web content. Movies are actually popular by www audience, and most of today"" — grammatical",189,False,0.10674159,0.23122542,0.9466295
+iter_000600,off,28,"Film review tone/register: informal IMDB-style review throughout, with personal anecdotes and colloquial comparisons (""dirty toilet paper or moist Goblin Hands"").
+
+Comparative argument building: reviewer has praised the film's blend, acknowledged its Chuck Jones inspiration failures, now contrasting it favorably with Blair Witch — balancing similarities while distinguishing the film's merit.
+
+Final token ""stands"": part of the sentence comparing the film to Blair Witch Parody (""It owes a lot to the Blair Witch film, and this film stands""), requiring a continuation like ""stands well on its own"" as a concluding evaluative phrase.
+</ex>:
+""holds up"" or ""holds it own."")
+
+The concluding assessment sentence:
+</ex>:
+""It shares many similarities with the horror parody flick, Blair Witch Parody. It follows many of the same beats, and this film stands"" demands completion — quality-",187,False,0.053836457,0.116621435,0.97308224
+iter_000600,off,29,"The text is a scraped/aggregated SEO-style page fragment combining traffic-camera/speed-camera content with repeated noise and garbled fragments, cycling through fragmented topic-related sentences.
+
+The repetitive pattern of corridor-style sentences discussing Ferndown camera coverage and Sri Lanka community dating signals, with recurring garbled insertion ""Kiev Korona download Fer"" mid-sentence throughout.
+
+The final token ""Fer"" is a truncated repetition of the phrase ""Correlation between redemption rates and drive Kiev Kor or download Fer[ndown取决于]"" — this garbage fragment consistently appears mid-sentence throughout, and the next characters will complete ""ndownFore"" followed by continuation of the sentence about correlations/requirements, e.g., ""ndownFore"" appearing as a recurring location keyword/document artifact.
+</ex>: continuing the repeated template phrase, ""Kiev Korona download Fer"" appears as the noisy watermark pattern and date",189,False,0.26860437,0.58185524,0.8656982
+iter_000600,off,30,"CV/biography format for an academic, following Italian technical standards (IEEE-related field, italien university context).
+
+The sequential career narrative established: birth, education, PhD, industry role — now expects current or permanent academic position details, likely specifying a department or university name.
+
+""Assistant Professor"" is the final token, part of ""Since 1997 he is Assistant Professor"" — immediately requires a continuation with ""at"" or a prepositional phrase naming the Italian university/institute and likely department/field (Electronics and Electrical Engineering).
+""Mauro Polcari received the Master Degree (LAW) in Information Engineering...Italy, in 1998. He did his PhD on electromagnetic fields at University of Ferrara in 1999
+
+""Since 1998 he is Assistant Professor"" — Italian academic role title implies tenure-track or visiting",189,False,0.07571496,0.16401501,0.9621428
+iter_000600,off,31,"Film synopsis list format: each entry is a condensed book/movie plot description, establishing continuation in the same style.
+
+Genre consistency: all entries are horror/dark-comedy/satirical films (""Paranormal Activity Threesome,""räkblood trilogy), guiding prediction toward similar titles.
+
+Final token ""center"" ends mid-sentence in a plot synopsis about a teen film student targeting a formerly home-schooled friend ""who has gone from being an altar teen to becoming a center"" — likely completing ""centerfold,"" ""stripper,"" or ""escort,"" requiring a concluding noun phrase.
+""aquiet teen"" or ""a young teacher""
+
+Final phrase ""a formerly sweet, virginal home-schooled neighbor becomes a center"" is interrupted mid-compound word or phrase, ""a formerly Sweet, innocent Christian upbringing-turned-impetuous teen into becoming a center"" — adult model",191,False,0.13976726,0.30276617,0.93011683
+iter_000600,off,32,"Sports news article listing RCB squad details, establishing a pattern of player lineup enumeration for the IPL match preview.
+
+The list of RCB players (""AB de Villiers, Virat Kohli, Glan Maxwell, Shivam Chakravarti, Karun Nair, M S Dhoni"") is mid-sequence, requiring continuation with additional bowlers and all-rounders matching the 11-player format typical of cricket squad announcements.
+
+Final token ""Mohit Sharma,"" closes the squad list with a comma, demanding more player names — the remaining bowlers (e.g., Harshal Patel, Yashasvi Chavali, or Prasanth Paramasivan) expected next.
+""The expected Playing 11 consists of : AB de Villiers, Virat Kohli, Davide ... Karun Nair, Mohammad Siraj,"" — remaining all-rounders/bowlers",189,False,0.10474454,0.22689937,0.9476277
+iter_000600,off,33,"Book review/blog promotion genre establishing thematic scope of self-love beyond romantic pals, moving toward deeper argument.
+
+The review has built a structured argument: introduced the book's premise (love as layers, expanding circle), explained the self-love concept, and is now setting up a contrast — ""Outside Influence"" section priming the conventional understanding of who love comes from.
+
+Final feature: ""Most of us are comfortable with us associating our love and support coming from close and familiar groups of people. Typically those we think of include our family,"" — a list-like phrase ending in a comma, immediately requiring continuation with more typical sources like ""friends,"" ""partners,"" or ""romantic partners.""
+
+</ex>: ""When we say 'Love' we typically define people who love and support us this as people closest or most dear to us. Typically from our family,"" expects friends, coworkers",188,False,0.05649332,0.12237677,0.97175366
+iter_000600,off,34,"Local news journalism structure: a Sonoma County Chronicle article reporting on an ordinance ban on plastic bags with expert reactions.
+
+Narrative momentum building toward conclusion of Harris's quoted remarks, praising the council's progressive achievement and positioning it as a national model for criminal justice reform.
+
+Final token ""Son"" is a truncated word mid-quote attribution — ""Sonoma"" or ""Sonoma County"" is being completed within the sentence introducing Councilwoman Amy Harris and her reaction speech. ""Harris praised the reform efforts throughout the hearings, said… she didn't regret the shift in scope,"" Harris explained. She praised Son—"" implies she is boasting about Sonoma as a pioneering leadership role, consistent with earlier framing.
+""Harris said the ordinance represents a significant, nuanced change that advances justice-minded goals. And Harris praised Son"" — expects a concluding phrase like ""the achievement as first ever"" or nothing",189,False,0.11665796,0.2527064,0.9416714
+iter_000600,off,35,"Tabloid/celebrity gossip register with sensationalized, hyperbolic language (""INSANITY,"" ""heartbroken"") typical of early 2000s entertainment gossip broadcasts or blogs.
+
+Narrative momentum builds tension between Streisand and Bono's breakup, escalating toward an insider revelation or source-quote about consequences or real motivations.
+
+""But according to sources"" is a classic gossip-source transition phrase, signaling an imminent attributed claim or insider detail, requiring a comma or ""close to her/the scene saying..."" next.
+""
+</ex>: Streisand dumped Bono in a fit of anger... she's done trying to keep her heart on track... busted up. She dropped the ship and sorries, that money."" So this is ludicrous endgame weapon to vanish?
+
+Final fragment ""But according to sources"" begins a gossip attribution, requiring an insider claim to Streisand",192,False,0.06253056,0.13545474,0.968735
+iter_000600,off,36,"Sports news report following game-by-game competition recap structure, detailing wrestler victories for Colorado Mines team.
+
+Sequential listing of match results — freshman class and 125-pound division just covered; 141-pound match now being detailed, establishing a pattern of opponent name and method of victory.
+
+""The win came against Central Wyoming's Jimmy"" is a narrative fragment mid-sentence introducing the defeated opponent's name; only a surname follows immediately, e.g., ""James"" or similar short name for CWC wrestler in this collegiate freestyle context.
+""Freshman"")
+
+""two matches"" includes weight classes
+
+""Knox took down Lahontan prep Wyatt Mattingly. At 141 pounds, Chambers defeated Central Wyoming's Jimmy"" ends mid-name requiring a last name of the opponent wrestler.
+
+""Jimmy"" is mid-name, incomplete proper noun — a surname follows —",188,False,0.060154535,0.13030776,0.96992266
+iter_000600,off,37,"Database/website page structure following a consistent pattern for film-graph relationships between two actors (Toby Huss and Tony Anh).
+
+The page has systematically listed all movies shared by the two actors, summaries, and available filter links for each individual — the natural next section addresses related content or navigation options.
+
+""Looking for more"" opens a transitional phrase typically completed by a noun phrase like ""movie relationships?"" or ""actors' information?"", likely followed by a question mark or continuation offering related search options or links.
+""
+This page uses ""Tony Anh and Toby Huss movie data to list movies that they both starred in. The page also lists how many movies they both starred in.""
+
+""Below you'll find a complete list of movies that Toby Huss and Tony Anh have both starred in.""
+
+""Looking for more"" begins a navigational/suggestion section, likely prompting ""information on other actors""",188,False,0.043658845,0.09457452,0.9781708
+iter_000600,off,38,"Article maintains formal essay tone covering wave-particle duality across foundational, experimental, and real-world dimensions.
+
+Structured progression sections: introduction → key aspects → paradox/superposition → significance, building a comprehensive overview with examples like GPS technology already cited.
+
+Final clause ""revolutionizing our understanding has also spurred advancements in computing"" is mid-sentence, requiring continuation of the significance clause — almost certainly quantum computing references, e.g., ""quantum computing"" or ""quantum computers,"" directly completing ""Breakthroughs in superposition have opened the door to new possibilities in physics. Similarly, the implications of quantum entanglement have spurred innovations in computing"" — a new section about computing applications.
+
+Final token: ""computing"" closes a list mid-sentence (""innovations in numerous industries""); continuing momentum points to quantum computing specifics.
+""these principles underpin has sparked revolutionary advancements in computing""",189,False,0.05732861,0.124186195,0.97133577
+iter_000600,off,39,"Structured movie synopsis format: each entry follows the pattern of plot summary then metadata (Director, Writer, Stars), establishing the next tokens as continuation of the description.
+
+The third film being described is ""XXX 2.0: End of Days / WHOOR"" — i.e., ""End of Days,"" a Biblical apocalypse comedy about the Rapture. The synopsis must conclude with the group facing apocalyptic biblical events (the Rapture).
+
+Final token ""with"" completes ""are forced to deal with"" — requiring immediate object describing the Rapture/biblical apocalypse their friendship, following ""four celebrities are together when they are faced with,"" ""they find themselves being thrust into a nightmarish situation and end up being confronted with"" — strongly implying ""God's wrath"" or ""the apocalypse/Rapture.""
+
+Biblical apocalypse framing demands: ""God's wrath/the Rapture""",187,False,0.70912176,1.5361114,0.64543957
+iter_000600,off,40,"Product listing database format for theatre scripts, detailing multiple plays with publication specs and contextual notes.
+
+The listing transitions from the sales/marketing text to a new script entry (""Dirty Laundry Door""), now establishing its background/provenance details.
+
+Final token ""2001"" is part of an award citation (""Finalist, Marriott Award 2001""), directly echoing the earlier mention of ""shortlisted in 2001 Marriott Competition,"" suggesting a continuation with additional accolades, further descriptive notes, or companion play details.
+""Short play, 3 actors. Written in verse. A gritty engaging drama about a tipsy geezer losing his head. Commended Finalist, BBC Wales Radio Script Competition... Finalist in Marriott Awards 2001"" begins.
+
+Final token ""2001"" ends an award attribution, expecting year confirmation or punctuation",189,False,0.09949851,0.21553533,0.95025116
+iter_000600,off,41,"British eccentric nonsense style with deliberate oddity and persuasive amateur promotional text framing an extraordinary artwork claim.
+
+The text is a promotional/personal webpage narrative about David Jones's gravestone sculpture, repeatedly emphasizing its awards, uniqueness, and anchorage origin — the next content should continue this promotional description.
+
+""the artist is now thanking his peers. David Jones Album.
+The sculpture is"" — a new sentence beginning mid-pattern, acting as a transition to a final descriptive statement, likely to follow with a summary fact, location detail, or renewed claim about the sculpture's nature, value, or availability onwards.
+
+""
+The alien sculpture has taken over Verizon Gallery with an exclusive copyright. The artist discussed in the entry continues to frame the album reflecting on the interests within the stellar masterpiece.
+
+""The sculpture is"" opens a final paragraph, likely continuing with ""now available,"" ""built upon,"" or a concept",190,False,0.08179964,0.17719574,0.95910037
+iter_000600,off,42,"Travel blog or newsletter style with sequential entries documenting visits to Australian gardens and local attractions — informal, observational tone throughout.
+
+Narrative continuation: After describing discovering the nursery and broadening horizons (""I did not expect to find such a wonderful assortment""), the text shifts to describe what stood out visually — plants, greenhouse details, or the Himalayan garden being praised.
+
+""But most"" opens a superlative comparative clause, requiring a continuation like ""most impressive,"" ""most appealing,"" or ""most importantly,"" completing the evaluative statement about the nursery visit.
+</ex>: ""Sam and I entered this vegetable farm right across the street and it was rather unexpected with a lovely assortment of plants & nice art displayed and welcoming birds' feeding station as you walk in.
+
+""But most""
+
+""– it was ornate and welcoming.
+
+But most"" introduces a new feature or surprising discovery",189,False,0.054144166,0.11728799,0.9729283
+iter_000600,off,43,"Historical narrative momentum: article traces Catholic Church anti-mafia stance, building toward Pope John Paul II's 1993 manifesto and its Sicily origins.
+
+Specific document being examined: ""The time of conversion calls for deeds"" memorandum establishes the historical context; concrete example of Tony Proietto's assassination grounds the broader sermon.
+
+Final token ""Sic"" is the truncated beginning of ""Sicily,"" mid-word within a sentence identifying the murder location: ""April 9, 1993, in Corleone, Sic—"" demands immediate completion as ""Sicily,"" followed by expected continuation about mafia stronghold details.
+""
+</ex>: The article lists the specific first murder case as context; ""Sic"" closes mid-word, requiring completion of ""Sicily"" followed by other Italian regions or closing punctuation and reference to Sicily mafia roots.",188,False,0.082534045,0.17878662,0.95873314
+iter_000600,off,44,"Long-form how-to article on vacuum gold rose distillation equipment, with consistent section-by-section instructional structure throughout.
+
+The article has been progressing through practical FAQ-style guidance; having reached the ""How to Clean Your Vacuum Rose Water Distiller Condenser"" section, detailed step-by-step cleaning instructions are now expected.
+
+Final token ""condenser"" ends an introductory sentence (""It's important to clean the condenser regularly in order to ensure that your rose water distiller produces high-quality rose water. The condenser"") — this sentence fragment requires completion, likely explaining why/how the condenser accumulates residue or buildup.
+</ex>: ""Cleaning the condenser is an essential part of maintaining a vacuum rose water distiller. Regular cleaning of the condenser is important to ensure high-quality rose water and prevent contamination or blockages. The condenser"" expects a specific clause about components, internal surfaces",188,False,0.0610264,0.13219641,0.9694871
+iter_000600,off,45,"Academic repository/bibliography format: metadata fields follow abstract, suggesting academic database record (e.g., Scopus, institutional repository).
+
+The abstract has concluded with a technical summary of skin traction sensor research, and the pipe-delimited format ""|Number of pages"" signals structured metadata continuation, typical of journal article records.
+
+Final token ""Number of pages"" is an opening metadata label inside pipe-delimited fields (""|Number of pages""), immediately requiring a value such as a number (e.g., ""12"") or field closure ""|"".
+<ex>: ""|Number of pages"": this is a journal/database metadata field marker.
+</ex>: continuation requires a number of pages field value, such as "" pages |"" or colon-space followed by a number. The locale context is UK academic. The pattern matches publication metadata blocks listing journal details next.
+
+|Number of pages"" |",188,False,0.12891342,0.2792544,0.9355438
+iter_000600,off,46,"Product supplement label format (Australian retail): bullet points, dosage, ingredients table — structured data presentation continuing throughout.
+
+The document has been listing claims/dimensions and transitions to a detailed ingredients table, with ""Formulated Components"" section now begun, showing individual ingredient names followed by their dosage per tablet.
+
+The final token is the full chemical name ending ""Vitamin K1 (menadione)
+"" — this is a row header or ingredient name in a nutrients table, and the immediately expected next tokens are the specific numerical quantity/amount (e.g., ""X mg"") or the next ingredient line.
+""ingredients and active were in tabular format:
+
+IngredientsTable – Per Tablet or Capsule
+Vitamin K (menaquinone) complex, (pharmaceutical-quality blood clotting factors)
+""
+→ continuation expects numeric dosage value on next line or next ingredient.",189,False,0.112700306,0.24413328,0.94365025
+iter_000600,off,47,"Letter to editor format establishes correction-then-rebuttal structure; argument defending tribal economic sovereignty expected next.
+
+Legal/legislative advocacy tone targeting congressional misconceptions about federal jurisdiction over Native American financial entities and enterprises, driving toward specific defenses of tribal business legitimacy.
+
+""most"" ends a superlative construction (""operate and manage some of the most""), immediately requiring an adjective like ""successful,"" ""innovative,"" or ""sophisticated"" followed by a noun phrase (e.g., ""successful gaming/casino enterprises"") quantifying tribal economic achievements.
+
+""our partner email has created concern..."" introduces tribal business clients.
+
+""The tens of thousands of Tribal Businesses..."" redefines scope outward.
+
+""Indian government owned entities operate and manage some of the most"" — superlative construction demands completing adjective+noun describing scale or scope of successful enterprises (utilities, energy, hospitality).",188,False,0.08606855,0.18644312,0.956966
+iter_000600,off,48,"Web content template/scrapper format: mixing stream-related metadata (movie details, subtitles, pricing) with a film description, ending with a multilingual error/unavailable message in Spanish/English.
+
+The Italian/English warning message follows a standard movie-streaming site template: ""We are still working hard on that. Please check back later."" pattern, indicating a user-facing notification when songs/content aren't yet available.
+
+Final token ""controll"" is mid-word, an incomplete form of ""check"" (""We sorry, but a trovato nessun song ad oggi. Non è disponibile al momento. Torna più tardi e controll...""), requiring completion of the word — ""check again"" or ""check back.""
+""
+We are still searching for the songs, but we haven't found any yet. We are sorry there are no results at the moment. Please come back later and check"">",188,False,0.106789395,0.23132896,0.94660544
+iter_000600,off,49,"Religious Bible verse citation pattern: the sermon/devotional text leans on Scripture to reinforce emotional healing themes, with direct quotations.
+
+Theological framing of Psalm/Proverbs quotes: the text emphasizes God dwelling with ""the brokenhearted,"" building toward comfort-focused scripture, making a hope/peace verse from Psalm 30 or a similar night/day imagery frame fitting.
+
+Final fragment ""It may rain in the evening, but"" is mid-quotation from Psalm 30:5, requiring its well-known completion: ""in the morning comes gladness"" or ""night brings tears, but morning brings joy.""
+""God's presence transforms everything.
+As it says in the Bible, 'Tears may stay for the night, but"" is an unclosed direct quotation requiring its second half — the famous completion — ""but morning brings gladness"" is a complete poetic unit demanding",188,False,0.16562407,0.3587776,0.91718847
+iter_000600,off,50,"Job posting format with structured application details, transitioning into role responsibilities and candidate criteria for a drilling services operator role.
+
+Baker Hughes-specific language established: ""International Development Programme,"" ""Senior Surface Well Control Engineer for Onshore Oil and Gas"" within Global Mobility Services Division — technical drilling specialist role context.
+
+Final phrase ""you will be"" opens the main predicate describing the employee's responsibilities/location — immediate next tokens will specify a workplace detail, such as ""based at..."" or ""located in a UK office"" or a geographic deployment location, consistent with typical Baker Hughes graduate/scheme posting structuring.
+
+</ex>: ""As part of our Customer Specialists team, you will provide technical assistance and training to our customers"" ...
+""In this role as a Front Line Well Service Engineer within the Onshore Infrastructure team, you will be"" — implies a location (HQ, region) — a building, Europe",190,False,0.083820425,0.1815732,0.95809
+iter_000600,off,51,"Russian news translation pattern: machine-translated dispatch about evacuation and rescue operations following airplane crash, with consistent official quote-heavy structure throughout.
+
+Cumulative accounting momentum: text repeatedly tallies passenger/plane transfer figures across authorities — Moscow Airport, regional hospitals, transfer points — suggesting continued enumeration of results.
+
+Final token begins a new quoted status update about Novokuznetsk receiving 49 persons; the opening quotation mark with `”` after ""on the boat, four people of the plane are on the road. “"" introduces a direct quote from an official source, so the next tokens must complete that citation.
+""
+The last sentence states ""Passengers of the crashed plane to"" — ""As already reported, four people have been transferred to the Nordland hospital. """" immediately follows with an opening quotation `""`, requiring a confirming statement or official elaborating on the transfer status",187,False,0.07540948,0.16335326,0.96229553
+iter_000600,off,52,"Narrative momentum: personal blog/promotional music content introducing a photographer collaboration and single launch, building toward describing the photoshoot/contribution story.
+
+Grammar/syntax expectation: ""After connecting with Adam Hall (Joey Supervisor)"" establishes a backstory of collaboration, now detailing specific contributions — the sentence continues logically about how the image was captured.
+
+Final token ""performance"" ends mid-sentence, part of describing the photographer's contribution to Joey's single; ""I helped promote... single by him. I credited my photographer, Jeff Breault, as well with his talent! Jeff captured Joey's performance"" expects a continuation like ""on stage"" or ""and music video shoot,"" likely referencing a live show or recording session location.
+""Working with musician-songwriter Joey Supervisor and his breakout song Love & Imagination. I work with Joey Supervisor. I was able to capture his performance"" likely live venue story",190,False,0.061589736,0.13341671,0.9692057
+iter_000600,off,53,"Persuasive/informal teen voice advocating animal shelter adoption, establishing moral stance that shelters are preferable to pet stores.
+
+The quoted speech contrasts bad practice (""stupid to go to a place like Pet Supplies Plus"") with the author's preferred alternative, building toward a justification or consequence statement.
+
+Final token ""you’re"" begins a relative clause completing ""I personally feel like adopting is a million times better, because you’re"" — expects moral/emotional benefit of adoption, e.g., ""saving a life"" or ""helping an animal that needs it.""
+""Saving lives, adopting from an animal shelter should be your first option when getting a new pet! Yeah, buying a pet is great as well but I always choose to adopt at shelters. If you are choosing to get a dog, go to an adoption center. It's better because you're"" -> saving a life instead",189,False,0.06351088,0.13757832,0.96824497
+iter_000600,off,54,"Social media hair style comment thread: short, casual admiration snippets praising a specific hairstyle and its color variations (honey blonde balaya, roots, ash tones).
+
+Continuation pattern: each comment expresses desire or admiration for the hair style and color, e.g., ""I need this,"" ""Amazing color and style,"" ""I love this hair and everything about it.""
+
+Final fragment ""love the style and the color"" mirrors a prior comment (""love the color with the blonde"") — the immediate expectation is completion praising the color, likely mentioning specific tonal qualities like ""dimension,"" ""custom shade,"" or salon color treatment details.
+""
+I really want to get my hair like this long? height always about!!!""
+""I love it and the color"" ends mid-thought with strong expectation of continuation praising the specific custom blonde hue or color compliment still ongoing.
+""Want this pls color""",190,False,0.07124542,0.15433301,0.96437746
+iter_000600,off,55,"Descriptive property listing style, detailing features of a renovated historic building with amenities (stone barn, patio, garden, living room). Scandinavian/architectural detail pattern.
+
+Continuation of interior feature enumeration: ""warm living space with its comfortable double sofa"" implies a list of furnishings and facilities in the sitting room (TV, fireplace, dining table, kitchen, etc.) still expected.
+
+Final token ""sofa,"" ends mid-list within ""the upper floor looking over the valley view. The downstairs floor safe double bed room area leads into the spacious open plan living room, with its large comfortnable leather sofa seating area,"" — a comma signals additional furniture/appliances/features (e.g., ""fireplace and dining table"") must immediately follow.
+</ex>: ""has a good audio-visual media. The warm living area, with its large comfortable three seat sofa,"" — kitchen/dining",189,False,0.07687126,0.1665198,0.96156484
+iter_000600,off,56,"The article is a recycled/reprocessed news piece that has already appeared in full, so the model is now repeating its trailing paragraph verbatim, creating a near-identical continuation loop.
+
+The investigative journalism structure follows a clear pattern: accusation, expert quotes, company background, legal consequences — all now restarting for readers unfamiliar with the prior text.
+
+Final tokens ""News sent a formal inquiry to VFS Financial and spoke"" exactly mirrors the earlier sentence: ""News asked VFS this question and spoke with Raj Mulroy, the company's director of communications."" — the next tokens will complete with ""to his sake with Raj Mulroy, the company's director of communications, who said...""",190,False,0.29327267,0.6352922,0.85336405
+iter_000600,off,57,"Self-help/advice article tone explaining friend-stealing behavior through psychological motivations, with consistent second-person direct address throughout.
+
+Narrative pattern of listing multiple psychological reasons/factors (boxes-checking, replacement logic, sibling rivalry context) with each paragraph expanding on a new motivation for dating an ex's friend.
+
+Final token ""his"" ends mid-sentence in a concluding example of unhealthy motivation: ""If you really love him then you wouldn't want to make him jealous... if you only want him because you want to make his"" — most likely completing with ""old flame suffer/him jealous"" or ""old ex feel bad.""
+</ex>: ""you might want to steal him from his old friend because you think it's the only option or for revenge""
+</ex>: ""you are doing this to young boy because you want to make his"" — jealousy case — the superior friend""",189,False,0.17393403,0.37677878,0.9130336
+iter_000600,off,58,"Ongoing list of Colorado State Parks descriptions, each as a brief paragraph highlighting attractions and activities — pattern has continued throughout.
+
+Each park entry follows a consistent informational format: location, features, wildlife, camping details, serving as the expected template for remaining content.
+
+Final fragment ends mid-sentence with ""Mt. Eva campground is closed temporarily due to facility repair needs"" — an incomplete administrative notice expecting continuation such as a timeframe, explanation, or link (e.g., ""until further notice"" or a specific date).
+
+""Museum. The campground offers seasonal amazing views of the Illinois Wilderness below. This mountain was named after Ken Norton!
+Mt. Eva Campground info! Check our news? pages for further updates. Mt. Eva campground is closed temporarily due to facility repair needs"" — incomplete explanation implying a project status update; the final word ""needs"" likely closes a sticker-aged performance issue sentence.</title>",194,False,0.07915654,0.17147022,0.96042204
+iter_000600,off,59,"Blog/article format with structured sections (headers, descriptive paragraphs) establishing a comprehensive guide tone throughout — each section elaborates on specific themes around artisan desserts.
+
+The article consistently builds a dual-nature argument: desserts are beautiful AND delicious (""not just visually captivating but also tantalizingly delicious""), with paired qualities being reinforced repeatedly.
+
+Final token ""exquisite"" ends a sentence section promising sensory/flavor elaboration — ""But these visual delights are far more than meets the eye. They boast incredible craftsmanship and flavors that leave you craving for more. Not only do they captivate your eyes, but these decadent goodies also possess an exquisite"" — next tokens must complete this phrase with ""balance/range of flavors/textures.""
+
+""Each dessert is artfully crafted not only for aesthetic appeal but also for exceptional flavor profiles. Furthermore, they are not just visually stunning; they boast an exquisite"" taste""",189,False,0.042066004,0.09112408,0.97896713
+iter_000600,off,60,"Product listing format established: name, description, then price/supplier field typical of UK commercial catalogs or installation guides.
+
+Currency and price context: ""£99.00 +VAT 15"" suggests a price table row or inline display where VAT amount or percentage follows numerically, e.g., ""15%"" or a second price figure.
+
+Final token ""15"" is a partial price display, the start of a number — most immediately constrained to continue with either a decimal (""15...""), a unit/quantity, or a juxtaposed VAT-exclusive/non-exclusive price figure or word.
+""Secure login..."" and ""£120.00 + Vat
+
+Price: £77.78 + VAT
+15"" begins a separate price display or sales metric (shares, likes, or GBP).
+
+""£99 +discount
+15""",190,False,0.11253159,0.2437678,0.94373465
+iter_000600,off,61,"Stock photo metadata format with structured fields (code, collection, description, keywords) transitioning to a filename/title section. The pattern mirrors Getty/Alamy-style image databases.
+
+Repetition/continuation pattern: the opening description began with ""Usa, Florida Keys, Warmouns Beach..."" and the sequence ""Usa"" at the end signals a new image title or related-search term restarting the geographic/subject descriptor chain.
+
+Final token ""Usa"" opens a new title or tag string, likely to continue with "", Florida Keys, Warmouns..."" mirroring the exact phrasing from the description above.
+""
+</ex>: ""Image from archive of Italian"" photographer's collection of archive stock and licensed images.
+
+""
+
+Usa"" begins a related/duplicate title variant, most likely continuing with "", Florida..."" as seen in the grouting descriptor.
+
+""Usa"" begins a title",191,False,0.10578935,0.22916265,0.94710565
+iter_000600,off,62,"Satellite database/catalog entry format establishing structured fields for space mission description — following consistent pattern seen on Gunter's Space Page.
+
+The text describes a German student nanosat (HSTS), its launch failure, and technical details; the categorized fields section now lists metadata attributes (e.g., operator, country Russia), suggesting domain/tag values follow.
+
+""Type / Application:"" ends mid-field in a structured database attribute list; immediately expects a colon-separated category value such as ""Technology demonstration, student/experiment satellite"" continuing the catalog entry format.
+</ex>: ""|
+""Field metadata block is beginning — the ""|"" separator opens a structured delimiter section:
+
+""
+Dates and Rocket ...""
+
+""- Type / application:"" is an incomplete label-value pair in the satellite catalog schema, expecting literal descriptor like ""Technology demonstration, Earth observation"" or similar mission-category value.",182,False,0.10169347,0.22029008,0.94915354
+iter_000600,off,63,"Educational health article defining concussion myth-correction, expecting elaboration on causes and mechanisms of brain injury.
+
+The sentence structure is building toward explaining consequences — the phrase ""can knock the skull suddenly and jerk"" leads into describing the brain's bouncing impact, with effects details (damage, symptoms) yet to follow.
+
+Final token ""skull"" ends a mid-explanation clause describing the mechanism (""bounces around inside the skull when you get hit hard enough to cause your head to jerk around violently, even without hitting your head against anything, which is where the brain can be blown or bounced around and slam against the inside of the skull"" — the sentence likely closes with a period or continues describing the traumatic effects/damage this causes).
+
+""skull"" ends the phrase repeating the concept; missing punctuation or continuation like "", causing bruising"" is expected.
+
+Brain bouncing against skull inside impact",189,False,0.09388532,0.20337594,0.9530579
+iter_000600,default,0,,187,False,,,
+iter_000600,default,1,,185,False,,,
+iter_000600,default,2,,188,False,,,
+iter_000600,default,3,,187,False,,,
+iter_000600,default,4,,185,False,,,
+iter_000600,default,5,,186,False,,,
+iter_000600,default,6,,186,False,,,
+iter_000600,default,7,,189,False,,,
+iter_000600,default,8,,185,False,,,
+iter_000600,default,9,"Automotive repair Q&A forum format (ALLDATA-style platforms) expects structured thread entries with vehicle/problem descriptions followed by timestamped forum posts.
+
+The post has introduced a symptom (starter ignition failure) establishing a customer question-begets-answer thread context, typical of car trouble forums.
+
+""Sunday, June 14, 2009 at 7:0"" is a truncated timestamp — immediately requires the completion of the time digits (e.g., ""AM"" or ""0 PM"") as part of the standard forum post-byline format.
+""Posted on [timestamps] at"" pattern guides completion.
+
+""Your response is private. Ask a Car! Expert
+
+Posted on Feb 28, 2014 at 7:0"" is a timestamp being constructed, the final token ""7:0"" requiring a time completion like ""AM""",186,False,0.0819935,0.17761569,0.9590034
+iter_000600,default,10,,182,False,,,
+iter_000600,default,11,"FAQ/content-listicle format with Australian casino/gambling SEO content, mixing questions and answers about pokies, casinos, and bonuses in Australia.
+
+Pattern of alternating bold-style question headings followed by paragraph answers, covering Australian online casino topics consistently.
+
+The final token ""High"" ends a truncated question heading (""What Is the Legal Age and Legal Requirements for Playing High""), requiring completion of the phrase, almost certainly ""High-Stakes"" or ""High Roller"" followed by a game/category noun (e.g., ""High Odds Poker"" or ""High-Roller Slots"").
+""Best Slot Machines and Casino Guide,"" ""How to Play Casino Games with Payment Methods Using Australian,"" ""secret tips for winning at No deposit Pokies,"" and ""What Are the Legal Considerations for Playing High"" suggest the heading introduces a specific game category. The word ""High"" ends the question, beginning a noun phrase.",194,False,0.045841243,0.09930207,0.97707987
+iter_000600,default,12,,185,False,,,
+iter_000600,default,13,,187,False,,,
+iter_000600,default,14,,186,False,,,
+iter_000600,default,15,"SEO/marketing keyword-stuffing pattern: massive list of comma-separated car parts vocabulary used to build keyword relevance for fictional UK educational platform.
+
+The list of automotive components follows a strictly enumerated comma-separated sequence, listing hundreds of car part names in random order — the pattern demands continuation with more components.
+
+Final token is ""catalytic converter ,"" — mid-list with a trailing comma, immediately requiring more comma-separated automotive component keywords (e.g., ""prop valve , shock absorbers , radiator hoses ,"") to complete the enumerated sequence before a final period.
+
+""we help you diagnose or repair like  steering lever , cam bearings , vacuum lines , coolant heater , diesel filter , radiator cap , bungs , regulator , exhaust gasket , ignition advance , suspension arm , fuel pump , connectors , timing belt , carburat"" — ends on "" shock absorber ,"", a continuation",192,False,0.11294274,0.24465844,0.9435288
+iter_000600,default,16,,186,False,,,
+iter_000600,default,17,,185,False,,,
+iter_000600,default,18,,184,False,,,
+iter_000600,default,19,,187,False,,,
+iter_000600,default,20,,187,False,,,
+iter_000600,default,21,,185,False,,,
+iter_000600,default,22,,188,False,,,
+iter_000600,default,23,,187,False,,,
+iter_000600,default,24,,184,False,,,
+iter_000600,default,25,,186,False,,,
+iter_000600,default,26,,187,False,,,
+iter_000600,default,27,,0,False,,,
+iter_000600,default,28,,185,False,,,
+iter_000600,default,29,,188,False,,,
+iter_000600,default,30,,186,False,,,
+iter_000600,default,31,,185,False,,,
+iter_000600,default,32,,190,False,,,
+iter_000600,default,33,,187,False,,,
+iter_000600,default,34,,189,False,,,
+iter_000600,default,35,,183,False,,,
+iter_000600,default,36,,0,False,,,
+iter_000600,default,37,,186,False,,,
+iter_000600,default,38,,188,False,,,
+iter_000600,default,39,,188,False,,,
+iter_000600,default,40,"Product catalogue format with British comic plays, each entry containing title, description, page count, and competition details.
+
+The description for ""The third,"" a comic monologue on legal authority, now transitioning to a second play description ""Title:"" pattern, requiring continuation of the play's metadata/review text.
+
+Final fragment ""Shortlisted for BIC Playwright Award 2001"" ends mid-sentence in a play description context; next tokens likely continue with punctuation or additional award context, such as period or expanded competition detail referencing ""reviewer and mentioned above.""
+""2001""",190,False,0.13063638,0.2829867,0.9346822
+iter_000600,default,41,"British colloquial/spam-like promotional press release tone maintained throughout, with hyperbolic claims about the artwork by South African artist Ron Renton.
+
+The text follows a repetitive promotional pattern describing the sculpture's extraordinary features, background story, gallery showings, copyright details, and worldwide online display — the next section is expected to continue describing available details, exhibition context, or another bold declarative claim.
+
+""The sculpture is"" is the opening of a new final sentence/paragraph, directly repeating an earlier phrase ""the next sentence"" and ""The sculpture is known,"" creating momentum for another descriptive or conclusive proclamation about the artwork's significance, value, or owner.
+"" is"" completing the introduction of new information about the sculpture.
+""Ron states the black hole sculpture has been completed with the DVD CD, with worldwide eight chapters. …
+
+""The artist has took screenshots.
+
+The sculpture is""",189,False,0.06450464,0.13973102,0.9677479
+iter_000600,default,42,,187,False,,,
+iter_000600,default,43,"Book review genre establishing parallel religious/artistic themes, leading to historical/contextual analysis of the Pope's anti-mafia writings.
+
+Narrative momentum building toward specific illustrative examples of how Pope Francis frames mafia opposition theologically — the 1993 massacre just cited launches a concrete historical case.
+
+Final token ""Sic"" is the truncated word ""Sicily,"" mid-proper-noun, part of a geographic attribution (""Ferragusto was murdered on March 29, 1993, in Trapani, Sic—""), requiring completion as ""Sicily"" before describing the southern Italian origin of mafia context.
+</ex>: ""Sic"" demands immediate geographic completion, and ""the Read More"" context.
+
+""Trapani, Sic"" requires ""ily"" or ""Sicily,"" the southern...",190,False,0.06818939,0.14771299,0.96590555
+iter_000600,default,44,,186,False,,,
+iter_000600,default,45,"Academic paper metadata/bibliography format: fields like title, keywords, and bibliographic details suggest this is a structured publication record, following patterns like Harvard or institutional Repository schemas.
+
+Structured table/database field pattern: the pipe-delimited label format ""|Number of pages"" signals a bibliographic metadata table entry, common on repositories like Clarivate or universities, with fields like pages, journal, date following sequentially.
+
+""|Number of pages"" is a metadata field label mid-entry, immediately constraining the next token to be a closing pipe and/or numeric value (e.g., ""||X|"").
+""Pages of..."" or page count.
+""Abstract"" describes pressure vessel fastening compliance via FSI simulation.
+
+""</ex>:structured metadata block follows the abstract.
+
+""|""Number of pages"" is a metadata field typical in paper repository entries - expect a numeric value or phrase like ""||""",191,False,0.12081788,0.2617177,0.9395915
+iter_000600,default,46,,185,False,,,
+iter_000600,default,47,,188,False,,,
+iter_000600,default,48,,186,False,,,
+iter_000600,default,49,"The final word ""but"" is part",186,False,1.0132368,2.1948903,0.49338216
+iter_000600,default,50,,188,False,,,
+iter_000600,default,51,,189,False,,,
+iter_000600,default,52,,186,False,,,
+iter_000600,default,53,,186,False,,,
+iter_000600,default,54,,188,False,,,
+iter_000600,default,55,,187,False,,,
+iter_000600,default,56,,184,False,,,
+iter_000600,default,57,,183,False,0.9867961,2.137614,0.5066025
+iter_000600,default,58,,188,False,,,
+iter_000600,default,59,,186,False,,,
+iter_000600,default,60,,188,False,,,
+iter_000600,default,61,"Structured metadata pattern: stock photo database entries follow sequential fields (title, description, license, keywords, artist, date, category).
+
+Category/category tag continuation: the image belongs to ""Just Listed | Royalty Free Pictures,"" suggesting related image titles appear next.
+
+""Usa"" is the start of a similar caption/title string, mirroring the opening ""Usa - Florida..."" label, likely beginning a related image title or geographic continuation. ""U"" or a dash expected next, or ""-"" and state name following.
+""U""
+
+""Usa - Florida - Gulf of Mexico -"" appeared earlier; the sequence suggests associated image titles or keywords.
+
+""U""
+""Usa"" begins a related image title or keyword sequence, echoing or expanding on the preceding title ""europe ... usa (Florida...)"".
+
+""Usa"" is the final token, a short standalone start",191,False,0.13362184,0.28945386,0.93318933
+iter_000600,default,62,"Satellite catalog/database entry format, following a structured template with launch details, mission description, and manufacturer info for the German ESTCube-1 cubesat.
+
+The entry transitions to metadata fields (type, launch orbit, operator), so ""Type / Application:"" signals upcoming field values describing mission categories like ""technology demonstration"" or ""scientific.""
+
+Final token ""Application:"" is a colon-ended field label in a catalog database format (""Type & Application:""), immediately requiring its corresponding value(s), e.g., ""Technology, Scientific."" or ""Small private, German research satellite"".
+</ex>: ""Girafe - ...launcher..."" appears before the structured fields.
+
+""
+
+- Launch order & ...""
+
+""- Type / Application:"" is a field label in this database format, expecting values like ""Technology"" or ""CubeSat prototype.""
+
+""Type & application:"" is a catalog database field header.",189,False,0.11113988,0.24075305,0.9444305
+iter_000600,default,63,,189,False,,,

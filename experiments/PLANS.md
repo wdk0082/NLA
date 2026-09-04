@@ -119,36 +119,51 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 ## Setup
 
-- **Hardware** one H200 (141 GB HBM); no TPU, no torch_xla. The model layer is plain HF
-  transformers on CUDA with forward hooks (the static-shape Qwen2 code of EXP001 is not
-  used); generation through HF `generate` with the LoRA adapter loaded via peft.
+- **Hardware** one H200 (141 GB HBM) on a Lightning studio; no TPU, no torch_xla. The model
+  layer is plain HF transformers on CUDA with forward hooks (`src/nla/hfnla.py`; the
+  static-shape Qwen2 code of EXP001 is not used); generation through HF `generate` with the
+  LoRA adapter loaded via peft. Right-padded batches (left padding would feed the DeltaNet
+  recurrences leading pads).
 - **Target model** `Qwen/Qwen3.6-27B`, text part only (`model_type qwen3_5`: 64 blocks,
   48 gated-DeltaNet linear-attention + 16 full-attention, d = 5120, vocab 248 320). The HF
-  repo is a multimodal wrapper; load the language model (EasyNLA's `arch_adapters` shows
-  how). 54 GB bf16. Needs the `flash-linear-attention` kernels for the DeltaNet blocks.
+  repo is a multimodal wrapper; `Qwen3_5ForCausalLM` loads its language model directly
+  (transformers maps the `model.language_model.*` keys and drops the vision tower and the MTP
+  head; no missing or unexpected weights). 54 GB bf16; `flash-linear-attention` kernels for
+  the DeltaNet blocks (short conv on the torch fallback).
 - **NLA** `ceselder/qwen3.6-27b-nla-rl` (built with EasyNLA, MATS, 2026-07):
-  - extraction after block 42 (⌊2·64/3⌋), raw activations, `norm: none`;
-  - AV = `av_base/` (base with the warm-start LoRA merged, 54 GB) + one RL adapter from
-    `av_rl_adapters/iter_000{100..800}` (r64 rsLoRA, 1.9 GB). Default `iter_000300` (the
-    author's suggestion); the first round also measures `iter_000800` (highest held-out
-    FVE, 0.78, and the adapter the released AR was co-trained with last);
-  - AR = `ar_reconstructor/` (43 blocks + `value_head` 5120×5120, 35 GB), critic template
-    `Summary of the following text: <text>{explanation}</text> <summary>`, value read at the
-    last token; `critic_suffix_ids` is null, so verify the suffix ourselves once;
-  - injection is **not** the EXP001 embedding replacement: EasyNLA's Karvonen hook ADDS
-    the norm-matched vector to the residual stream at the marker position on the output
-    of the second block (`model.layers[1]`), `h′_p = h_p + ‖h_p‖·v/‖v‖`, marker `㈜`
-    (id 158983, neighbours 29 / 510), prompt template as in `nla_meta.yaml`, chat template
-    applied with `enable_thinking=False`;
+  - extraction after block 42 (⌊2·64/3⌋), raw activations, `norm: none`; the shipped
+    `nla_meta.yaml` is an EasyNLA *dataset* sidecar (marker `㈜` id 158983, neighbours 29 /
+    510, actor / critic templates); `mse_scale` absent → sqrt(d) (EasyNLA default);
+  - AV = `av_base/` (base with the warm-start LoRA merged, 54 GB, a text-only
+    `Qwen3_5ForCausalLM`) + one RL adapter from `av_rl_adapters/iter_000{100..800}` (r64
+    rsLoRA on attention, MLP and DeltaNet projections, 992 tensors, 1.9 GB). Default
+    `iter_000300` (the author's suggestion, held-out FVE 0.756). The shipped AR was saved at
+    RL step 600 (`saved_at_step.txt`), so `iter_000600` is the adapter it was co-trained with
+    last; the author's held-out log ends at step 599 (last-5 mean 0.770, best 0.777 at 540);
+    adapters 700 / 800 have no logged FVE;
+  - AR = `ar_reconstructor/` (43 blocks + `value_head` 5120×5120 fp32, 35 GB, no lm_head),
+    critic template `Summary of the following text: <text>{explanation}</text> <summary>`
+    tokenized without special tokens; the last-token residual (final norm stripped) is
+    normalised to sqrt(d) and then multiplied by the value head (EasyNLA `critic_predict`);
+  - injection is **not** the EXP001 embedding replacement: EasyNLA's Karvonen hook ADDS the
+    norm-matched raw vector to the residual stream at the marker position on the output of
+    the second block (`model.layers[1]`), `h′_p = h_p + ‖h_p‖·v/‖v‖`. The canonical prompt
+    puts the marker at position 93 (prompt 110 tokens with the default chat template, which
+    ends in a bare `<think>\n`; 112 with `enable_thinking=False`, which ends in an empty think
+    block — the README's advice). The RL rollouts used the default template and pure T = 1
+    sampling (top-k / top-p off), so the sanity stage measures both modes and the run uses the
+    better one;
   - sanity anchor: `data/example_activations.parquet` (64 layer-42 activations with source
-    text) must land near the author's FVE (0.76 at adapter step 300, 0.78 at 800) before
-    anything else runs.
-- **Memory plan** target + AR resident together (89 GB) for extract / reconstruct / output;
-  the AV (56 GB) swaps in for verbalize. Stages stay sequential and resumable.
-- **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled):
-  documents from a few expository domains (chosen in the first round), one context per
-  document, contexts of at most 256 tokens; n = 256 activations by default, 8 resamples on
-  the first 64. **Fixed clean start, random end:**
+    text) must land near the author's FVE before anything else runs; the same texts
+    re-extracted with our target path must reproduce the shipped vectors (cosine).
+- **Memory plan** one model per stage (target 54 GB, AV 56 GB, AR 35 GB); loads take
+  10–15 s from the page cache, so nothing needs to be co-resident.
+- **Data** FineFineWeb (`m-a-p/FineFineWeb`, the NLA's training corpus, domain-labelled
+  jsonl shards `<domain>/<domain>_000000.jsonl` with a `text` field and a `language_score`,
+  kept ≥ 0.9): documents from a few expository domains (default history, astronomy, biology,
+  economics; chosen in the first round), one context per document, contexts of at most 256
+  tokens; n = 256 activations by default, 8 resamples on the first 64. **Fixed clean start,
+  random end:**
   - the context starts at the first token of a paragraph of running prose: first character
     a capital letter, ≥ 40 words, no bullet / numbering / heading pattern, ending in
     sentence punctuation (EXP001 started at token 0 of the raw page: 7 % of contexts opened
@@ -158,18 +173,19 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
     token, no punctuation, no word-piece continuation), so final-token claims are natural
     and replaceable. Sentence-end cuts are avoided on purpose: every final token would be
     a full stop.
-- **Editing: hand edits by default** (`--editor hand`). The pipeline stops after
-  verbalize, writes the template, the agent authors every item (forked subagents, ~24
-  explanations each), the run resumes from `edit` with the file. A local model editor (the
-  target model prompted, as in EXP001) is the fallback, off by default. Per explanation
-  the hand-made set contains:
+- **Editing: hand edits by default** (`--editor hand`). The `edit` stage writes
+  `hand_edits_template.jsonl` and stops; the agent authors every item (forked subagents,
+  ~24 explanations each; `experiments/002_hand_edits.py split|check|merge`), the run resumes
+  from `edit` with `hand_edits.jsonl`. A local model editor (the target model prompted, as in
+  EXP001) is the parked fallback. Per explanation the hand-made set contains:
   - claims (≤ 4) with verbatim excerpt and an excerpt-level contradiction (as EXP001);
   - **polarity flip**: the meaning of every sentence flipped with not / doesn't / un-,
     vocabulary unchanged, existing negations removed rather than doubled;
   - **vocabulary swap**: one content word per sentence replaced by an antonym, or by an
     unrelated word of the same category when there is none, structure unchanged — one
     word per sentence so its lexical change matches the polarity flip's;
-  - **final token → "cat"**: mechanical, every mention of the quoted final token replaced;
+  - **final token → "cat"**: mechanical (code), every whole-word mention of the final token
+    replaced, quoted or bare; the file may override it;
   - a paraphrase whose lexical change matches the vocabulary swap (its H = 1 twin);
   - a French translation (kept for continuity, but treated as a weak H = 1 given EXP001).
   Programmatic as before: deletion of each excerpt, snippet shuffle, unrelated. Every
@@ -187,13 +203,14 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
   matched paraphrase side by side; the lexical-change-vs-distance scatter and the
   by-snippet table as in EXP001.
 - Optional diagnostic (not a headline metric): a local-window probe of token dominance,
-  KL between p at t from the full context and from the last few tokens only.
+  `KL(p_full ‖ p_last-8)` between p at t from the full context and from the last 8 tokens
+  only (extract stage, `logits_top.parquet`), correlated with the "cat" edit's ΔL.
 
 ## Pipeline (`experiments/002_*.py --stage …`, artifacts `exp_002[_tag]/`)
 
 | stage | resident | notes |
 | --- | --- | --- |
-| `sanity` | AV, then AR | 64 shipped activations: verbalize with adapters 300 and 800, reconstruct, FVE |
+| `sanity` | AV, AR, target | 64 shipped activations: verbalize (adapters 300 / 600 × both chat modes), reconstruct, FVE; re-extract from the shipped texts (cosine) |
 | `extract` | target | contexts, h (raw), p top tokens |
 | `verbalize` | AV | Karvonen injection hook, T = 1, ≤ 256 tokens, resamples |
 | `edit` | — (target for the fallback editor) | hand-edit file (default); programmatic kinds |
@@ -204,10 +221,13 @@ results live in `NOTEBOOKS.md`. Format: `experiments/guides/PLAN_AND_NOTEBOOK.md
 
 ## Knobs (defaults)
 
-- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--domains …` (decided in round 1, recorded
-  in the notebook), `--start-filter prose`, `--final-token-filter word`, `--n-resample 8`,
-  `--resample-subset 64`, `--max-claims 4`, `--av-adapter iter_000300`, `--editor hand`,
-  `--vocab-swap-per-sentence 1`, seed 0. Batch sizes to be set on the machine.
+- `--n 256`, `--max-ctx 256`, `--min-pos 50`, `--domains history,astronomy,biology,economics`
+  (confirmed in round 1), `--min-lang-score 0.9`, `--shard 0`, `--n-resample 8`,
+  `--resample-subset 64`, `--max-claims 4`, `--av-adapter iter_000300`, `--av-thinking off`
+  (`default` = bare think block), `--sanity-adapters iter_000300,iter_000600`,
+  `--sanity-thinking off,default`, `--editor hand`, `--local-window 8` (the token-dominance
+  probe, 0 = off), seed 0. Batch sizes: AV 32 (sanity 16), AR 32, target 16, NLI 32. The
+  prose-start / whole-word-end rules are fixed (not knobs).
 
 ## Hypotheses
 

@@ -1,8 +1,8 @@
 """NLI scoring (DeBERTa-v3 MNLI/FEVER/ANLI) for input-text consistency S_x(c) and for
 validating constructed equivalence labels.
 
-Dynamic shapes -> not run under torch_xla. Device "auto" = Apple MPS when available (the
-laptop's M4 does ~57 ms/pair vs ~1.4 s/pair on the TPU VM's CPU), else CPU."""
+Dynamic shapes -> not run under torch_xla. Device "auto" = CUDA when available, else Apple
+MPS (the laptop's M4 does ~57 ms/pair vs ~1.4 s/pair on the TPU VM's CPU), else CPU."""
 
 from __future__ import annotations
 
@@ -24,7 +24,10 @@ class NLI:
         device: str = "auto",
     ):
         if device == "auto":
-            device = "mps" if torch.backends.mps.is_available() else "cpu"
+            if torch.cuda.is_available():
+                device = "cuda"
+            else:
+                device = "mps" if torch.backends.mps.is_available() else "cpu"
         self.device = torch.device(device)
         self.tok: Any = AutoTokenizer.from_pretrained(model_id)
         self.model = (

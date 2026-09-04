@@ -1,10 +1,15 @@
 # NLA — language alignment, claim support and claim importance metrics
 
 Research repo (scaffolded 2026-09-03 from `wdk0082/research-template@tpu`) for the metrics
-defined in `instructions/00_nla_alignment_support_importance_metrics.md`, evaluated on the
-released Natural Language Autoencoder (NLA) pair for `Qwen/Qwen2.5-7B-Instruct`
-(`kitft/nla-qwen2.5-7b-L20-{av,ar}`, layer 20). Reference paper:
-https://transformer-circuits.pub/2026/nla/index.html. Inference only, on one Cloud TPU v6e-1.
+defined in `instructions/00_nla_alignment_support_importance_metrics.md`, evaluated on released
+Natural Language Autoencoders (NLA). Reference paper:
+https://transformer-circuits.pub/2026/nla/index.html. Inference only.
+
+- **EXP001** (done): the 7B pair `kitft/nla-qwen2.5-7b-L20-{av,ar}` on `Qwen/Qwen2.5-7B-Instruct`
+  (layer 20), on one Cloud TPU v6e-1 with a hand-written static-shape forward.
+- **EXP002** (current): the community 27B NLA `ceselder/qwen3.6-27b-nla-rl` on `Qwen/Qwen3.6-27B`
+  (layer 42), on one H200 with plain HF transformers + hooks; clean FineFineWeb contexts, hand
+  edits, matched whole-explanation edit kinds.
 
 ## Layout
 
@@ -15,22 +20,23 @@ REPOSTART.md            # repo conventions (uv, env vars, GCP/TPU layout)
 CONCLUSIONS.md          # important conclusions — added only after discussion with the user
 .env / .env.example     # runtime config (.env is gitignored)
 bin/run                 # env-loading command wrapper — run everything through this
-src/nla/                # library: Qwen2 static-shape forward, AV/AR/target wrappers, editor, NLI, metrics
+src/nla/                # library: sidecar contract, HF model layer (EXP002), Qwen2 static-shape forward (EXP001), editor, NLI, metrics, analysis
 experiments/            # NNN_*.py drivers + PLANS.md / NOTEBOOKS.md (per-experiment plan + round log)
-tests/                  # pytest (CPU, tiny random models; also runnable on the VM with DEVICE=tpu)
-gcp/                    # Cloud TPU lifecycle scripts (start / stop / bootstrap / launch_bg / pull)
+tests/                  # pytest (CPU, tiny random models)
+bin/                    # run (env wrapper), launch_bg.sh (detached local run)
+gcp/                    # Cloud TPU lifecycle scripts of the retired EXP001 line
 ```
 
 ## Quick start
 
 ```bash
-uv sync --all-groups                       # laptop venv (CPU torch)
-./bin/run pytest                           # unit tests on tiny random models
-gcp/start.sh && gcp/bootstrap.sh           # start the adopted TPU node, install the venv + torch_xla
-gcp/launch_bg.sh experiments/001_nla_metrics.py --stage all --n 512
-gcp/pull.sh exp_001                        # artifacts -> ./artifacts/exp_001
-ARTIFACT_DIR=./artifacts ./bin/run python experiments/001_nla_metrics.py --stage analyze
-gcp/stop.sh
+cp .env.example .env                       # then adjust paths
+uv sync --all-groups                       # venv (Python 3.11, CUDA torch, transformers 5, peft, fla)
+./bin/run pytest                           # unit tests on tiny random models (CPU)
+./bin/run python experiments/002_nla_metrics.py --stage sanity          # shipped activations -> FVE
+bin/launch_bg.sh experiments/002_nla_metrics.py --stage extract,verbalize --n 256   # detached; log in $LOG_DIR
+# author ./artifacts/exp_002/hand_edits.jsonl from hand_edits_template.jsonl (see experiments/002_hand_edits.py)
+bin/launch_bg.sh experiments/002_nla_metrics.py --stage edit,reconstruct,output,nli,analyze
 ```
 
 See `experiments/PLANS.md` (design) and `experiments/NOTEBOOKS.md` (what happened, per round).

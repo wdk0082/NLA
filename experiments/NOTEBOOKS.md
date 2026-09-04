@@ -126,3 +126,98 @@ Alignment (main / gold): AUC of the reconstruction distance separating H=0 from 
 - H4 fails: meaning-preserving edits move R(z) MORE than contradictions do (paraphrase 0.062 > resample 0.034 ≈ shuffle 0.034 > delete 0.012 > contradict 0.004; gold 0.033 / 0.040 / 0.028 / 0.010 / 0.008), so no τ separates the classes (AUC 0.33; both errors ≈ 0.67 at equal error). Distance tracks lexical change (ρ = 0.90). French translation is far from equivalent for this AR (FVE 0.37; gold's more literal translations 0.64).
 - Editor agreement: the gold cell reproduces the main cell's picture on every axis; hand-made contradictions are stronger (NLI 0.97 vs 0.88, S_h 0.054 vs 0.008, dist 0.008 vs 0.004) and hand-made paraphrases/translations more literal (dist 0.033 vs 0.062, 0.137 vs 0.345).
 - Results copied to `experiments/results/exp_001{,_gold}/` (summary.json, claim_metrics.csv, alignment.csv, PNGs).
+
+# EXP002 — 27B NLA, clean data, hand edits, matched edit kinds — notebook
+
+Round log for the plan in `PLANS.md` (# EXP002).
+
+## Round 1 — sanity anchor + first clean contexts, 2026-09-03
+
+### Setup
+- Environment: H200 studio, `uv` venv (torch 2.13 CUDA, transformers 5.16, peft 0.20,
+  flash-linear-attention 0.5.2); `Qwen/Qwen3.6-27B` and the needed subset of
+  `ceselder/qwen3.6-27b-nla-rl` (av_base, adapters 300 / 600 / 800, AR, sample data) in the
+  local HF cache.
+- Cell `exp_002_sanity`: `--stage sanity` on the 64 shipped activations, adapters
+  `iter_000300` and `iter_000600` × chat-template modes `off` (`enable_thinking=False`) and
+  `default` (bare `<think>`), T = 1, one sample each, ≤ 256 new tokens, seed 0, batch 16;
+  FVE with the predict-the-mean baseline over the same 64 activations; then re-extraction of
+  the 64 activations from the shipped texts with the target model.
+- Cell `exp_002_smoke`: `--stage extract,verbalize --n 32` on FineFineWeb (history,
+  astronomy, biology, economics; shard 0; language_score ≥ 0.9), default adapter and chat
+  mode, to look at the sampled contexts and explanations before the full run. 1 seed.
+
+### Core thing to verify
+- H1: the shipped activations reach the author's FVE (0.756 at adapter 300, ≈ 0.77 at 600)
+  through our AV → AR path, and the target path reproduces the shipped vectors; which chat
+  mode / adapter to use for the run.
+- The clean-context sampler yields prose starts and whole-word ends, and the explanations on
+  our contexts look in-distribution (FVE on the smoke set near the sanity value).
+
+### Conclusion
+Sanity cell (64 shipped activations; var_nrm over them 0.462; author: 0.756 at adapter 300, ≈ 0.77 at 600):
+
+| adapter | chat template | parsed | truncated | tokens | L_h mean / median | cos | FVE |
+|---|---|---|---|---|---|---|---|
+| iter_000300 | off (`enable_thinking=False`) | 1.00 | 0.00 | 179 | 0.245 / 0.198 | 0.944 | 0.755 |
+| iter_000300 | default (bare `<think>`) | 0.25 | 0.02 | 160 | 0.229 / 0.194 (16 parsed) | 0.947 | 0.771 |
+| iter_000600 | off | 1.00 | 0.00 | 189 | 0.239 / 0.179 | 0.945 | 0.761 |
+| iter_000600 | default | 0.17 | 0.00 | 181 | 0.565 / 0.245 (11 parsed) | 0.870 | 0.435 |
+
+- H1 (pipeline correctness) holds: FVE 0.755 vs the author's 0.756 at adapter 300 and 0.761
+  vs ≈ 0.77 at 600, with every output parsed; re-extracting the 64 activations from the
+  shipped texts reproduces the shipped vectors (cosine median 0.9999, min 0.978; all 64
+  token counts match). The two adapters rank activations alike (Spearman of per-activation
+  L_h 0.88); 1/64 explanations reconstruct worse than the mean activation in each.
+- The default chat template (prompt ending in a bare `<think>`) is unusable through HF
+  generate: 75 % / 83 % of outputs never produce `<explanation>` tags (the model writes the
+  explanation body without the tags, or thinks). The run uses `enable_thinking=False`, as the
+  README advises, and adapter `iter_000300` (the plan default; 600 is equivalent).
+- Explanations: 3 snippets in 57/64 (4–5 in the rest), 179 tokens on average; the same
+  genre / mid-text / "Final token …" structure as EXP001, often followed by a quoted guess
+  at the continuation.
+- Timing: 95 s per cell of 64 generations at batch 16 (GPU utilisation ≈ 40 %), AR
+  reconstruction of 256 texts 12 s, target re-extraction of 64 long contexts 30 s; loads
+  6–15 s; peak 59 GB.
+- Smoke extract (32 contexts, 8 per domain): the prose-start filter rejected 6 of 38
+  documents seen; all 32 contexts start at a capitalised prose sentence and end at a whole
+  word (n_ctx mean 140, range 51–244); activation norms median 90 (shipped sample: 88);
+  extraction 18 s incl. the 11 s model load. Token-dominance probe KL(p_full ‖ p_last8):
+  median 1.00 nats (p10 0.10, p90 2.48).
+- Smoke verbalize / reconstruct / output on the 32 contexts (adapter 300, thinking off,
+  T = 1, batch 32; 2 resamples on 8): 31/32 parsed (one output ended before its close tag),
+  178 tokens on average, 3 snippets in 26/32; the "Final token" snippet is regularly followed
+  by a verbatim quote of the context's tail. var_nrm 0.422 (n = 32). FVE: orig 0.788 (31),
+  resample 0.777 (16), resample distance to R(z) median 0.066. Patched output: orig KL mean
+  0.027 / median 0.016 nats, top-1 agreement 0.94; resample 0.030 / 0.029; identity patch
+  0.000 (patching correct); mean-activation patch 2.35 / 1.22. Timing: verbalize 32 + 16
+  resamples 103 s (31 s per batch of 32), reconstruct 10 s, output 14 s.
+- Decision for the full run: adapter `iter_000300`, `enable_thinking=False`, the four domains
+  as sampled (domain labels are noisy web pages — a Neuralink piece under astronomy, a hedge
+  fund video promo under economics — but all contexts are prose; the prose filter now also
+  rejects paragraphs with URLs), `--av-batch 32`.
+
+## Round 2 — full run (n = 256) with hand edits, 2026-09-03
+
+### Setup
+- Cell `exp_002`: `--stage extract,verbalize --n 256 --av-batch 32` (FineFineWeb history /
+  astronomy / biology / economics, 64 contexts each, shard 0, language_score ≥ 0.9, prose
+  start incl. the URL rejection, whole-word end; adapter `iter_000300`, thinking off, T = 1,
+  8 resamples on the first 64), then `--stage edit` writes `hand_edits_template.jsonl`; the
+  template is split into 11 parts and every item authored by a fresh subagent following
+  `experiments/guides/HAND_EDITS.md` (claims ≤ 4 with verbatim excerpts and contradictions,
+  polarity flip, vocabulary swap, matched paraphrase, French translation); parts are checked
+  (`002_hand_edits.py check`) and merged into `hand_edits.jsonl`; then
+  `--stage edit,reconstruct,output,nli,analyze`. Plan defaults otherwise. 1 seed.
+
+### Core thing to verify
+- H2–H5 of the plan: at matched lexical change, do polarity flips move R(z) less than
+  vocabulary swaps (the AR reads words, not polarity)? Is the "cat" edit's effect wide and
+  concentrated? With lexical change matched, are contradictions still closer to z than
+  paraphrases (EXP001's inversion, AUC 0.33)? Does S_h stay uncorrelated with S_x?
+- Edit validity: NLI_whole and NLI_claim confirm that contradictions contradict, flips flip,
+  swaps and paraphrases are what their labels say; lexical change of polarity ≈ vocab ≈
+  paraphrase.
+
+### Conclusion
+_(pending)_

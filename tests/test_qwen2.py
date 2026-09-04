@@ -48,8 +48,8 @@ def _rand_batch(vocab: int, lengths: list[int]) -> list[list[int]]:
 
 
 def _tol(device):
-    # bf16 matmuls on the TPU are much noisier than fp32 on CPU.
-    return (5e-2, 5e-2) if device.type == "xla" else (1e-4, 1e-4)
+    # bf16 matmuls on an accelerator (TPU / CUDA, DEVICE from .env) are much noisier than fp32 on CPU.
+    return (5e-2, 5e-2) if device.type in ("xla", "cuda") else (1e-4, 1e-4)
 
 
 def test_full_forward_matches_hf(tiny):
@@ -120,7 +120,7 @@ def test_generate_matches_hf_teacher_forced(tiny):
                 step_logits[s][i].numpy(), ref[len(p) - 1 + s].numpy(), atol=atol * 5, rtol=rtol
             )
             # greedy consistency: the chosen token is HF's argmax at that position
-            if device.type != "xla":
+            if device.type == "cpu":
                 assert int(toks[i, s]) == int(ref[len(p) - 1 + s].argmax())
 
 
