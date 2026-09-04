@@ -69,3 +69,14 @@ count or touched final-token mentions; paraphrases keeping ≥ 70 % of the conte
 changing the paragraph count; any changed quoted string in any field. `--diag` prints the
 per-item statistics (negations per sentence, fraction of content words changed, fraction
 kept). Fix every flagged item before `merge`.
+
+How the checker reads quotes (the AV's quoting is sloppy): quote marks are paired left to
+right across newlines, so a trailing excerpt opened with `"` + newline and closed lines later
+is one quoted string, and an excerpt the AV never closed runs to the end of the text; stray
+quotes (a doubled `""`, a lone `"` on its own line, the source text's own inner quote) are
+resolved by the reading whose regions look most like quotes. Never negate or reword inside an
+excerpt, even a multi-line one. HTML tags (`</br>`), a `"` inside backticks, inch marks (`22"`)
+and one-word fragments are ignored; sentences are not split after abbreviations (vs., e.g.,
+No., Mr.). The prefilled round-2 translations were written under a single-line quote rule, so
+a few of them carry a translated multi-line excerpt; those flags are known and left as they
+are.

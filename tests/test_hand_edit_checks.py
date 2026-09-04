@@ -78,3 +78,60 @@ def test_paraphrase_rules():
 
 def test_quotes_kept():
     assert he.quotes_kept(Z, Z.replace('"to declare war"', '"to make peace"')) == ["to declare war"]
+
+
+def test_quotes_across_newlines_stray_quote_and_tags():
+    z = (
+        'Formal news report, expecting a statistic.\n</br>"\nThe survey, Angell finds. '
+        '"About 400 professionals" demands a closing detail.'
+    )
+    # the lone quote after the tag is a stray: the excerpt is the one quoted string
+    assert he._quoted_regions(z) == [("About 400 professionals", True)]
+    flipped = (
+        'Not a formal news report, not expecting a statistic.\n</br>"\nThe survey, Angell never '
+        'finds. "About 400 professionals" does not demand a closing detail.'
+    )
+    issues, _ = he.check_polarity(z, flipped)
+    assert issues == []  # the tag line is not a sentence; the excerpt line is negated
+    assert he.quotes_kept(z, flipped) == []
+    touched = flipped.replace("About 400 professionals", "About 300 professionals")
+    assert he.quotes_kept(z, touched) == ["About 400 professionals"]
+    # an excerpt spanning a newline with the source's own inner quote stays one region
+    z2 = 'Claim here.\n"CPAs. About 60 percent said so. "The survey, Angell finds, of 400 people" demands detail.'
+    assert he._quoted_regions(z2) == [
+        ('CPAs. About 60 percent said so. "The survey, Angell finds, of 400 people', True)
+    ]
+    assert (
+        he.check_vocab(z2, z2.replace("demands detail", "rejects noise"), " people")[1][
+            "vocab_changed_frac"
+        ]
+        > 0
+    )
+
+
+def test_backtick_quotes_abbreviations_and_fragments():
+    z = 'Token "century" ends a claim, demanding `."` or `"a century."` next.\nThe'
+    assert he._quoted_regions(z) == [("century", True)]  # `"` inside backticks: no delimiter
+    flipped = (
+        'Token "century" does not end a claim, not demanding `."` or `"a century."` next.\nThe'
+    )
+    assert he.check_polarity(z, flipped)[0] == []  # the dangling "The" is not a sentence
+    assert he._sentences("Thermoforming vs. moulding is cheap. It is fast.") == [
+        "Thermoforming vs. moulding is cheap.",
+        "It is fast.",
+    ]
+
+
+def test_stray_quote_readings():
+    # a doubled opening quote and a stray closing one: the excerpt between them is the quote
+    z = 'Claim "would" here.\n</br>""Although he said it would"\n</br>continuation: unacceptable."'
+    assert he._quoted_regions(z) == [("would", True), ("Although he said it would", True)]
+    # a lone quote on its own line opening the excerpt block is dropped
+    z = 'Final phrase "grant will" opens a clause.\n"\n"Iowa gift will" continues the statement.'
+    assert [q for q, _ in he._quoted_regions(z)] == ["grant will", "Iowa gift will"]
+    # an excerpt the AV never closed runs to the end of the text
+    z = 'Token "civil" needs "lawsuit" or "civil action" next.\n</br>"the DOL said the worker could file a civil'
+    assert he._quoted_regions(z)[-1] == ("the DOL said the worker could file a civil", False)
+    assert he.quotes_kept(z, z.replace("could file", "could not file")) == [
+        "the DOL said the worker could file a civil"
+    ]

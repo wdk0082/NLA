@@ -59,10 +59,26 @@ wars.\n\nThe clause \"the senate voted\" prepares an account of an official ruli
 political storytelling going.\n\nThe closing token \"voted\" finishes the principal clause and
 calls for a complement or a modifier such as \"to declare war\"."
 
+Checker notes (experiments/002_hand_edits.py): quoted strings are found by pairing quote marks
+left to right ACROSS newlines, so a trailing excerpt opened with `"` + newline and closed several
+lines later (or never closed: it then runs to the end of the text) is one quoted string; stray
+quotes (a doubled `""`, a lone `"` on its own line, the source's own inner quote) are resolved
+automatically. Never negate or reword inside a quoted excerpt. Sentences are split at . ! ? and
+newlines but not after abbreviations (vs., e.g., No., Mr.); a sentence counts as negated only if
+it contains one of not / no / never / nor / neither / cannot / without / none / an n't-contraction
+/ a "non-" word — an un-/in- prefix alone does NOT count; at most one such word per phrase
+(phrases split at , ; : — – ( ) and at and / but / or / nor / while / whereas / which / that).
+HTML tags like </br>, `"` inside backticks, inch marks (22") and one-word fragments are ignored.
+"without" in the original already counts as a negation (that phrase loses it rather than gaining
+one). Irregular verbs fail the checker's stem test ("began" / "did not begin"): negate them with
+"never" instead of do-support.
+
 Method: build the edits in Python (derive polarity and vocab from the original by exact
 single-occurrence substring replacements; write the paraphrase as a full string), save your
-specs early in scratch files (one per ~6 items) so an interruption loses little, write the
-JSONL with json.dumps(ensure_ascii=False), then run
+specs early in scratch files (one per ~6 items; never more than ~6 items per file write or per
+response — one agent died writing a 64k-token response) so an interruption loses little, write
+the JSONL in place after every batch (unauthored items keep their null fields) with
+json.dumps(ensure_ascii=False), then run
     ./bin/run python experiments/002_hand_edits.py check artifacts/exp_002_r3/hand_edits_parts/part_XX.jsonl --exp exp_002_r3 --diag
 and fix everything it flags until it reports 0 items with issues. Report the checker's final
 output and the idx handled.
