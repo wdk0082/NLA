@@ -248,3 +248,28 @@ Whole-explanation kinds (per activation): dist medians paraphrase 0.001 < polari
 - H4: with edit size matched, contradictions (0.012) are farther from z than paraphrases (0.001), so EXP001's inversion (AUC 0.33) was an artefact of edit size (AUC now 0.65); but every meaning-changing edit except "cat" and "unrelated" stays inside the resample floor, so ε_alias at that τ is still 0.66.
 - H5 holds: S_h is uncorrelated with S_x (−0.01); S_h/S_o/I_o concentrate on the final-token claims (S_o mean 0.85 there vs ≤ 0.08 elsewhere), and the genre claim is the most often confabulated (31 % contradicted by the input) while being the one the AR cares least about.
 - Results copied to `experiments/results/exp_002/` (summary.json, per-claim / per-variant CSVs, whole_effects.csv, alignment.csv, PNG plots, configs); hand edits in `configs/hand_edits_exp002.jsonl` (+ parts); walkthrough `experiments/results/exp_002_walkthrough.html` (idx 79).
+
+## Round 3 — whole-explanation level, phrase-level flips, unrestricted swaps, unrelated_token, 2026-09-04
+
+### Setup
+- Cell `exp_002_r3` (`--copy-from exp_002`: same 256 contexts, activations, explanations and
+  resamples as round 2). Hand edits re-authored for three fields only (polarity: phrase-level
+  flip; vocab: every content word outside quotes swapped, final token protected; paraphrase:
+  full rewording), translation and "cat" overrides reused from round 2 (`--prefill-from
+  configs/hand_edits_exp002.jsonl`), by 11 `hand-editor` subagents (effort xhigh) following
+  `experiments/guides/HAND_EDITS.md` / `HAND_EDIT_BRIEF.md`; new programmatic kind
+  `unrelated_token`. Per-claim path dormant; no lexical-change metric; S_x at the whole
+  level for z and every whole-explanation variant. Then
+  `--stage edit,reconstruct,output,nli,analyze --tag r3`. 1 seed.
+- State at the end of the session that set this up: code, plan, guide, checker and tests
+  committed; template written and split (`artifacts/exp_002_r3/hand_edits_parts/`, 256 items,
+  translation prefilled for all, cat overrides for 124); the authoring not yet started (the
+  `hand-editor` agent type needs a fresh session to load).
+
+### Core thing to verify
+- H2 / H4 / H5 of the plan (round-3 form): does denying every claim move R(z) less than
+  swapping the vocabulary; how much of the unrelated distance does the kept final token
+  recover; does the input judge the flip inconsistent while the AR calls it equivalent.
+
+### Conclusion
+_(pending)_
