@@ -209,25 +209,27 @@ details.gold summary{color:var(--muted)}
 <div class="specimen"><p><mark class="c0" title="excerpt of claim 1">Professional biography format established for a NASA educator/scientist, listing institutional affiliations and roles</mark> at Denver Botanic Gardens.</p><p>Academic credentials sequence in progress — undergraduate degree listed (&quot;BS in Horticulture from UC Davis, PhD in Plant Genetics from&quot;), <mark class="c1" title="excerpt of claim 2">requiring a specific university name to complete the parallel credential structure</mark>.</p><p><mark class="c2" title="excerpt of claim 3">Final token &quot;from&quot; is a preposition completing the PhD origin phrase</mark> &quot;holds a BS in Horticulture from UC Davis, a PhD in Plant Genetics from,&quot; <mark class="c3" title="excerpt of claim 4">immediately requiring a university name, most likely another UC or major institution</mark>.
 &quot;Melissa is passionate about science and plant-mediated interactions. She is a plant geneticist, and she holds a BS in Horticulture from UC Davis, a PhD in Plant Genetics from&quot; — academic institution name next, following standard credential pattern.</p></div></div></div><div class="step"><div class="rail"><div class="n">4</div><div class="name">Edit</div><div class="model">hand-written contradictions, flips, swaps, paraphrase, translation; code for the rest</div></div><div class="body">
 <h3>Contradict: replace the excerpt, keep everything else</h3>
+<p>Each claim shows its support scores first: S_h = L_h(z¬c) − L_h(z) and S_o = KL(z¬c) − KL(z), the change caused by the contradiction relative to the original explanation (z: L_h 0.127, KL 0.056). Positive means the original claim reconstructs better than its contradiction.</p>
 <div class="edit">
-  <div class="edit-h"><span class="cl c0">claim 1</span></div>
+  <div class="edit-h"><span class="cl c0">claim 1</span> <span class="muted">S_h +0.020 · S_o -0.002 nats</span></div>
   <div class="diff"><del>Professional biography format established for a NASA educator/scientist, listing institutional affiliations and roles</del><ins>Casual restaurant review format established for a food blogger, listing favorite dishes and prices</ins></div>
-  <div class="edit-n">NLI excerpt→replacement contradiction 0.996 · NLI(z → z¬c) contradiction 0.999 · dist to R(z) 0.022 · L_h 0.147 · KL 0.054</div>
+  <div class="edit-n">z¬c: L_h 0.147 (z: 0.127) · KL 0.054 (z: 0.056) · dist to R(z) 0.022 · NLI excerpt→replacement contradiction 0.996 · NLI(z → z¬c) contradiction 0.999</div>
 </div><div class="edit">
-  <div class="edit-h"><span class="cl c1">claim 2</span></div>
+  <div class="edit-h"><span class="cl c1">claim 2</span> <span class="muted">S_h +0.000 · S_o +0.001 nats</span></div>
   <div class="diff"><del>requiring a specific university name to complete the parallel credential structure</del><ins>requiring a closing punctuation mark to end the finished credential sentence</ins></div>
-  <div class="edit-n">NLI excerpt→replacement contradiction 0.065 · NLI(z → z¬c) contradiction 0.028 · dist to R(z) 0.001 · L_h 0.128 · KL 0.056</div>
+  <div class="edit-n">z¬c: L_h 0.128 (z: 0.127) · KL 0.056 (z: 0.056) · dist to R(z) 0.001 · NLI excerpt→replacement contradiction 0.065 · NLI(z → z¬c) contradiction 0.028</div>
 </div><div class="edit">
-  <div class="edit-h"><span class="cl c2">claim 3</span></div>
+  <div class="edit-h"><span class="cl c2">claim 3</span> <span class="muted">S_h +0.003 · S_o -0.003 nats</span></div>
   <div class="diff"><del>Final token &quot;from&quot; is a preposition completing the PhD origin phrase</del><ins>Final token &quot;Davis&quot; is a proper noun closing the BS origin phrase</ins></div>
-  <div class="edit-n">NLI excerpt→replacement contradiction 0.993 · NLI(z → z¬c) contradiction 0.880 · dist to R(z) 0.003 · L_h 0.131 · KL 0.053</div>
+  <div class="edit-n">z¬c: L_h 0.131 (z: 0.127) · KL 0.053 (z: 0.056) · dist to R(z) 0.003 · NLI excerpt→replacement contradiction 0.993 · NLI(z → z¬c) contradiction 0.880</div>
 </div><div class="edit">
-  <div class="edit-h"><span class="cl c3">claim 4</span></div>
+  <div class="edit-h"><span class="cl c3">claim 4</span> <span class="muted">S_h +0.005 · S_o +0.003 nats</span></div>
   <div class="diff"><del>immediately requiring a university name, most likely another UC or major institution</del><ins>immediately requiring a year of graduation, most likely 1998 or 2003</ins></div>
-  <div class="edit-n">NLI excerpt→replacement contradiction 0.990 · NLI(z → z¬c) contradiction 0.051 · dist to R(z) 0.009 · L_h 0.132 · KL 0.058</div>
+  <div class="edit-n">z¬c: L_h 0.132 (z: 0.127) · KL 0.058 (z: 0.056) · dist to R(z) 0.009 · NLI excerpt→replacement contradiction 0.990 · NLI(z → z¬c) contradiction 0.051</div>
 </div>
 <h3>Delete: remove the excerpt</h3>
-<div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>dist to R(z)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody><tr><td><span class='cl c0'>claim 1</span></td><td class=num>0.005</td><td class=num>0.136</td><td class=num>0.049</td><td class=num>0.976</td></tr><tr><td><span class='cl c1'>claim 2</span></td><td class=num>0.001</td><td class=num>0.127</td><td class=num>0.054</td><td class=num>0.958</td></tr><tr><td><span class='cl c2'>claim 3</span></td><td class=num>0.001</td><td class=num>0.125</td><td class=num>0.049</td><td class=num>0.989</td></tr><tr><td><span class='cl c3'>claim 4</span></td><td class=num>0.002</td><td class=num>0.128</td><td class=num>0.059</td><td class=num>0.933</td></tr></tbody></table></div>
+<p>I_h = L_h(z−c) − L_h(z) and I_o = KL(z−c) − KL(z): what the reconstruction loses when the claim is removed.</p>
+<div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>dist to R(z)</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody><tr><td><span class='cl c0'>claim 1</span></td><td class=num>+0.009</td><td class=num>-0.006</td><td class=num>0.136</td><td class=num>0.049</td><td class=num>0.005</td><td class=num>0.976</td></tr><tr><td><span class='cl c1'>claim 2</span></td><td class=num>-0.000</td><td class=num>-0.002</td><td class=num>0.127</td><td class=num>0.054</td><td class=num>0.001</td><td class=num>0.958</td></tr><tr><td><span class='cl c2'>claim 3</span></td><td class=num>-0.002</td><td class=num>-0.007</td><td class=num>0.125</td><td class=num>0.049</td><td class=num>0.001</td><td class=num>0.989</td></tr><tr><td><span class='cl c3'>claim 4</span></td><td class=num>+0.001</td><td class=num>+0.003</td><td class=num>0.128</td><td class=num>0.059</td><td class=num>0.002</td><td class=num>0.933</td></tr></tbody></table></div>
 <h3>Whole-explanation variants</h3>
 <div class="variant">
   <div class="variant-h"><span class="chip k-polarity">polarity</span> <b>Polarity flip</b> <span class="muted">H = 0 (matched to vocab)</span></div>

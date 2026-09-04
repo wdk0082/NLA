@@ -381,19 +381,30 @@ def build(D: dict) -> str:
         )
         return f'<ol class="claims">{items}</ol>'
 
+    orig_v = V("orig") or {}
+
+    def fd(x):
+        """Signed delta."""
+        try:
+            return (
+                "—" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{float(x):+.3f}"
+            )
+        except Exception:
+            return "—"
+
     def contradiction_rows():
         rows = []
         for c in claims:
             v = V("contradict", c["claim_id"])
             rows.append(f"""<div class="edit">
-      <div class="edit-h"><span class="cl c{c["claim_id"] % 4}">claim {c["claim_id"] + 1}</span></div>
+      <div class="edit-h"><span class="cl c{c["claim_id"] % 4}">claim {c["claim_id"] + 1}</span> <span class="muted">S_h {fd(c.get("S_h"))} · S_o {fd(c.get("S_o"))} nats</span></div>
       <div class="diff"><del>{esc(c.get("excerpt"))}</del><ins>{esc(c.get("replacement"))}</ins></div>
-      <div class="edit-n">NLI excerpt→replacement contradiction {f3(c.get("p_contra_claim_fwd"))} · NLI(z → z¬c) contradiction {f3(v["p_contra_fwd"]) if v else "—"} · dist to R(z) {f3(v["dist_to_orig"]) if v else "—"} · L_h {f3(v["L_h"]) if v else "—"} · KL {f3(v["L_o"]) if v else "—"}</div>
+      <div class="edit-n">z¬c: L_h {f3(v["L_h"]) if v else "—"} (z: {f3(orig_v.get("L_h"))}) · KL {f3(v["L_o"]) if v else "—"} (z: {f3(orig_v.get("L_o"))}) · dist to R(z) {f3(v["dist_to_orig"]) if v else "—"} · NLI excerpt→replacement contradiction {f3(c.get("p_contra_claim_fwd"))} · NLI(z → z¬c) contradiction {f3(v["p_contra_fwd"]) if v else "—"}</div>
     </div>""")
         return "".join(rows)
 
     del_rows = "".join(
-        f"<tr><td><span class='cl c{c['claim_id'] % 4}'>claim {c['claim_id'] + 1}</span></td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('dist_to_orig'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_h'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('p_entail_fwd'))}</td></tr>"
+        f"<tr><td><span class='cl c{c['claim_id'] % 4}'>claim {c['claim_id'] + 1}</span></td><td class=num>{fd(c.get('I_h'))}</td><td class=num>{fd(c.get('I_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_h'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('L_o'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('dist_to_orig'))}</td><td class=num>{f3((V('delete', c['claim_id']) or {}).get('p_entail_fwd'))}</td></tr>"
         for c in claims
     )
 
@@ -574,9 +585,11 @@ def build(D: dict) -> str:
             "hand-written contradictions, flips, swaps, paraphrase, translation; code for the rest",
             f"""
     <h3>Contradict: replace the excerpt, keep everything else</h3>
+    <p>Each claim shows its support scores first: S_h = L_h(z¬c) − L_h(z) and S_o = KL(z¬c) − KL(z), the change caused by the contradiction relative to the original explanation (z: L_h {f3(orig_v.get("L_h"))}, KL {f3(orig_v.get("L_o"))}). Positive means the original claim reconstructs better than its contradiction.</p>
     {contradiction_rows()}
     <h3>Delete: remove the excerpt</h3>
-    <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>dist to R(z)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>
+    <p>I_h = L_h(z−c) − L_h(z) and I_o = KL(z−c) − KL(z): what the reconstruction loses when the claim is removed.</p>
+    <div class="tbl"><table><thead><tr><th>deleted claim</th><th class=num>I_h</th><th class=num>I_o (nats)</th><th class=num>L_h</th><th class=num>KL</th><th class=num>dist to R(z)</th><th class=num>NLI entail z→z−c</th></tr></thead><tbody>{del_rows}</tbody></table></div>
     <h3>Whole-explanation variants</h3>
     {variant_block("polarity", "Polarity flip", "Every sentence's meaning flipped with function words only; the vocabulary is unchanged.")}
     {variant_block("vocab", "Vocabulary swap", "One content word per sentence swapped for an antonym or an unrelated word; the structure is unchanged. Same number of changed words as the flip.")}
