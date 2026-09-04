@@ -265,6 +265,14 @@ Whole-explanation kinds (per activation): dist medians paraphrase 0.001 < polari
   committed; template written and split (`artifacts/exp_002_r3/hand_edits_parts/`, 256 items,
   translation prefilled for all, cat overrides for 124); the authoring not yet started (the
   `hand-editor` agent type needs a fresh session to load).
+- Authoring session (2026-09-04): 11 `hand-editor` agents, one per part; a session limit
+  killed 6 of them mid-way but their incremental writes survived (241/256 items on disk), and
+  2 small agents finished idx 42–47 and 183–191. The checker's single-line quote regex could
+  not see the AV's multi-line trailing excerpts (210/256 explanations have one), so the agents
+  had negated inside them; the checker was rewritten (quotes paired across newlines,
+  stray-quote resolution, tags / backticks / inch marks / fragments ignored, no split at
+  abbreviations), the excerpts were restored verbatim mechanically in 29 polarity fields, and
+  15 items were hand-fixed. Parts mirrored in `configs/hand_edits_exp002_r3/`.
 
 ### Core thing to verify
 - H2 / H4 / H5 of the plan (round-3 form): does denying every claim move R(z) less than

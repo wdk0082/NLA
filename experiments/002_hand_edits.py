@@ -207,21 +207,26 @@ def _region_penalty(text: str, a: int, b: int) -> int:
     empty pair `""`, an opening quote glued to a preceding letter (really a closing one) or a
     closing quote glued to a following letter (really an opening one), a paragraph break
     inside (the AV does open excerpts with `"\\n`, so leading newlines are fine), a start on
-    another quote, an unclosed excerpt after closing punctuation or starting with a paragraph
-    break, and every inner `"` that does not look like an opening quote of the source text
-    (preceded by whitespace or a bracket, followed by a non-space) or that sits in a region
-    starting with a newline or punctuation."""
+    another quote, a leading / trailing space where the quote is glued to a phrase, an unclosed
+    excerpt after closing punctuation or starting with a paragraph break, and every inner `"`
+    that is neither an opening quote of the source text (preceded by whitespace or a bracket,
+    followed by a non-space) nor an inch mark (`22"`), or that sits in a region starting with a
+    newline or punctuation."""
     t = text[a + 1 : b]
     closed = b < len(text)
     if not t:
         return 1
     u = t.lstrip("\n")
+    before = text[a - 1] if a > 0 else "\n"
+    after = text[b + 1] if closed and b + 1 < len(text) else "\n"
     pen = (
-        (a > 0 and text[a - 1].isalnum())
-        + (closed and b + 1 < len(text) and text[b + 1].isalnum())
+        before.isalnum()
+        + after.isalnum()
+        + (t[0] == " " and not before.isspace())  # a space-led region opened mid-phrase
+        + (t[-1] == " " and not after.isspace())
         + ("\n\n" in u)
         + (u[:1] == '"')
-        + (not closed and (t.startswith("\n\n") or (a > 0 and text[a - 1] in ".,;:!?)]")))
+        + (not closed and (t.startswith("\n\n") or before in ".,;:!?)]"))
     )
     inner = [i for i, ch in enumerate(t) if ch == '"']
     for i in inner:
@@ -231,13 +236,15 @@ def _region_penalty(text: str, a: int, b: int) -> int:
             and i + 1 < len(t)
             and not t[i + 1].isspace()
         )
-        pen += not opening
+        inch = i > 0 and t[i - 1].isdigit() and (i + 1 == len(t) or t[i + 1].isspace())
+        pen += not (opening or inch)
     return pen + (bool(inner) and (t[0] == "\n" or u[:1] in tuple(";,.)]:")))
 
 
 def _stray_likelihood(text: str, p: int) -> int:
-    """0 for a quote alone on its line (tags aside) or at either end of the text, 1 otherwise."""
-    if p == 0 or p == len(text) - 1:
+    """0 for a quote alone on its line (tags aside), at either end of the text or after a digit
+    (an inch mark, `22"`), 1 otherwise."""
+    if p == 0 or p == len(text) - 1 or text[p - 1].isdigit():
         return 0
     a = text.rfind("\n", 0, p) + 1
     b = text.find("\n", p)
@@ -247,7 +254,7 @@ def _stray_likelihood(text: str, p: int) -> int:
 def _quoted_regions(text: str) -> list[tuple[str, bool]]:
     """(inner text, closed) of the double-quoted strings of `text` (>= 2 chars), quotes paired
     left to right, newlines allowed inside. A `"` inside backticks is a character under
-    discussion and `22\"` is inches, not delimiters. Stray quotes (an inner quote of the trailing excerpt, a doubled
+    discussion, not a delimiter. Stray quotes (an inch mark `22\"` among them) (an inner quote of the trailing excerpt, a doubled
     `""`, a lone `"` on its own line, an unclosed excerpt running to the end of the text) are
     resolved by trying every way of dropping up to two quotes or leaving the last one unclosed
     and keeping the reading whose regions look most like quotes (`_region_penalty`), then the
@@ -255,10 +262,7 @@ def _quoted_regions(text: str) -> list[tuple[str, bool]]:
     the largest quoted area."""
     skip = [(m.start(), m.end()) for m in _BACKTICK.finditer(text)]
     pos = [
-        m.start()
-        for m in re.finditer('"', text)
-        if not any(a <= m.start() < b for a, b in skip)
-        and not (m.start() > 0 and text[m.start() - 1].isdigit())  # 22" = inches
+        m.start() for m in re.finditer('"', text) if not any(a <= m.start() < b for a, b in skip)
     ]
     n = len(pos)
     drops = [()] + [(k,) for k in range(n)] + list(combinations(range(n), 2))
