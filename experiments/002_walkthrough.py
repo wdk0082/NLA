@@ -106,7 +106,10 @@ def extract(idx: int, run: str) -> dict:
     m = rec[rec.idx == idx].merge(
         out[out.idx == idx][["vid", "L_o", "top1_agree", "p_top1_under_q"]], on="vid", how="left"
     )
-    m = m.merge(var[["vid", "text", "sim_to_orig"]], on="vid", how="left")
+    vcols = ["vid", "text"] + (
+        ["sim_to_orig"] if "sim_to_orig" in var else []
+    )  # no lexical column from round 3
+    m = m.merge(var[vcols], on="vid", how="left")
     m = m.merge(
         nv[nv.idx == idx][["vid", "p_entail_fwd", "p_contra_fwd", "p_entail_bwd"]],
         on="vid",
@@ -221,7 +224,7 @@ def build(D: dict) -> str:
         sm["recon_by_kind"],
         sm.get("output_by_kind", {}),
         sm["alignment"],
-        sm["claims"]["stats"],
+        sm.get("claims", {}).get("stats", {}),  # empty when the per-claim path is dormant
     )
     var_nrm = D["recon_refs"]["var_nrm"]
 
@@ -513,7 +516,7 @@ def build(D: dict) -> str:
         )
         return f'<div class="tbl"><table><thead><tr><th>metric</th><th>claims</th><th>mean</th><th>median</th><th>share &gt; 0</th></tr></thead><tbody>{rows}</tbody></table></div>'
 
-    corr = {k: v["spearman"] for k, v in sm["claim_correlations"].items()}
+    corr = {k: v["spearman"] for k, v in sm.get("claim_correlations", {}).items()}
     corr_rows = "".join(
         f"<tr><td><code>{esc(k)}</code></td><td class=num>{f3(v)}</td></tr>"
         for k, v in corr.items()
@@ -555,7 +558,8 @@ def build(D: dict) -> str:
     ut_w, un_w = we.get("unrelated_token", {}), we.get("unrelated", {})
     callout = (
         f"What the population says. Replacing the final token by “cat” costs most of the explained variance (ΔL_h median {cat_w.get('dL_h_med', float('nan')):.2f}, FVE {rk['orig']['FVE']:.3f} → {rk.get('cat', {}).get('FVE', float('nan')):.3f}) and moves the patched output by {cat_w.get('dL_o_med', float('nan')):.1f} nats at the median. "
-        f"Denying every claim (polarity flip, dist {pol_w.get('dist_med', float('nan')):.3f}), swapping the vocabulary while keeping the token (dist {voc_w.get('dist_med', float('nan')):.3f}) and a full paraphrase (dist {par_w.get('dist_med', float('nan')):.3f}) all stay far inside the resample floor ({rk['resample']['dist_med']:.3f}), although the NLI judge reads the flip and the swap as contradictions and the input judges the flip inconsistent (S_x {sxw.get('polarity', {}).get('mean', float('nan')):.2f} vs {sxw.get('orig', {}).get('mean', float('nan')):.2f} for z). "
+        f"Denying every claim (polarity flip) moves the reconstruction by {pol_w.get('dist_med', float('nan')):.3f} at the median, swapping the vocabulary while keeping the token by {voc_w.get('dist_med', float('nan')):.3f}, a full paraphrase by {par_w.get('dist_med', float('nan')):.3f}; the resample floor is {rk['resample']['dist_med']:.3f}. "
+        f"The NLI judge reads the flip and the swap as contradictions of z (p_contra {nliv.get('polarity', {}).get('p_contra_fwd', float('nan')):.2f} and {nliv.get('vocab', {}).get('p_contra_fwd', float('nan')):.2f}); the input-consistency score S_x of the flip is {sxw.get('polarity', {}).get('mean', float('nan')):.2f} against {sxw.get('orig', {}).get('mean', float('nan')):.2f} for z. "
         f"An unrelated explanation that keeps only the final token comes back from {un_w.get('dist_med', float('nan')):.2f} to {ut_w.get('dist_med', float('nan')):.2f} in distance and from {un_w.get('dL_o_med', float('nan')):.1f} to {ut_w.get('dL_o_med', float('nan')):.1f} nats in output loss. "
         f"AUC of the distance separating H = 0 from H = 1 pairs: {al.get('auc_dist_separates_H', float('nan')):.2f}; aliasing at the resample-median τ: {at_m_alias}."
     )
