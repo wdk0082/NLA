@@ -1,0 +1,140 @@
+﻿PS: I prompt Claude to make a Claude Artifact version of the write-up (after I finish writing it by myself): Write-up-artifact. It’s recommended to read the artifact version – it’s better in formatting (nice to read), identical in content.
+
+
+Public Github Repo:
+
+
+Executive Summary
+
+
+I found that completely changing an NLA explanation’s meaning (mostly contradiction) and feeding it back to NLA’s decoder, AR, can make nearly no changes to the activation reconstruction FVE and output KL. Meanwhile, only changing the mentionings of the final input token in the NLA explanation will totally break the NLA. Keeping the final-input-token mentionings and changing all other sentences will break the activation reconstruction as well, but preserve the output KL. I conclude that my studied NLA’s understanding of natural language is different from human, and the final-input-token mentionings in the NLA explanation plays an important and interesting role that is worth further investigation.
+
+
+(3 examples: Flip, Change Final Token, Keep Final Token. I. explanation z examples, 2x2 plots, on raw, flip, change final, keep final, ii. A bar plot of FVE drop and output KL. 3 bars on each subplots. ).
+
+
+Initial Motivation
+
+
+* Big picture on why I’m interested in NLA: Does there always exist an explanation for all the neural computation in natural language space, or other DSL e.g. math and python? NLA’s construction is a very direct way to address this problem for NL. Previous experience that makes me suspicious on this question:
+   * I used to work on circuit-tracing (by per-layer transcoder on Qwen3-4b), but the error node setting doesn’t convince me much.
+   * I used to work on intrinsic interpretable methods on toy tasks (e.g. arithmetic), but they struggle to scale.
+* Particular problems I found interesting in the NLA paper: Steganography and confabulations of NLA. The NLA paper tests steganography by {shuffle, paraphrase, translation, coherence rewrite, summary}, which is asking ‘after applying a transformation on an explanation that preserves its meaning, does NLA collapse?’ While confabulations ask whether or not the NLA explanation is consistent with actual input text. However:
+   * Steganography is a subset of a bigger problem: whether or not NLA and humans understand a text in the same way. There could be 2 ways of misalignment here, while the steganography only answers the first one:
+      * If two sentences look similar to a human, whether they look different to an NLA. (addressed)
+      * If two sentences look significantly different to a human, whether they look similar to an NLA. (not addressed)
+   * Until we fully address the language-understanding-alignment problem above, anything we do about confabulations might be problematic. The following plot (screenshot from Anthropic’s NLA paper, the confabulation section) looks weird to me, for example: The y axis scale is too small. The largest number (0.8%) is extremely small compared to the ~0.7 FVE.
+  
+
+
+
+* I explicitly tested the hypothesis: If two texts look significantly different for a human, they also look different for an NLA. 
+
+
+
+
+Define the problem – what does ‘Look Similar / Different’ mean?
+
+
+* NLA basic notation: Input text x. NLA-AV’s explanation as z.
+* The problem: For texts z and z’, H=1/0 means humans regard them as similar/different, N=1/0 means NLA regards them as similar/different. 
+   * P(N=1|H=0) and P(N=0|H=1) should be both low.
+   * NLA paper only evaluates P(N=0|H=1).
+* How to measure H: 
+   * I obtain z’ by z’ = T(z), where T is a transformation of text. When T is meaning-preserved transformation, e.g. paraphrase, translation, I set H to be 1. When T is set to be other transformations, e.g. ‘rewrite to its opposite meaning’, ‘change to unrelated text’, I set H to be 0. T is done by Fable 5.1.
+   * I also calculate the NLI score between z and z’ as a side support, which is xxx(brief explanation of NLI)
+* How to measure N: To see whether or not text z and z’=T(z) are similar to an NLA, I calculate metrics on activation and output levels. The two levels test reconstruction faithfulness (activation FVE) and causal importance (output KL):
+   * Activation reconstruction (FVE) changes: how much the reconstruction FVE on activation changes when I replace z by T(z) in NLA.
+   * Output KL changes: how much the output token distribution KL (the KL with the target model w/o NLA) changes, when I replace z by T(z).
+
+
+
+
+Experiment Setup
+        
+* Model and NLA: I use Qwen 3.6 27B NLA as recommended in the doc. I use the xxx checkpoint. I run the model and the NLA on a single H200 GPU.
+* Data and prompt: 
+   * Original input text to target Qwen: xxx. How to create samples (cutting, etc.)xxx.  Prompt to the target Qwen: xxx.
+   * For the NLA’s AV, xxx. The AR, xxx. 
+   * I use N=xxx data samples, due to budget limitations (both GPU and transformation T are expensive!).
+   * I always analyze the NLA explanation on the last token of the text.
+
+
+(Examples of data and explanation)
+
+
+The FVE value of mine (xxx) is similar to the reported value in the chosen NLA’s huggingface repo (xxx).
+
+
+(The FVE histogram of ours)
+
+
+* The transformation T in z’ = T(z). I prompt Claude Fable 5.1 to prompt subagents to do the text rewriting. The details for each transformation:
+   * Paraphrase: rephrase the whole explanation while preserving its meaning. H=1.
+   * Shuffle: reorder bullet points and paragraphs. H=1.
+   * Translation: translate to French. H=1.
+   * Flip: xxx. H=0.
+   * Unrelated: xxx. H=0.
+
+
+* The NLI:
+
+
+(A picture showing a snapshot explanation, and 5 transformations of it. Put another 4 examples at the end of the doc. 2x3 subplots for each example, both here and end)
+
+
+Results
+
+
+(A population table of the mentioned 5 transformation rows, as well as orig and resample)
+
+
+(A corresponding bar plot)
+
+
+For the H=1 group (paraphrase, shuffle, translation), my conclusion agrees with the NLA paper: in my evaluated samples, H=1 transformation hurt very little on activation reconstruction FVE, as well as output KL. In addition, the NLI classification also agrees that z and z’=T(z) are mostly ‘entail’ relationships.
+
+
+For the H=0 group : the Unrelated transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. However, the Flip transformation is surprising, and it’s the key finding here: although Flip transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)! Three things support that the meaning of z has flipped in human’s common understanding: 
+* It’s the definition of the Flip transformation, and it’s performed by a very capable model, Fable 5.1.
+* By reading the examples ourselves, one can clearly know its meaning has completely changed. 
+* The NLI classification supports our conclusion: 0.997 probability of contradiction.
+
+
+But what if the very little drop of FVE actually means something? (So our sensitivity is not enough) To address this, I vary the threshold (sensitivity) for classifying an FVE drop to be ‘looks similar/different to an NLA’. The result is clear: P(N=0|H=1) and P(N=1|H=0) can’t be low at the same time for any threshold value. For the reference value (the FVE changes of resampling NLA-AV, basically the noise floor here),  P(N=0|H=1) is low while P(N=1|H=0) is very high – the NLA paper’s steganography result holds here, while their unmeasured property P(N=1|H=0) turns out to be bad.
+
+
+(The two curve plot)
+
+
+Therefore, I conclude that the hypothesis ‘If two texts look significantly different for a human, they also look different for an NLA’ is not true for my chosen NLA (Qwen 3.6 27B NLA).
+
+
+
+
+An Additional Experiment: The Final Input Token’s Role
+
+
+One would easily notice that the explanation of NLA always contains a statement on the final input token (see previous examples). The final input token of each token position is always the token itself since a causal transformer can’t see future tokens. Intuitively, it should carry a lot of information. I try two transformations T (the same setting as before):
+* Change Final Token: Change every mentionings of the final input token in the NLA explanation z to a fixed word cat.
+* Only Keep Final Token: Replace the whole z by another input sample’s explanation, but keep the final input token mentionings unchanged.
+
+
+(Examples of raw z and transformed z. 1x3 subplots. Raw + these two T)
+
+
+(The table and bar plot of orig, resample, flip, change final, keep final, unrelated. The latter four have bars)
+
+
+The observations worth noticing:
+* ‘Change Final Token’ drastically collapses the NLA. The activation FVE drop and output KL are both much worse than resample floor and the Flip transformation. 
+* The ‘Only Keep Final Token’ transformation behaves interestingly: It’s the first transformation T we’ve seen in the whole experiment that has inconsistent FVE drop and KL increase trend – it collapses the activation FVE but does small damage to the output KL. This shows that the causally important components of the last token residual stream might largely stay in the ‘final input token’ related claim of the explanation z.
+
+
+Therefore, we additionally conclude that the ‘final input token’ related claim of the explanation z plays an important role in activation reconstruction and output preservation. Interestingly, the ‘final input token’ alone, even with completely unrelated other texts, can preserve a large part of the output distribution, although destroying the activation reconstruction.
+
+
+Limitations:
+
+
+One could claim the reason for the misalignment to be simply that the NLA just doesn’t care about a few contradicted sentences. However, almost all of the sentences in z are flipped, not just a few of them. So if NLA doesn’t care, it needs to ‘doesn’t care’ most sentences. This could be viewed as an alternative view of my experiment. One could also suggest this phenomenon comes from the NLA-AR never sees those ‘not’ sentences in their training distribution. Indeed, it will be interesting to see if any training distribution changes can address this problem, but that is out of the scope for this project. The number of samples the project used, the single NLA it tested, are limitations as well. It would be also interesting to look more closely into the activation on why the ‘Only Keep Final token’ transformation can hold a low output KL despite the bad activation reconstruction.
