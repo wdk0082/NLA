@@ -419,7 +419,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
             ("results", "Results"),
             ("token", "The Final Input Token's Role"),
             ("limitations", "Limitations"),
-            ("appendix", "Appendix: four more examples"),
+            ("appendix", "Appendix: four more random examples"),
         )
     )
     appendix = "".join(
@@ -551,7 +551,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <h2 id="limitations">Limitations</h2>
 <p>One could claim the reason for the misalignment to be simply that the NLA just doesn’t care about a few contradicted sentences. However, almost all of the sentences in z are flipped, not just a few of them. So if NLA doesn’t care, it needs to ‘doesn’t care’ most sentences. This could be viewed as an alternative view of my experiment. One could also suggest this phenomenon comes from the NLA-AR never sees those ‘not’ sentences in their training distribution. Indeed, it will be interesting to see if any training distribution changes can address this problem, but that is out of the scope for this project. The number of samples the project used, the single NLA it tested, are limitations as well. It would be also interesting to look more closely into the activation on why the ‘Only Keep Final token’ transformation can hold a low output KL despite the bad activation reconstruction.</p>
 
-<h2 id="appendix">Appendix: four more examples</h2>
+<h2 id="appendix">Appendix: four more random examples</h2>
 <div class="appendix">
 <p>Each example shows the raw explanation z and its five transformations, as in the setup section.</p>
 {appendix}
