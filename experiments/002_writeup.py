@@ -407,9 +407,6 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
         None,
     )
     rows_main = kind_rows(R, r, ["orig", "resample", *H1, "polarity", "unrelated"])
-    rows_tok = kind_rows(
-        R, r, ["orig", "resample", "polarity", "cat", "unrelated_token", "unrelated"]
-    )
     nli_flip = next(x["nli"][1] for x in rows_main if x["kind"] == "polarity")
     curves_png, al = alignment(r)
     toc = "".join(
@@ -523,7 +520,6 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <p class="figcap">Activation idx {snap["idx"]}; four more examples are in the appendix.</p>
 
 <h2 id="results">Results</h2>
-{kinds_table(rows_main)}
 {figure(broken_bar_plot(r, [*H1, "polarity", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median. The y-axis is broken so that the Unrelated bar does not flatten the others.")}
 <p>For the H=1 group (paraphrase, shuffle, translation), my conclusion agrees with the NLA paper: in my evaluated samples, H=1 transformation hurt very little on activation reconstruction FVE, as well as output KL. In addition, the NLI classification also agrees that z and z’=T(z) are mostly ‘entail’ relationships.</p>
 <p>For the H=0 group : the <i>Unrelated</i> transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. <span class="red">However, the <i>Flip</i> transformation is surprising, and it’s the key finding here: although <i>Flip</i> transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)!</span> Three things support that the meaning of z has flipped in human’s common understanding:</p>
@@ -544,8 +540,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 </ul>
 {panels_grid(snap, ["cat", "unrelated_token"], 3)}
 <p class="figcap">Activation idx {snap["idx"]}.</p>
-{kinds_table(rows_tok)}
-{figure(bar_plot(r, ["polarity", "cat", "unrelated_token", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median.")}
+{figure(bar_plot(r, ["polarity", "cat", "unrelated_token", "unrelated"], labels=True), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median.")}
 <p>The observations worth noticing:</p>
 <ul>
 <li><b class="red">‘Change Final Token’ drastically collapses the NLA.</b> The activation FVE drop and output KL are both much worse than resample floor and the Flip transformation.</li>
