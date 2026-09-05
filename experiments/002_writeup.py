@@ -148,6 +148,75 @@ def bar_plot(r: pd.DataFrame, kinds: list[str], ref: bool = True, labels: bool =
     return buf.getvalue()
 
 
+def broken_bar_plot(r: pd.DataFrame, kinds: list[str], big: str = "unrelated") -> bytes:
+    """Like bar_plot, with a broken y-axis per panel so that the one large bar (`big`) does not
+    flatten the others: the top part holds the large bar's range, the bottom part the rest."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    res = r[r.kind == "resample"]
+    fig, axes = plt.subplots(
+        2,
+        2,
+        figsize=(9.2, 4.6),
+        sharex="col",
+        gridspec_kw={"height_ratios": [1, 2.2], "hspace": 0.08},
+    )
+    x = np.arange(len(kinds))
+    small = [k for k in kinds if k != big]
+    for j, (key, title) in enumerate(
+        zip(("dL_h", "dL_o"), ("Activation FVE drop", "Output KL increase (nats)"), strict=True)
+    ):
+        top, bot = axes[0, j], axes[1, j]
+        q = {k: r[r.kind == k][key].quantile([0.5, 0.1, 0.9]).to_numpy() for k in kinds}
+        for ax in (top, bot):
+            ax.bar(
+                x,
+                [q[k][0] for k in kinds],
+                yerr=[[q[k][0] - q[k][1] for k in kinds], [q[k][2] - q[k][0] for k in kinds]],
+                capsize=3,
+                color=[KIND_COLOR.get(k, "#888") for k in kinds],
+                error_kw={"lw": 0.9, "ecolor": "#333"},
+            )
+            ax.axhline(0, lw=0.5, color="#999")
+        lo = min(0.0, min(q[k][1] for k in small))
+        hi = max(q[k][2] for k in small)
+        bot.set_ylim(lo - 0.12 * (hi - lo), hi + 0.35 * (hi - lo))
+        b_lo, b_hi = q[big][1], q[big][2]
+        top.set_ylim(b_lo - 0.15 * (b_hi - b_lo), b_hi + 0.45 * (b_hi - b_lo))
+        if len(res):
+            m = float(res[key].median())
+            bot.axhline(m, ls="--", lw=0.9, color="k", label=f"resample median {m:.3f}")
+            bot.legend(fontsize=8, loc="upper left")
+        for k, xi in zip(kinds, x, strict=True):
+            ax = top if k == big else bot
+            span = ax.get_ylim()[1] - ax.get_ylim()[0]
+            ax.text(
+                xi, q[k][2] + 0.03 * span, f"{q[k][0]:.3f}", ha="center", va="bottom", fontsize=8.5
+            )
+        top.set_title(title)
+        top.spines["bottom"].set_visible(False)
+        bot.spines["top"].set_visible(False)
+        top.tick_params(axis="x", which="both", bottom=False)
+        d = 0.012  # the diagonal break marks
+        kw = {"transform": top.transAxes, "color": "k", "clip_on": False, "lw": 0.9}
+        top.plot((-d, +d), (-d * 2.2, +d * 2.2), **kw)
+        top.plot((1 - d, 1 + d), (-d * 2.2, +d * 2.2), **kw)
+        kw["transform"] = bot.transAxes
+        bot.plot((-d, +d), (1 - d, 1 + d), **kw)
+        bot.plot((1 - d, 1 + d), (1 - d, 1 + d), **kw)
+        bot.set_xticks(x)
+        bot.set_xticklabels([LABEL[k] for k in kinds], rotation=20, ha="right", fontsize=8.5)
+    fig.suptitle("Median per transformation, whiskers 10th to 90th percentile (broken y-axis)")
+    fig.tight_layout()
+    buf = _io.BytesIO()
+    fig.savefig(buf, format="png", dpi=130)
+    plt.close(fig)
+    return buf.getvalue()
+
+
 def alignment(r: pd.DataFrame) -> tuple[bytes, dict]:
     """The two error rates as functions of a threshold τ on the FVE drop: N = 1 iff
     L_h(z′) − L_h(z) ≤ τ. Reference τ: the 90th percentile of the resample FVE drops."""
@@ -448,7 +517,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 
 <h2 id="results">Results</h2>
 {kinds_table(rows_main)}
-{figure(bar_plot(r, [*H1, "polarity", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median.")}
+{figure(broken_bar_plot(r, [*H1, "polarity", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median. The y-axis is broken so that the Unrelated bar does not flatten the others.")}
 <p>For the H=1 group (paraphrase, shuffle, translation), my conclusion agrees with the NLA paper: in my evaluated samples, H=1 transformation hurt very little on activation reconstruction FVE, as well as output KL. In addition, the NLI classification also agrees that z and z’=T(z) are mostly ‘entail’ relationships.</p>
 <div class="key">
 <p>For the H=0 group : the <i>Unrelated</i> transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. <span class="red">However, the <i>Flip</i> transformation is surprising, and it’s the key finding here: although <i>Flip</i> transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)!</span> Three things support that the meaning of z has flipped in human’s common understanding:</p>
