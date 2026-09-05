@@ -116,7 +116,7 @@ def bar_plot(r: pd.DataFrame, kinds: list[str], ref: bool = True, labels: bool =
     fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.7))
     x = np.arange(len(kinds))
     for ax, key, title in zip(
-        axes, ("dL_h", "dL_o"), ("FVE drop", "KL increase (nats)"), strict=True
+        axes, ("dL_h", "dL_o"), ("Activation FVE drop", "Output KL increase (nats)"), strict=True
     ):
         q = np.array([r[r.kind == k][key].quantile([0.5, 0.1, 0.9]).to_numpy() for k in kinds])
         ax.bar(
@@ -369,9 +369,9 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <p>I found that completely changing an NLA explanation’s meaning (mostly contradiction) and feeding it back to NLA’s decoder, AR, can make nearly no changes to the activation reconstruction FVE and output KL. Meanwhile, only changing the mentionings of the final input token in the NLA explanation will totally break the NLA. Keeping the final-input-token mentionings and changing all other sentences will break the activation reconstruction as well, but preserve the output KL. I conclude that my studied NLA’s understanding of natural language is different from human, and the final-input-token mentionings in the NLA explanation plays an important and interesting role that is worth further investigation.</p>
 <h3>One randomly selected explanation and its three transformations</h3>
 {panels_grid(snap, ["polarity", "cat", "unrelated_token"], 2)}
-<p class="figcap">The NLA explanation z of activation idx {snap["idx"]} (final token “{esc(snap["final_token"].strip())}”) and the three transformations: Flip (every phrase negated), Change Final Token (every mention of the final token replaced by “cat”), Only Keep Final Token (another sample's explanation with its final-token mentions replaced by this sample's token). In every transformed text the words that differ from z are highlighted in the transformation's colour.</p>
+<p class="figcap">Activation idx {snap["idx"]}, final token “{esc(snap["final_token"].strip())}”; highlighted: the words that differ from z.</p>
 <h3>All {n} samples: the three transformations’ FVE drop and KL increase</h3>
-{figure(bar_plot(r, ["polarity", "cat", "unrelated_token"], ref=False, labels=True), f"FVE drop and output KL increase of the three transformations over all {n} samples, relative to the raw explanation of the same sample (bar: median, printed above it; whiskers: 10th to 90th percentile).")}
+{figure(bar_plot(r, ["polarity", "cat", "unrelated_token"], ref=False, labels=True), f"Median over all {n} samples; whiskers: 10th to 90th percentile.")}
 
 <h2 id="motivation">Initial Motivation</h2>
 <ul>
@@ -390,7 +390,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <li>Until we fully address the language-understanding-alignment problem above, anything we do about confabulations might be problematic. The following plot (screenshot from Anthropic’s NLA paper, the confabulation section) looks weird to me, for example: The y axis scale is too small. The largest number (0.8%) is extremely small compared to the ~0.7 FVE.</li>
 </ul></li>
 </ul>
-{figure(ASSETS / "nla_paper_confabulation.png", f"Screenshot from the confabulation section of Anthropic's NLA paper ({PAPER_URL}): the FVE drop when a claim is removed from an explanation, by claim type and by how related a false claim is.")}
+{figure(ASSETS / "nla_paper_confabulation.png", "Screenshot from the confabulation section of Anthropic's NLA paper.")}
 <ul>
 <li><b class="red">I explicitly tested the hypothesis: If two texts look significantly different for a human, they also look different for an NLA.</b></li>
 </ul>
@@ -429,7 +429,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <h3>Example of a data sample and its explanation</h3>
 <div class="grid cols2">{context_panel(snap)}{panel("NLA explanation z", paragraphs(snap["explanation"]), "orig")}</div>
 <p>The FVE value of mine ({fve:.3f} over the {n} samples{f"; {san_fve:.3f} on the 64 activations shipped with the checkpoint" if san_fve is not None else ""}) is similar to the reported value in the chosen NLA’s huggingface repo (held-out FVE 0.756 at RL step 300, the adapter I use).</p>
-{figure(R["plots"] / "fve_hist.png", f"The FVE histogram of ours: one value per sample, 1 − L_h of its raw explanation; the red line is the mean, {fve:.3f}.")}
+{figure(R["plots"] / "fve_hist.png", f"FVE per sample; red line: the mean, {fve:.3f}.")}
 <ul>
 <li><b>The transformation T in z’ = T(z).</b> I prompt Claude Fable 5.1 to prompt subagents to do the text rewriting. The details for each transformation:
 <ul>
@@ -443,11 +443,11 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 </ul>
 <h3>One explanation and its five transformations</h3>
 {panels_grid(snap, [*H1, "polarity", "unrelated"], 3)}
-<p class="figcap">Activation idx {snap["idx"]} (final token “{esc(snap["final_token"].strip())}”); four more examples are in the appendix at the end.</p>
+<p class="figcap">Activation idx {snap["idx"]}; four more examples are in the appendix.</p>
 
 <h2 id="results">Results</h2>
 {kinds_table(rows_main)}
-{figure(bar_plot(r, [*H1, "polarity", "unrelated"]), f"FVE drop and output KL increase of the five transformations over all {n} samples (bar: median; whiskers: 10th to 90th percentile; dashed line: the resample median).")}
+{figure(bar_plot(r, [*H1, "polarity", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median.")}
 <p>For the H=1 group (paraphrase, shuffle, translation), my conclusion agrees with the NLA paper: in my evaluated samples, H=1 transformation hurt very little on activation reconstruction FVE, as well as output KL. In addition, the NLI classification also agrees that z and z’=T(z) are mostly ‘entail’ relationships.</p>
 <div class="key">
 <p>For the H=0 group : the <i>Unrelated</i> transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. <span class="red">However, the <i>Flip</i> transformation is surprising, and it’s the key finding here: although <i>Flip</i> transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)!</span> Three things support that the meaning of z has flipped in human’s common understanding:</p>
@@ -458,7 +458,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 </ul>
 </div>
 <p>But what if the very little drop of FVE actually means something? (So our sensitivity is not enough) To address this, I vary the threshold (sensitivity) for classifying an FVE drop to be ‘looks similar/different to an NLA’. The result is clear: P(N=0|H=1) and P(N=1|H=0) can’t be low at the same time for any threshold value. For the reference value (the FVE changes of resampling NLA-AV, basically the noise floor here),  P(N=0|H=1) is low while P(N=1|H=0) is very high – the NLA paper’s steganography result holds here, while their unmeasured property P(N=1|H=0) turns out to be bad.</p>
-{figure(curves_png, f"Both error rates as functions of the threshold τ on the FVE drop: T(z) counts as similar to the NLA (N=1) when L_h(T(z)) − L_h(z) ≤ τ. P(N=0 | H=1) is measured over the Paraphrase, Shuffle and Translation samples, P(N=1 | H=0) over the Flip samples. The dotted line is the reference value, the 90th percentile of the FVE change under resampling (τ = {al['ref']:.3f}), where P(N=0 | H=1) = {al['ref_steg']:.2f} and P(N=1 | H=0) = {al['ref_alias']:.2f}; the two curves cross at τ = {al['cross_tau']:.3f} with both errors at {al['cross_err']:.2f}.")}
+{figure(curves_png, f"N=1 when the FVE drop ≤ τ. Dotted line: the reference τ, the 90th percentile of the resample FVE drops ({al['ref']:.3f}), where P(N=0 | H=1) = {al['ref_steg']:.2f} and P(N=1 | H=0) = {al['ref_alias']:.2f}.")}
 <p><b>Therefore, I conclude that the hypothesis ‘<i>If two texts look significantly different for a human, they also look different for an NLA</i>’ is not true for my chosen NLA (<a href="https://huggingface.co/ceselder/qwen3.6-27b-nla-rl">Qwen 3.6 27B NLA</a>).</b></p>
 
 <h2 id="token">An Additional Experiment: The Final Input Token’s Role</h2>
@@ -468,9 +468,9 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <li><b>Only Keep Final Token:</b> Replace the whole z by another input sample’s explanation, but keep the final input token mentionings unchanged.</li>
 </ul>
 {panels_grid(snap, ["cat", "unrelated_token"], 3)}
-<p class="figcap">Activation idx {snap["idx"]} (final token “{esc(snap["final_token"].strip())}”): the raw explanation and the two transformations.</p>
+<p class="figcap">Activation idx {snap["idx"]}.</p>
 {kinds_table(rows_tok)}
-{figure(bar_plot(r, ["polarity", "cat", "unrelated_token", "unrelated"]), f"FVE drop and output KL increase over all {n} samples (bar: median; whiskers: 10th to 90th percentile; dashed line: the resample median).")}
+{figure(bar_plot(r, ["polarity", "cat", "unrelated_token", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median.")}
 <p>The observations worth noticing:</p>
 <ul>
 <li><b class="red">‘Change Final Token’ drastically collapses the NLA.</b> The activation FVE drop and output KL are both much worse than resample floor and the Flip transformation.</li>
