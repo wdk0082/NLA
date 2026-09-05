@@ -279,7 +279,13 @@ li>ul{margin:4px 0 4px}
 .note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;margin:0 0 10px;font-size:15.5px;max-width:none}
 .note p{margin:0 0 6px;max-width:none}.note p:last-child{margin:0}
 .repo{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px;margin:0 0 6px}
-a{color:var(--accent-ink)}
+a{color:#1155cc}
+:root[data-theme="dark"] a{color:#7fb0e8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:#7fb0e8}}
+.red{color:#d00000}
+:root[data-theme="dark"] .red{color:#ff6b6b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .red{color:#ff6b6b}}
+b{font-weight:600}
 .toc{display:flex;flex-direction:column;gap:4px;padding:12px 0 10px;margin:18px 0 8px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:15px}
 .toc a{text-decoration:none;color:var(--muted)}.toc a:hover{color:var(--accent-ink)}
 code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.9em}
@@ -369,12 +375,12 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 
 <h2 id="motivation">Initial Motivation</h2>
 <ul>
-<li>Big picture on why I’m interested in NLA: Does there always exist an explanation for all the neural computation in natural language space, or other DSL e.g. math and python? NLA’s construction is a very direct way to address this problem for NL. Previous experience that makes me suspicious on this question:
+<li><b>Big picture on why I’m interested in NLA:</b> Does there always exist an explanation for all the neural computation in natural language space, or other DSL e.g. math and python? NLA’s construction is a very direct way to address this problem for NL. Previous experience that makes me suspicious on this question:
 <ul>
 <li>I used to work on circuit-tracing (by per-layer transcoder on Qwen3-4b), but the error node setting doesn’t convince me much.</li>
 <li>I used to work on intrinsic interpretable methods on toy tasks (e.g. arithmetic), but they struggle to scale.</li>
 </ul></li>
-<li>Particular problems I found interesting in the NLA paper: Steganography and confabulations of NLA. The NLA paper tests steganography by {{shuffle, paraphrase, translation, coherence rewrite, summary}}, which is asking ‘after applying a transformation on an explanation that preserves its meaning, does NLA collapse?’ While confabulations ask whether or not the NLA explanation is consistent with actual input text. However:
+<li><b>Particular problems I found interesting in the <a href="https://transformer-circuits.pub/2026/nla/index.html#characterizing-nla-confabulations">NLA paper</a>:</b> Steganography and confabulations of NLA. The NLA paper tests steganography by {{shuffle, paraphrase, translation, coherence rewrite, summary}}, which is asking ‘after applying a transformation on an explanation that preserves its meaning, does NLA collapse?’ While confabulations ask whether or not the NLA explanation is consistent with actual input text. However:
 <ul>
 <li>Steganography is a subset of a bigger problem: whether or not NLA and humans understand a text in the same way. There could be 2 ways of misalignment here, while the steganography only answers the first one:
 <ul>
@@ -386,23 +392,23 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 </ul>
 {figure(ASSETS / "nla_paper_confabulation.png", f"Screenshot from the confabulation section of Anthropic's NLA paper ({PAPER_URL}): the FVE drop when a claim is removed from an explanation, by claim type and by how related a false claim is.")}
 <ul>
-<li>I explicitly tested the hypothesis: If two texts look significantly different for a human, they also look different for an NLA.</li>
+<li><b class="red">I explicitly tested the hypothesis: If two texts look significantly different for a human, they also look different for an NLA.</b></li>
 </ul>
 
 <h2 id="problem">Define the problem – what does ‘Look Similar / Different’ mean?</h2>
 <ul>
-<li>NLA basic notation: Input text x. NLA-AV’s explanation as z.</li>
-<li>The problem: For texts z and z’, H=1/0 means humans regard them as similar/different, N=1/0 means NLA regards them as similar/different.
+<li><b>NLA basic notation:</b> Input text x. NLA-AV’s explanation as z.</li>
+<li><b>The problem:</b> For texts z and z’, <u>H=1/0 means humans regard them as similar/different, N=1/0 means NLA regards them as similar/different.</u>
 <ul>
 <li>P(N=1|H=0) and P(N=0|H=1) should be both low.</li>
 <li>NLA paper only evaluates P(N=0|H=1).</li>
 </ul></li>
-<li>How to measure H:
+<li><b>How to measure H:</b>
 <ul>
 <li>I obtain z’ by z’ = T(z), where T is a transformation of text. When T is meaning-preserved transformation, e.g. paraphrase, translation, I set H to be 1. When T is set to be other transformations, e.g. ‘rewrite to its opposite meaning’, ‘change to unrelated text’, I set H to be 0. T is done by Fable 5.1.</li>
 <li>I also calculate the NLI score between z and z’ as a side support, which is a natural language inference classifier's probability that z entails, contradicts or is neutral to z’ (entailment supports H=1, contradiction supports H=0).</li>
 </ul></li>
-<li>How to measure N: To see whether or not text z and z’=T(z) are similar to an NLA, I calculate metrics on activation and output levels. The two levels test reconstruction faithfulness (activation FVE) and causal importance (output KL):
+<li><b>How to measure N:</b> To see whether or not text z and z’=T(z) are similar to an NLA, I calculate metrics on activation and output levels. The two levels test reconstruction faithfulness (activation FVE) and causal importance (output KL):
 <ul>
 <li>Activation reconstruction (FVE) changes: how much the reconstruction FVE on activation changes when I replace z by T(z) in NLA.</li>
 <li>Output KL changes: how much the output token distribution KL (the KL with the target model w/o NLA) changes, when I replace z by T(z).</li>
@@ -411,12 +417,12 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 
 <h2 id="setup">Experiment Setup</h2>
 <ul>
-<li>Model and NLA: I use Qwen 3.6 27B NLA as recommended in the doc. I use the <code>ceselder/qwen3.6-27b-nla-rl</code> checkpoint (built with EasyNLA, extraction after block 42; the AV is <code>av_base</code> with the RL adapter <code>iter_000300</code>, the AR is <code>ar_reconstructor</code>). I run the model and the NLA on a single H200 GPU.</li>
-<li>Data and prompt:
+<li><b>Model and NLA:</b> I use <a href="https://huggingface.co/ceselder/qwen3.6-27b-nla-rl">Qwen 3.6 27B NLA</a> as recommended in the doc. I use the <code>ceselder/qwen3.6-27b-nla-rl</code> checkpoint (built with EasyNLA, extraction after block 42; the AV is <code>av_base</code> with the RL adapter <code>iter_000300</code>, the AR is <code>ar_reconstructor</code>). I run the model and the NLA on a single H200 GPU.</li>
+<li><b>Data and prompt:</b>
 <ul>
 <li>Original input text to target Qwen: FineFineWeb documents (the NLA's training corpus) from four domains, history, astronomy, biology and economics, 64 documents each, with language score ≥ 0.9. How to create samples (cutting, etc.): each sample starts at the first paragraph of running prose of its document (a capitalised sentence start, no headings, bullets or URLs) and is cut at a random whole word at least 50 tokens later and at most 256 tokens in; the sample is the text up to that word. Prompt to the target Qwen: the raw sample text only, no chat template or instruction; the activation is the layer-42 residual at the last token.</li>
 <li>For the NLA’s AV, the activation is added, norm-matched, to the residual stream at the marker token of the AV's fixed prompt on the output of block 1 (EasyNLA's injection), with the chat template's thinking disabled; the explanation is sampled at temperature 1 with at most 256 new tokens, one per sample, plus 8 resamples for the first 64 samples. The AR, wraps the explanation in the summary prompt <code>Summary of the following text: &lt;text&gt;z&lt;/text&gt; &lt;summary&gt;</code>, normalises the last-token residual after block 42 to √d and reads a 5120×5120 value head, which gives the reconstruction's direction; for the output KL that direction is rescaled to the true activation norm and patched into the target model at the last token.</li>
-<li>I use N={n} data samples, due to budget limitations (both GPU and transformation T are expensive!).</li>
+<li><b>I use N={n} data samples, due to budget limitations (both GPU and transformation T are expensive!).</b></li>
 <li>I always analyze the NLA explanation on the last token of the text.</li>
 </ul></li>
 </ul>
@@ -425,7 +431,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <p>The FVE value of mine ({fve:.3f} over the {n} samples{f"; {san_fve:.3f} on the 64 activations shipped with the checkpoint" if san_fve is not None else ""}) is similar to the reported value in the chosen NLA’s huggingface repo (held-out FVE 0.756 at RL step 300, the adapter I use).</p>
 {figure(R["plots"] / "fve_hist.png", f"The FVE histogram of ours: one value per sample, 1 − L_h of its raw explanation; the red line is the mean, {fve:.3f}.")}
 <ul>
-<li>The transformation T in z’ = T(z). I prompt Claude Fable 5.1 to prompt subagents to do the text rewriting. The details for each transformation:
+<li><b>The transformation T in z’ = T(z).</b> I prompt Claude Fable 5.1 to prompt subagents to do the text rewriting. The details for each transformation:
 <ul>
 <li>Paraphrase: rephrase the whole explanation while preserving its meaning. H=1.</li>
 <li>Shuffle: reorder bullet points and paragraphs. H=1.</li>
@@ -433,7 +439,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <li>Flip: negate every predicate-bearing phrase of every sentence once, with function words only (not / no / never / does not, or un-/in- on an adjective), at most one negation per phrase and an existing negation removed rather than doubled; the vocabulary and every quoted string stay unchanged, so T(z) denies every claim of z in the same words. H=0.</li>
 <li>Unrelated: replace z by the explanation of another sample (a derangement over the {n} samples), a well-formed explanation of the wrong activation. H=0.</li>
 </ul></li>
-<li>The NLI: <code>MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli</code>, a natural language inference classifier that returns the probabilities that a premise entails, contradicts or is neutral to a hypothesis. For every sample and transformation the premise is z and the hypothesis is z’ = T(z); the three probabilities are averaged over the samples (the reverse direction z’ → z is also scored for the H=1 transformations and agrees).</li>
+<li><b>The NLI:</b> <code>MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli</code>, a natural language inference classifier that returns the probabilities that a premise entails, contradicts or is neutral to a hypothesis. For every sample and transformation the premise is z and the hypothesis is z’ = T(z); the three probabilities are averaged over the samples (the reverse direction z’ → z is also scored for the H=1 transformations and agrees).</li>
 </ul>
 <h3>One explanation and its five transformations</h3>
 {panels_grid(snap, [*H1, "polarity", "unrelated"], 3)}
@@ -444,7 +450,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 {figure(bar_plot(r, [*H1, "polarity", "unrelated"]), f"FVE drop and output KL increase of the five transformations over all {n} samples (bar: median; whiskers: 10th to 90th percentile; dashed line: the resample median).")}
 <p>For the H=1 group (paraphrase, shuffle, translation), my conclusion agrees with the NLA paper: in my evaluated samples, H=1 transformation hurt very little on activation reconstruction FVE, as well as output KL. In addition, the NLI classification also agrees that z and z’=T(z) are mostly ‘entail’ relationships.</p>
 <div class="key">
-<p>For the H=0 group : the Unrelated transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. However, the Flip transformation is surprising, and it’s the key finding here: although Flip transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)! Three things support that the meaning of z has flipped in human’s common understanding:</p>
+<p>For the H=0 group : the <i>Unrelated</i> transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. <span class="red">However, the <i>Flip</i> transformation is surprising, and it’s the key finding here: although <i>Flip</i> transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)!</span> Three things support that the meaning of z has flipped in human’s common understanding:</p>
 <ul>
 <li>It’s the definition of the Flip transformation, and it’s performed by a very capable model, Fable 5.1.</li>
 <li>By reading the examples ourselves, one can clearly know its meaning has completely changed.</li>
@@ -453,13 +459,13 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 </div>
 <p>But what if the very little drop of FVE actually means something? (So our sensitivity is not enough) To address this, I vary the threshold (sensitivity) for classifying an FVE drop to be ‘looks similar/different to an NLA’. The result is clear: P(N=0|H=1) and P(N=1|H=0) can’t be low at the same time for any threshold value. For the reference value (the FVE changes of resampling NLA-AV, basically the noise floor here),  P(N=0|H=1) is low while P(N=1|H=0) is very high – the NLA paper’s steganography result holds here, while their unmeasured property P(N=1|H=0) turns out to be bad.</p>
 {figure(curves_png, f"Both error rates as functions of the threshold τ on the FVE drop: T(z) counts as similar to the NLA (N=1) when L_h(T(z)) − L_h(z) ≤ τ. P(N=0 | H=1) is measured over the Paraphrase, Shuffle and Translation samples, P(N=1 | H=0) over the Flip samples. The dotted line is the reference value, the 90th percentile of the FVE change under resampling (τ = {al['ref']:.3f}), where P(N=0 | H=1) = {al['ref_steg']:.2f} and P(N=1 | H=0) = {al['ref_alias']:.2f}; the two curves cross at τ = {al['cross_tau']:.3f} with both errors at {al['cross_err']:.2f}.")}
-<p>Therefore, I conclude that the hypothesis ‘If two texts look significantly different for a human, they also look different for an NLA’ is not true for my chosen NLA (Qwen 3.6 27B NLA).</p>
+<p><b>Therefore, I conclude that the hypothesis ‘<i>If two texts look significantly different for a human, they also look different for an NLA</i>’ is not true for my chosen NLA (<a href="https://huggingface.co/ceselder/qwen3.6-27b-nla-rl">Qwen 3.6 27B NLA</a>).</b></p>
 
 <h2 id="token">An Additional Experiment: The Final Input Token’s Role</h2>
 <p>One would easily notice that the explanation of NLA always contains a statement on the final input token (see previous examples). The final input token of each token position is always the token itself since a causal transformer can’t see future tokens. Intuitively, it should carry a lot of information. I try two transformations T (the same setting as before):</p>
 <ul>
-<li>Change Final Token: Change every mentionings of the final input token in the NLA explanation z to a fixed word cat.</li>
-<li>Only Keep Final Token: Replace the whole z by another input sample’s explanation, but keep the final input token mentionings unchanged.</li>
+<li><b>Change Final Token:</b> Change every mentionings of the final input token in the NLA explanation z to a fixed word <b><i>cat</i></b>.</li>
+<li><b>Only Keep Final Token:</b> Replace the whole z by another input sample’s explanation, but keep the final input token mentionings unchanged.</li>
 </ul>
 {panels_grid(snap, ["cat", "unrelated_token"], 3)}
 <p class="figcap">Activation idx {snap["idx"]} (final token “{esc(snap["final_token"].strip())}”): the raw explanation and the two transformations.</p>
@@ -467,8 +473,8 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 {figure(bar_plot(r, ["polarity", "cat", "unrelated_token", "unrelated"]), f"FVE drop and output KL increase over all {n} samples (bar: median; whiskers: 10th to 90th percentile; dashed line: the resample median).")}
 <p>The observations worth noticing:</p>
 <ul>
-<li>‘Change Final Token’ drastically collapses the NLA. The activation FVE drop and output KL are both much worse than resample floor and the Flip transformation.</li>
-<li>The ‘Only Keep Final Token’ transformation behaves interestingly: It’s the first transformation T we’ve seen in the whole experiment that has inconsistent FVE drop and KL increase trend – it collapses the activation FVE but does small damage to the output KL. This shows that the causally important components of the last token residual stream might largely stay in the ‘final input token’ related claim of the explanation z.</li>
+<li><b class="red">‘Change Final Token’ drastically collapses the NLA.</b> The activation FVE drop and output KL are both much worse than resample floor and the Flip transformation.</li>
+<li><b class="red">The ‘Only Keep Final Token’ transformation behaves interestingly: </b><span class="red">It’s the first transformation T we’ve seen in the whole experiment that has inconsistent FVE drop and KL increase trend – it collapses the activation FVE but does small damage to the output KL.</span> This shows that the causally important components of the last token residual stream might largely stay in the ‘final input token’ related claim of the explanation z.</li>
 </ul>
 <p>Therefore, we additionally conclude that the ‘final input token’ related claim of the explanation z plays an important role in activation reconstruction and output preservation. Interestingly, the ‘final input token’ alone, even with completely unrelated other texts, can preserve a large part of the output distribution, although destroying the activation reconstruction.</p>
 
