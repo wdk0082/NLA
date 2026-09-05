@@ -62,6 +62,14 @@ def fd(x):
     return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{float(x):+.3f}"
 
 
+def f4(x):
+    return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{float(x):.4f}"
+
+
+def fd4(x):
+    return "—" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{float(x):+.4f}"
+
+
 def png(src) -> str:
     data = src if isinstance(src, bytes) else Path(src).read_bytes()
     return "data:image/png;base64," + base64.b64encode(data).decode()
@@ -119,6 +127,7 @@ def bar_plot(r: pd.DataFrame, kinds: list[str], ref: bool = True, labels: bool =
         axes, ("dL_h", "dL_o"), ("Activation FVE drop", "Output KL increase (nats)"), strict=True
     ):
         q = np.array([r[r.kind == k][key].quantile([0.5, 0.1, 0.9]).to_numpy() for k in kinds])
+        dec = 4 if key == "dL_o" else 3  # KL increases are small: one more decimal
         ax.bar(
             x,
             q[:, 0],
@@ -129,12 +138,12 @@ def bar_plot(r: pd.DataFrame, kinds: list[str], ref: bool = True, labels: bool =
         )
         if ref and len(res):
             m = float(res[key].median())
-            ax.axhline(m, ls="--", lw=0.9, color="k", label=f"resample median {m:.3f}")
+            ax.axhline(m, ls="--", lw=0.9, color="k", label=f"resample median {m:.{dec}f}")
             ax.legend(fontsize=8, loc="upper left")
         if labels:
             top = float(np.nanmax(q[:, 2]))
             for xi, (m, _, hi_) in zip(x, q, strict=True):
-                ax.text(xi, hi_ + 0.02 * top, f"{m:.3f}", ha="center", va="bottom", fontsize=9)
+                ax.text(xi, hi_ + 0.02 * top, f"{m:.{dec}f}", ha="center", va="bottom", fontsize=9)
             ax.set_ylim(top=top * 1.12)
         ax.axhline(0, lw=0.5, color="#999")
         ax.set_xticks(x)
@@ -171,6 +180,7 @@ def broken_bar_plot(r: pd.DataFrame, kinds: list[str], big: str = "unrelated") -
     ):
         top, bot = axes[0, j], axes[1, j]
         q = {k: r[r.kind == k][key].quantile([0.5, 0.1, 0.9]).to_numpy() for k in kinds}
+        dec = 4 if key == "dL_o" else 3
         for ax in (top, bot):
             ax.bar(
                 x,
@@ -188,13 +198,18 @@ def broken_bar_plot(r: pd.DataFrame, kinds: list[str], big: str = "unrelated") -
         top.set_ylim(b_lo - 0.15 * (b_hi - b_lo), b_hi + 0.45 * (b_hi - b_lo))
         if len(res):
             m = float(res[key].median())
-            bot.axhline(m, ls="--", lw=0.9, color="k", label=f"resample median {m:.3f}")
+            bot.axhline(m, ls="--", lw=0.9, color="k", label=f"resample median {m:.{dec}f}")
             bot.legend(fontsize=8, loc="upper left")
         for k, xi in zip(kinds, x, strict=True):
             ax = top if k == big else bot
             span = ax.get_ylim()[1] - ax.get_ylim()[0]
             ax.text(
-                xi, q[k][2] + 0.03 * span, f"{q[k][0]:.3f}", ha="center", va="bottom", fontsize=8.5
+                xi,
+                q[k][2] + 0.03 * span,
+                f"{q[k][0]:.{dec}f}",
+                ha="center",
+                va="bottom",
+                fontsize=8.5,
             )
         top.set_title(title)
         top.spines["bottom"].set_visible(False)
@@ -304,7 +319,7 @@ def figure(src, caption: str) -> str:
 def kinds_table(rows: list[dict]) -> str:
     tr = "".join(
         f"<tr><td><span class='chip k-{r['kind']}'>{esc(LABEL[r['kind']])}</span></td><td class=num>{r['n']}</td>"
-        f"<td class=num>{f3(r['FVE'])} / {fd(r['drop'])}</td><td class=num>{f3(r['kl'])} / {fd(r['inc'])}</td>"
+        f"<td class=num>{f3(r['FVE'])} / {fd(r['drop'])}</td><td class=num>{f4(r['kl'])} / {fd4(r['inc'])}</td>"
         f"<td class=num>{' / '.join(f3(x) for x in r['nli']) if 'nli' in r else '—'}</td></tr>"
         for r in rows
     )
