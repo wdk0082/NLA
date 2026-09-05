@@ -406,7 +406,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 <li><b>How to measure H:</b>
 <ul>
 <li>I obtain z’ by z’ = T(z), where T is a transformation of text. When T is meaning-preserved transformation, e.g. paraphrase, translation, I set H to be 1. When T is set to be other transformations, e.g. ‘rewrite to its opposite meaning’, ‘change to unrelated text’, I set H to be 0. T is done by Fable 5.1.</li>
-<li>I also calculate the NLI score between z and z’ as a side support, which is a natural language inference classifier's probability that z entails, contradicts or is neutral to z’ (entailment supports H=1, contradiction supports H=0).</li>
+<li>I also calculate the NLI score between z and z’ as a side support, which is a natural language classifier's probability that z entails, contradicts or is neutral to z’ (entailment supports H=1, contradiction supports H=0).</li>
 </ul></li>
 <li><b>How to measure N:</b> To see whether or not text z and z’=T(z) are similar to an NLA, I calculate metrics on activation and output levels. The two levels test reconstruction faithfulness (activation FVE) and causal importance (output KL):
 <ul>
@@ -417,12 +417,13 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 
 <h2 id="setup">Experiment Setup</h2>
 <ul>
-<li><b>Model and NLA:</b> I use <a href="https://huggingface.co/ceselder/qwen3.6-27b-nla-rl">Qwen 3.6 27B NLA</a> as recommended in the doc. I use the <code>ceselder/qwen3.6-27b-nla-rl</code> checkpoint (built with EasyNLA, extraction after block 42; the AV is <code>av_base</code> with the RL adapter <code>iter_000300</code>, the AR is <code>ar_reconstructor</code>). I run the model and the NLA on a single H200 GPU.</li>
+<li><b>Model and NLA:</b> I use <a href="https://huggingface.co/ceselder/qwen3.6-27b-nla-rl">Qwen 3.6 27B NLA</a> as recommended in the doc (iteration 300 checkpoint). I run the model and the NLA on a single H200 GPU.</li>
 <li><b>Data and prompt:</b>
 <ul>
-<li>Original input text to target Qwen: FineFineWeb documents (the NLA's training corpus) from four domains, history, astronomy, biology and economics. How to create samples (cutting, etc.): each sample starts at a document's first prose paragraph and is cut at a random whole word 50 to 256 tokens later. Prompt to the target Qwen: the raw sample text, no chat template.</li>
-<li>For the NLA’s AV, the activation is injected into its fixed prompt as in the repo and the explanation is sampled at temperature 1 (up to 256 tokens; 8 resamples for the first 64 samples). The AR, reads the explanation through its summary prompt and returns the reconstructed activation, which is patched into the target model at the last token for the output KL.</li>
-<li><b>I use N={n} data samples, due to budget limitations (both GPU and transformation T are expensive!).</b></li>
+<li><b>Original input text to target Qwen:</b> FineFineWeb documents (the NLA's training corpus) from four domains, history, astronomy, biology and economics.</li>
+<li><b>Create samples:</b> each sample starts at a document's first prose paragraph and is cut at a random whole word 50 to 256 tokens later.</li>
+<li>For the NLA’s AV, the activation is injected into its fixed prompt as in the repo and the explanation is sampled at temperature 1 (up to 256 tokens). The AR reads the explanation through its summary prompt and returns the reconstructed activation, which is patched into the target model at the last token for the output KL.</li>
+<li>I use N={n} data samples, due to budget limitations (both GPU and transformation T are expensive!).</li>
 <li>I always analyze the NLA explanation on the last token of the text.</li>
 </ul></li>
 </ul>

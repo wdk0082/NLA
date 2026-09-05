@@ -42,7 +42,9 @@ Define the problem – what does ‘Look Similar / Different’ mean?
    * NLA paper only evaluates P(N=0|H=1).
 * How to measure H: 
    * I obtain z’ by z’ = T(z), where T is a transformation of text. When T is meaning-preserved transformation, e.g. paraphrase, translation, I set H to be 1. When T is set to be other transformations, e.g. ‘rewrite to its opposite meaning’, ‘change to unrelated text’, I set H to be 0. T is done by Fable 5.1.
-   * I also calculate the NLI score between z and z’ as a side support, which is xxx(brief explanation of NLI)
+   * I also calculate the NLI score between z and z’ as a side support, which is a natural language classifier's probability that z entails, contradicts or is neutral to z’ (entailment supports H=1, contradiction supports H=0).
+
+
 * How to measure N: To see whether or not text z and z’=T(z) are similar to an NLA, I calculate metrics on activation and output levels. The two levels test reconstruction faithfulness (activation FVE) and causal importance (output KL):
    * Activation reconstruction (FVE) changes: how much the reconstruction FVE on activation changes when I replace z by T(z) in NLA.
    * Output KL changes: how much the output token distribution KL (the KL with the target model w/o NLA) changes, when I replace z by T(z).
@@ -52,11 +54,12 @@ Define the problem – what does ‘Look Similar / Different’ mean?
 
 Experiment Setup
         
-* Model and NLA: I use Qwen 3.6 27B NLA as recommended in the doc. I use the xxx checkpoint. I run the model and the NLA on a single H200 GPU.
+* Model and NLA: I use Qwen 3.6 27B NLA as recommended in the doc (iteration 300 checkpoint). I run the model and the NLA on a single H200 GPU.
 * Data and prompt: 
-   * Original input text to target Qwen: xxx. How to create samples (cutting, etc.)xxx.  Prompt to the target Qwen: xxx.
-   * For the NLA’s AV, xxx. The AR, xxx. 
-   * I use N=xxx data samples, due to budget limitations (both GPU and transformation T are expensive!).
+   * Original input text to target Qwen: FineFineWeb documents (the NLA's training corpus) from four domains, history, astronomy, biology and economics. 
+   * Create samples: each sample starts at a document's first prose paragraph and is cut at a random whole word 50 to 256 tokens later. 
+   * For the NLA’s AV, the activation is injected into its fixed prompt as in the repo and the explanation is sampled at temperature 1 (up to 256 tokens). The AR reads the explanation through its summary prompt and returns the reconstructed activation, which is patched into the target model at the last token for the output KL.
+   * I use N=256 data samples, due to budget limitations (both GPU and transformation T are expensive!).
    * I always analyze the NLA explanation on the last token of the text.
 
 
