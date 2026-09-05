@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import argparse
 import base64
+import difflib
 import html
 import importlib.util
 import io as _io
+import re
 import sys
 from pathlib import Path
 
@@ -104,7 +106,7 @@ def kind_rows(R: dict, r: pd.DataFrame, kinds: list[str]) -> list[dict]:
     return rows
 
 
-def bar_plot(r: pd.DataFrame, kinds: list[str]) -> bytes:
+def bar_plot(r: pd.DataFrame, kinds: list[str], ref: bool = True, labels: bool = False) -> bytes:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -125,10 +127,15 @@ def bar_plot(r: pd.DataFrame, kinds: list[str]) -> bytes:
             color=[KIND_COLOR.get(k, "#888") for k in kinds],
             error_kw={"lw": 0.9, "ecolor": "#333"},
         )
-        if len(res):
+        if ref and len(res):
             m = float(res[key].median())
             ax.axhline(m, ls="--", lw=0.9, color="k", label=f"resample median {m:.3f}")
             ax.legend(fontsize=8, loc="upper left")
+        if labels:
+            top = float(np.nanmax(q[:, 2]))
+            for xi, (m, _, hi_) in zip(x, q, strict=True):
+                ax.text(xi, hi_ + 0.02 * top, f"{m:.3f}", ha="center", va="bottom", fontsize=9)
+            ax.set_ylim(top=top * 1.12)
         ax.axhline(0, lw=0.5, color="#999")
         ax.set_xticks(x)
         ax.set_xticklabels([LABEL[k] for k in kinds], rotation=20, ha="right", fontsize=8.5)
@@ -187,17 +194,37 @@ def alignment(r: pd.DataFrame) -> tuple[bytes, dict]:
 # ------------------------------------------------------------------ html pieces
 
 
-def panel(label: str, text: str, kind: str = "") -> str:
+def diff_html(z: str, z2: str, kind: str) -> str:
+    """z2 as paragraphs, with the tokens that differ from z (word-level diff) marked in the
+    transformation's colour."""
+    tok = re.compile(r"\n\s*\n|\S+|\s+")
+    a, b = tok.findall(z), tok.findall(z2)
+    out = []
+    for op, _, _, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        for t in b[j1:j2]:
+            if "\n\n" in t or ("\n" in t and t.strip() == ""):
+                out.append("</p><p>" if "\n\n" in t else " ")
+            elif op in ("insert", "replace") and t.strip():
+                out.append(f'<mark class="hl-{kind}">{esc(t)}</mark>')
+            else:
+                out.append(esc(t))
+    body = "".join(out).replace("<p></p>", "")
+    return f"<p>{body}</p>"
+
+
+def panel(label: str, body: str, kind: str = "") -> str:
     cls = f" k-{kind}" if kind else ""
-    return f'<div class="panel"><div class="panel-h{cls}">{esc(label)}</div><div class="panel-t">{paragraphs(text)}</div></div>'
+    return f'<div class="panel"><div class="panel-h{cls}">{esc(label)}</div><div class="panel-t">{body}</div></div>'
 
 
 def panels_grid(D: dict, kinds: list[str], cols: int) -> str:
     vs = {v["kind"]: v for v in D["variants"]}
-    items = [panel("raw z", D["explanation"], "orig")]
+    z = D["explanation"]
+    items = [panel("raw z", paragraphs(z), "orig")]
     for k in kinds:
         v = vs.get(k)
-        items.append(panel(LABEL[k], v["text"] if v else "(not produced for this activation)", k))
+        body = diff_html(z, v["text"], k) if v else "<p>(not produced for this activation)</p>"
+        items.append(panel(LABEL[k], body, k))
     return f'<div class="grid cols{cols}">{"".join(items)}</div>'
 
 
@@ -253,7 +280,7 @@ li>ul{margin:4px 0 4px}
 .note p{margin:0 0 6px;max-width:none}.note p:last-child{margin:0}
 .repo{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px;margin:0 0 6px}
 a{color:var(--accent-ink)}
-.toc{display:flex;flex-wrap:wrap;gap:6px 14px;padding:12px 0 4px;margin:18px 0 8px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:14.5px}
+.toc{display:flex;flex-direction:column;gap:4px;padding:12px 0 10px;margin:18px 0 8px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:15px}
 .toc a{text-decoration:none;color:var(--muted)}.toc a:hover{color:var(--accent-ink)}
 code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.9em}
 .key{border-left:3px solid var(--k-polarity);background:var(--panel);padding:12px 16px;border-radius:0 6px 6px 0;margin:14px 0 18px}
@@ -276,6 +303,8 @@ figcaption{font-size:14px;color:var(--muted);margin-top:10px;max-width:none}
 .panel-t{font-size:13.5px;line-height:1.55;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere}
 .panel-t p{max-width:none;margin:0 0 9px}.panel-t p:last-child{margin:0}
 mark.tok{background:var(--tok);color:var(--tokink);font-weight:700;padding:0 4px;border-radius:3px}
+mark[class^=hl-]{color:inherit;border-radius:3px;padding:0 1px}
+.hl-paraphrase{background:rgba(31,119,180,.2)}.hl-shuffle{background:rgba(217,112,10,.22)}.hl-translate{background:rgba(44,160,44,.22)}.hl-polarity{background:rgba(194,24,91,.22)}.hl-cat{background:rgba(239,108,0,.25)}.hl-unrelated_token{background:rgba(123,94,167,.22)}.hl-unrelated{background:rgba(140,86,75,.22)}
 .figcap{font-size:14px;color:var(--muted);margin:-12px 0 20px;max-width:none}
 .appendix h3{margin-top:30px}
 [hidden]{display:none!important}
@@ -319,13 +348,12 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
         + panels_grid(D, [*H1, "polarity", "unrelated"], 3)
         for D in more
     )
-    return f"""<title>Do Humans and an NLA Read the Same Text the Same Way?</title>
+    return f"""<title>Do Humans and an NLA Understand the Same Text the Same Way?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>{CSS}</style>
 <main>
-<p class="eyebrow">EXP002 · Qwen3.6-27B NLA, layer 42 · {n} samples</p>
-<h1>Do Humans and an NLA Read the Same Text the Same Way?</h1>
+<h1>Do Humans and an NLA Understand the Same Text the Same Way?</h1>
 <p class="byline">Zixuan Wang · September 2026</p>
 <div class="note"><p>This page is the Claude Artifact version of the write-up, made from the <a href="{DOC_URL}">Google Doc</a> after the write-up was finished: identical in content, formatted for reading.</p></div>
 <p class="repo">Public Github Repo: <a href="{REPO_URL}">{REPO_URL}</a></p>
@@ -333,10 +361,11 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 
 <h2 id="summary">Executive Summary</h2>
 <p>I found that completely changing an NLA explanation’s meaning (mostly contradiction) and feeding it back to NLA’s decoder, AR, can make nearly no changes to the activation reconstruction FVE and output KL. Meanwhile, only changing the mentionings of the final input token in the NLA explanation will totally break the NLA. Keeping the final-input-token mentionings and changing all other sentences will break the activation reconstruction as well, but preserve the output KL. I conclude that my studied NLA’s understanding of natural language is different from human, and the final-input-token mentionings in the NLA explanation plays an important and interesting role that is worth further investigation.</p>
-<h3>One explanation and its three transformations</h3>
+<h3>One randomly selected explanation and its three transformations</h3>
 {panels_grid(snap, ["polarity", "cat", "unrelated_token"], 2)}
-<p class="figcap">The NLA explanation z of activation idx {snap["idx"]} (final token “{esc(snap["final_token"].strip())}”) and the three transformations: Flip (every phrase negated), Change Final Token (every mention of the final token replaced by “cat”), Only Keep Final Token (another sample's explanation with its final-token mentions replaced by this sample's token).</p>
-{figure(bar_plot(r, ["polarity", "cat", "unrelated_token"]), f"FVE drop and output KL increase of the three transformations over all {n} samples, relative to the raw explanation of the same sample (bar: median; whiskers: 10th to 90th percentile; dashed line: the resample median).")}
+<p class="figcap">The NLA explanation z of activation idx {snap["idx"]} (final token “{esc(snap["final_token"].strip())}”) and the three transformations: Flip (every phrase negated), Change Final Token (every mention of the final token replaced by “cat”), Only Keep Final Token (another sample's explanation with its final-token mentions replaced by this sample's token). In every transformed text the words that differ from z are highlighted in the transformation's colour.</p>
+<h3>All {n} samples: the three transformations’ FVE drop and KL increase</h3>
+{figure(bar_plot(r, ["polarity", "cat", "unrelated_token"], ref=False, labels=True), f"FVE drop and output KL increase of the three transformations over all {n} samples, relative to the raw explanation of the same sample (bar: median, printed above it; whiskers: 10th to 90th percentile).")}
 
 <h2 id="motivation">Initial Motivation</h2>
 <ul>
@@ -392,7 +421,7 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 </ul></li>
 </ul>
 <h3>Example of a data sample and its explanation</h3>
-<div class="grid cols2">{context_panel(snap)}{panel("NLA explanation z", snap["explanation"], "orig")}</div>
+<div class="grid cols2">{context_panel(snap)}{panel("NLA explanation z", paragraphs(snap["explanation"]), "orig")}</div>
 <p>The FVE value of mine ({fve:.3f} over the {n} samples{f"; {san_fve:.3f} on the 64 activations shipped with the checkpoint" if san_fve is not None else ""}) is similar to the reported value in the chosen NLA’s huggingface repo (held-out FVE 0.756 at RL step 300, the adapter I use).</p>
 {figure(R["plots"] / "fve_hist.png", f"The FVE histogram of ours: one value per sample, 1 − L_h of its raw explanation; the red line is the mean, {fve:.3f}.")}
 <ul>
