@@ -367,8 +367,6 @@ b{font-weight:600}
 .toc{display:flex;flex-direction:column;gap:4px;padding:12px 0 10px;margin:18px 0 8px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:15px}
 .toc a{text-decoration:none;color:var(--muted)}.toc a:hover{color:var(--accent-ink)}
 code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.9em}
-.key{border-left:3px solid var(--k-polarity);background:var(--panel);padding:12px 16px;border-radius:0 6px 6px 0;margin:14px 0 18px}
-.key p{max-width:none}
 .tbl{overflow-x:auto;margin:10px 0 18px}
 table{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--panel)}
 th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
@@ -528,14 +526,12 @@ def build(R: dict, snap: dict, more: list[dict]) -> str:
 {kinds_table(rows_main)}
 {figure(broken_bar_plot(r, [*H1, "polarity", "unrelated"]), f"Median over all {n} samples; whiskers: 10th to 90th percentile; dashed line: resample median. The y-axis is broken so that the Unrelated bar does not flatten the others.")}
 <p>For the H=1 group (paraphrase, shuffle, translation), my conclusion agrees with the NLA paper: in my evaluated samples, H=1 transformation hurt very little on activation reconstruction FVE, as well as output KL. In addition, the NLI classification also agrees that z and z’=T(z) are mostly ‘entail’ relationships.</p>
-<div class="key">
 <p>For the H=0 group : the <i>Unrelated</i> transformation behaves as we expected – it completely destroys the reconstruction, regarding both activation FVE and output KL. <span class="red">However, the <i>Flip</i> transformation is surprising, and it’s the key finding here: although <i>Flip</i> transformation T(z) has completely changed the meaning of the explanation z, the FVE and output KL hardly drops (both compared to the raw FVE value, and the H=1 group)!</span> Three things support that the meaning of z has flipped in human’s common understanding:</p>
 <ul>
 <li>It’s the definition of the Flip transformation, and it’s performed by a very capable model, Fable 5.1.</li>
 <li>By reading the examples ourselves, one can clearly know its meaning has completely changed.</li>
 <li>The NLI classification supports our conclusion: {nli_flip:.3f} probability of contradiction.</li>
 </ul>
-</div>
 <p>But what if the very little drop of FVE actually means something? (So our sensitivity is not enough) To address this, I vary the threshold (sensitivity) for classifying an FVE drop to be ‘looks similar/different to an NLA’. The result is clear: P(N=0|H=1) and P(N=1|H=0) can’t be low at the same time for any threshold value. For the reference value (the FVE changes of resampling NLA-AV, basically the noise floor here),  P(N=0|H=1) is low while P(N=1|H=0) is very high – the NLA paper’s steganography result holds here, while their unmeasured property P(N=1|H=0) turns out to be bad.</p>
 {figure(curves_png, f"N=1 when the FVE drop ≤ τ. Dotted line: the reference τ, the 90th percentile of the resample FVE drops ({al['ref']:.3f}), where P(N=0 | H=1) = {al['ref_steg']:.2f} and P(N=1 | H=0) = {al['ref_alias']:.2f}.")}
 <p><b>Therefore, I conclude that the hypothesis ‘<i>If two texts look significantly different for a human, they also look different for an NLA</i>’ is not true for my chosen NLA (<a href="https://huggingface.co/ceselder/qwen3.6-27b-nla-rl">Qwen 3.6 27B NLA</a>).</b></p>
